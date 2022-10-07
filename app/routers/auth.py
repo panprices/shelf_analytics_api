@@ -1,19 +1,56 @@
 from datetime import datetime, timedelta
+from typing import Optional
 
 import fastapi
 import requests
 from fastapi import Depends, Response, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from firebase_admin import auth
+from firebase_admin import auth, firestore
 from jose import jwt
 from starlette import status
 
 from app.config.settings import get_settings, Settings
-from app.definitions.auth import AuthenticationRequest, AuthenticationResponse, TokenData
+from app.definitions.auth import AuthenticationRequest, AuthenticationResponse, TokenData, UserMetadata
 from app.security import firebase_app, JWT_ALGORITHM, JWT_SECRET_KEY
 
 router = fastapi.APIRouter(prefix="/authenticate")
 rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
+
+
+def get_user_metadata(uid: str) -> Optional[UserMetadata]:
+    db = firestore.client()
+    user_metadata = db.collection('shelf-analytics-user-metadata').document(uid).get()
+
+    if not user_metadata.exists:
+        return None
+
+    return UserMetadata(**user_metadata.to_dict())
+
+
+def authenticate_verified_user(uid: str) -> AuthenticationResponse:
+    """
+    This method should only be called once the user has verified that they are who they pretend to be either by
+    providing a password or a valid firebase token.
+    """
+
+    user_metadata = get_user_metadata(uid)
+    if not user_metadata:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not properly fulfill the authentication request. User exists but no permissions assigned!",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+    token_data = TokenData(
+        uid=uid, **user_metadata.dict()
+    )
+
+    token = jwt.encode({
+        "data": token_data.dict(),
+        "exp": datetime.utcnow() + timedelta(hours=1)
+    }, JWT_SECRET_KEY, JWT_ALGORITHM)
+
+    return AuthenticationResponse(jwt=token, success=True)
 
 
 @router.post("/withEmailAndPassword", tags=["auth"], response_model=AuthenticationResponse)
@@ -44,16 +81,7 @@ def authenticate(user: AuthenticationRequest,
         return AuthenticationResponse(success=False)
 
     uid = auth.get_user_by_email(user.email, app=firebase_app).uid
-    token_data = TokenData(
-        uid=uid, client="TODO", roles=[]
-    )
-
-    token = jwt.encode({
-        "data": token_data.dict(),
-        "exp": datetime.utcnow() + timedelta(hours=1)
-    }, JWT_SECRET_KEY, JWT_ALGORITHM)
-
-    return AuthenticationResponse(jwt=token, success=True)
+    return authenticate_verified_user(uid)
 
 
 @router.post("/withFirebaseToken", tags=["auth"], response_model=AuthenticationResponse)
@@ -81,15 +109,7 @@ def authenticate_with_firebase_token(
     try:
         token = credential.credentials
         uid = auth.verify_id_token(token)['uid']
-
-        token_data = TokenData(uid=uid, client="TODO", roles=[])
-
-        token = jwt.encode({
-            "data": token_data.dict(),
-            "exp": datetime.utcnow() + timedelta(hours=1)
-        }, JWT_SECRET_KEY, JWT_ALGORITHM)
-
-        return AuthenticationResponse(jwt=token, success=True)
+        return authenticate_verified_user(uid)
     except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

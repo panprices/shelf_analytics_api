@@ -14,7 +14,10 @@ class AuthenticationResponse(BaseModel):
     success: bool = Field(default=False, description="Whether the authentication worked")
 
 
-class TokenData(BaseModel):
-    uid: str
+class UserMetadata(BaseModel):
     client: str
     roles: List[str]
+
+
+class TokenData(UserMetadata):
+    uid: str
