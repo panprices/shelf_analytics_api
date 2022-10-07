@@ -1,0 +1,47 @@
+from typing import List
+
+from pydantic import BaseModel, Field
+
+
+class GlobalFilter(BaseModel):
+    """
+    Represents the model for filtering on the data showed through the UI.
+
+    It corresponds to the filter widget showed at the top of every page in the FE.
+
+    The date should be passed in the format: DD/MM/YYYY
+
+    Countries are passed by the country code:
+    - Sweden - SE
+    - Norway - NO
+    - Germany - DE
+    ...
+
+    Retailers and categories are passed by their literal values (as returned by this API).
+    """
+    start_date: str = Field(description="Test description", example="15/10/2022")
+    countries: List[str] = Field(
+        description="The list of desired countries. If no country is specified all countries are considered.",
+        example=["SE", "NO"]
+    )
+    retailers: List[str] = Field(
+        description="The list of desired retailers. If no retailer is specified all retailers are considered.",
+        example=["Homeroom", "Trademax"]
+    )
+    categories: List[str] = Field(
+        description="The list of desired countries. If no country is specified all countries are considered.",
+        # TODO: add an example for category selection
+        example="TODO"
+    )
+
+
+class PagedGlobalFilter(GlobalFilter):
+    page_number: int = Field(
+        description="The number of the currently requested page in the pagination system.",
+        example=0
+    )
+    page_size: int = Field(
+        default=10,
+        description="The number of results displayed per page.",
+        example=10
+    )
