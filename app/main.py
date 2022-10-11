@@ -1,3 +1,6 @@
+import os
+
+import uvicorn
 from fastapi import FastAPI
 from .routers import auth, users, availability, data, overview
 
@@ -10,7 +13,6 @@ app = FastAPI(
         returns valuable overview insights as well as the ability to analyze particular products and observe how they
         are doing. 
     """,
-
 )
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -19,11 +21,8 @@ app.include_router(data.router)
 app.include_router(overview.router)
 
 
-@app.get("/", tags=["something"])
-async def root():
-    return {"message": "Hello World"}
-
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+if __name__ == "__main__":
+    port = os.getenv("PORT")
+    if not port:
+        port = 8080
+    uvicorn.run(app, host="0.0.0.0", port=8080)
