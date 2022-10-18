@@ -2,8 +2,8 @@ import os
 
 import uvicorn
 from fastapi import FastAPI
-from .routers import auth, users, availability, data, overview
 
+from app.routers import auth, users, availability, data, overview
 
 app = FastAPI(
     title="Panprices - Digital Shelf Analytics Solution API",

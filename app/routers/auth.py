@@ -10,7 +10,7 @@ from jose import jwt
 from starlette import status
 
 from app.config.settings import get_settings, Settings
-from app.definitions.auth import AuthenticationRequest, AuthenticationResponse, TokenData, UserMetadata
+from app.schemas.auth import AuthenticationRequest, AuthenticationResponse, TokenData, UserMetadata
 from app.security import firebase_app, JWT_ALGORITHM, JWT_SECRET_KEY
 
 router = fastapi.APIRouter(prefix="/authenticate")

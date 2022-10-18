@@ -1,11 +1,15 @@
 from functools import lru_cache
 
 from pydantic import BaseSettings, Field
-import firebase_admin
 
 
 class Settings(BaseSettings):
     firebase_api_key: str = Field()
+
+    db_user: str = Field()
+    db_pass: str = Field()
+    db_name: str = Field()
+    db_host: str = Field()
 
     class Config:
         env_file = ".env"

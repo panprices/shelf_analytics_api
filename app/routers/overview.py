@@ -1,8 +1,15 @@
-from fastapi import APIRouter
+import uuid
 
-from app.definitions.filters import GlobalFilter
-from app.definitions.general import TrackedRetailerPool, ProductCategorisation, ActiveMarket
-from app.definitions.scores import HistoricalScore
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app import crud
+from app.database import get_db
+from app.schemas.auth import TokenData
+from app.schemas.filters import GlobalFilter
+from app.schemas.general import TrackedRetailerPool, ProductCategorisation, ActiveMarket
+from app.schemas.scores import HistoricalScore
+from app.security import get_user_id
 from app.tags import TAG_OVERVIEW, TAG_FILTERING
 
 router = APIRouter(prefix="")
@@ -26,8 +33,12 @@ def get_countries(client_id: str):
 
 
 @router.get("/retailers", tags=[TAG_OVERVIEW, TAG_FILTERING], response_model=TrackedRetailerPool)
-def get_retailers(client_id: str):
-    pass
+def get_retailers(user: TokenData = Depends(get_user_id),
+                  db: Session = Depends(get_db)):
+    retailers = crud.get_retailers(db, user.client)
+    return {
+        "retailers": retailers
+    }
 
 
 @router.get("/categories", tags=[TAG_OVERVIEW, TAG_FILTERING], response_model=ProductCategorisation)

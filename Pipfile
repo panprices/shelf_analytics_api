@@ -11,6 +11,8 @@ firebase-admin = "*"
 python-dotenv = "*"
 requests = "*"
 python-jose = {extras = ["cryptography"], version = "*"}
+sqlalchemy = "*"
+psycopg2-binary = "*"
 
 [dev-packages]
 

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from app.definitions.auth import TokenData
-from app.definitions.filters import PagedGlobalFilter
-from app.definitions.product import ProductPage
+from app.schemas.auth import TokenData
+from app.schemas.filters import PagedGlobalFilter
+from app.schemas.product import ProductPage
 from app.security import get_user_id
 from app.tags import TAG_DATA
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from app.definitions.filters import GlobalFilter
-from app.definitions.scores import HistoricalScore
+from app.schemas.filters import GlobalFilter
+from app.schemas.scores import HistoricalScore
 from app.tags import TAG_AVAILABILITY, TAG_OVERVIEW
 
 router = APIRouter(prefix="/availability")
