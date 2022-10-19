@@ -37,7 +37,7 @@ class GlobalFilter(BaseModel):
 
 class PagedGlobalFilter(GlobalFilter):
     page_number: int = Field(
-        description="The number of the currently requested page in the pagination system.",
+        description="The number of the currently requested page in the pagination system. Index is 1 based.",
         example=0
     )
     page_size: int = Field(
@@ -45,3 +45,6 @@ class PagedGlobalFilter(GlobalFilter):
         description="The number of results displayed per page.",
         example=10
     )
+
+    def get_products_offset(self):
+        return (self.page_number - 1) * self.page_size

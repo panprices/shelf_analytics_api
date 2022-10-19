@@ -10,7 +10,7 @@ JWT_SECRET_KEY = "ba3f8bc7627f332af25174ddf4bc8765a31d82d160238176dfe411abf0a219
 JWT_ALGORITHM = "HS256"
 
 
-def get_user_id(
+def get_user_data(
     credential: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))
 ) -> TokenData:
     if credential is None:

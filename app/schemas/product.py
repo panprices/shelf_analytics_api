@@ -1,6 +1,9 @@
-from typing import List
+import uuid
+from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
+
+from app.schemas.general import NamedRetailer
 
 
 class ProductScaffold(BaseModel):
@@ -9,7 +12,7 @@ class ProductScaffold(BaseModel):
     plus the product id to be used for further querying.
     """
 
-    id: str = Field(
+    id: Union[str, uuid.UUID] = Field(
         description="""
         UUID identifying the product uniquely. This id identifies the product, not the offer. 
         To fetch the same offer a query should include both this id and the retailer
@@ -24,7 +27,7 @@ class ProductScaffold(BaseModel):
         description="The GTIN associated by the customer to the product",
         example="7350133230816"
     )
-    retailer: str = Field(
+    retailer: NamedRetailer = Field(
         description="The retailer selling this product",
         example="Trademax"
     )
@@ -43,7 +46,7 @@ class ProductScaffold(BaseModel):
             'eu': "EUR"
         }
     )
-    margin: float = Field(
+    margin: Optional[float] = Field(
         description="The margin of profit obtained by the retailer on this product",
         example=0.56
     )
@@ -55,7 +58,7 @@ class ProductScaffold(BaseModel):
         description="The number of images recommended by the client",
         example=9
     )
-    title_matching_score: float = Field(
+    title_matching_score: Optional[float] = Field(
         description="A score showing how similar the retailer's title is to the title from the client",
         example=0.67
     )
@@ -63,12 +66,11 @@ class ProductScaffold(BaseModel):
         description="The SKU assigned by the client",
         example="16052-101"
     )
-    wholesale_price: float = Field(
-        # TODO: what is this?
-        description="",
+    wholesale_price: Optional[float] = Field(
+        description="The price at which the client sells the item to the retailer (the value captured by the brand)",
         example=2602
     )
-    category_rank: int = Field(
+    popularity_index: int = Field(
         description="The ranking of this product inside its leaf category at the retailer",
         example=13
     )
@@ -76,7 +78,7 @@ class ProductScaffold(BaseModel):
         description="Meta hehe. Kidding. This is the description displayed by the retailer for this product",
         example="Imagine a very long description here"
     )
-    rating: float = Field(
+    review_average: float = Field(
         description="The rating of this product, average of the scores from the reviews the product received.",
         example=3.7
     )
@@ -90,6 +92,9 @@ class ProductScaffold(BaseModel):
         example=True
     )
 
+    class Config:
+        orm_mode = True
+
 
 class ProductPage(BaseModel):
     """
@@ -102,7 +107,10 @@ class ProductPage(BaseModel):
                 id="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
                 name="Matgrupp Copenhagen med Matstol Comfort",
                 gtin="7350133230816",
-                retailer="Trademax",
+                retailer={
+                    "id": "07da79c0-995c-46e6-ae7b-26b5663afab5",
+                    "name": "Trademax"
+                },
                 country="SE",
                 price=3201,
                 currency="SEK",
@@ -112,14 +120,14 @@ class ProductPage(BaseModel):
                 title_matching_score=0.67,
                 sku="GR22606",
                 wholesale_price=2503,
-                category_rank=13,
+                popularity_index=13,
                 description="""
                     En trendsäker matgrupp i skandinavisk design! Vårt omtyckta, rektangulära matbord 
                     Kenya har en tidlös design med ribbat utförande i smakfull teak. Kryssbenen ger ett stadigt och 
                     charmigt intryck. Mått: 120x70 cm. Här i smäcker kombination med 4st läckra matstolar från samma 
                     serie. Stolarna är också i teak och är hopfällbara för praktisk förvaring. Möblera uteplatsen 
                     inbjudande och skapa ett blickfång som imponerar!""",
-                rating=3.7,
+                review_average=3.7,
                 number_of_reviews=19,
                 in_stock=True
             ),
@@ -127,7 +135,10 @@ class ProductPage(BaseModel):
                 id="1a3eff7b-cf8f-4019-959d-e68983322707",
                 name="KENYA Matbord",
                 gtin="7350133230725",
-                retailer="Trademax",
+                retailer={
+                    "name": "Trademax",
+                    "id": "07da79c0-995c-46e6-ae7b-26b5663afab5"
+                },
                 country="DK",
                 price=10350,
                 currency="DKK",
@@ -137,7 +148,7 @@ class ProductPage(BaseModel):
                 title_matching_score=0.75,
                 sku="9525-244",
                 wholesale_price=8230,
-                category_rank=4,
+                popularity_index=4,
                 description="""
                     Det ovala matbordet Kenya passar till altanen, uteplatsen och trädgården. Bordet 
                     rymmer sex stycken sittplatser och är perfekt till en somrig middagsbjudning. Produkten är producerad 
@@ -145,7 +156,7 @@ class ProductPage(BaseModel):
                     ändamålet och inte skövlade från ömtålig regnskog. Som ett av de tåligaste träslagen innehåller teak 
                     mycket olja som sedvanligt behövs för att inte materialet ska spricka. Eftersom träslaget innehåller 
                     naturligt mycket behöver inte möblerna impregneras lika ofta.""",
-                rating=4.4,
+                review_average=4.4,
                 number_of_reviews=32,
                 in_stock=True
             )

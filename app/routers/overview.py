@@ -1,5 +1,3 @@
-import uuid
-
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -9,7 +7,7 @@ from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter
 from app.schemas.general import TrackedRetailerPool, ProductCategorisation, ActiveMarket
 from app.schemas.scores import HistoricalScore
-from app.security import get_user_id
+from app.security import get_user_data
 from app.tags import TAG_OVERVIEW, TAG_FILTERING
 
 router = APIRouter(prefix="")
@@ -28,12 +26,16 @@ def get_overall_scores(client_id: str, global_filter: GlobalFilter):
 
 
 @router.get("/countries", tags=[TAG_OVERVIEW, TAG_FILTERING], response_model=ActiveMarket)
-def get_countries(client_id: str):
-    pass
+def get_countries(user: TokenData = Depends(get_user_data),
+                  db: Session = Depends(get_db)):
+    countries = crud.get_countries(db, user.client)
+    return {
+        "countries": [c[0] for c in countries]
+    }
 
 
 @router.get("/retailers", tags=[TAG_OVERVIEW, TAG_FILTERING], response_model=TrackedRetailerPool)
-def get_retailers(user: TokenData = Depends(get_user_id),
+def get_retailers(user: TokenData = Depends(get_user_data),
                   db: Session = Depends(get_db)):
     retailers = crud.get_retailers(db, user.client)
     return {
@@ -42,5 +44,9 @@ def get_retailers(user: TokenData = Depends(get_user_id),
 
 
 @router.get("/categories", tags=[TAG_OVERVIEW, TAG_FILTERING], response_model=ProductCategorisation)
-def get_categories(client_id: str):
-    pass
+def get_categories(user: TokenData = Depends(get_user_data),
+                   db: Session = Depends(get_db)):
+    categories = crud.get_brand_categories(db, user.client)
+    return {
+        "categories": [{"id": c.id, "name": c.category_tree[-1]['name']} for c in categories]
+    }
