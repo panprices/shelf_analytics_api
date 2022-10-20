@@ -6,6 +6,30 @@ from pydantic import BaseModel, Field
 from app.schemas.general import NamedRetailer
 
 
+class BrandCategoryScaffold(BaseModel):
+    url: str = Field(description="The url to the category",
+                     example="https://www.venturedesign.se/utemobler/bord/cafbord")
+    id: Union[str, uuid.UUID] = Field(description="The id of the category",
+                                      example="31ef6c6c-be2d-4478-a948-10a66dad1d2a")
+
+    class Config:
+        orm_mode = True
+
+
+class MatchedBrandProductScaffold(BaseModel):
+    category: BrandCategoryScaffold
+
+    class Config:
+        orm_mode = True
+
+
+class MatchScaffold(BaseModel):
+    brand_product: MatchedBrandProductScaffold
+
+    class Config:
+        orm_mode = True
+
+
 class ProductScaffold(BaseModel):
     """
     Holds the *scaffold* data for a product, meaning only the high level data directly visible in the data table,
@@ -91,6 +115,9 @@ class ProductScaffold(BaseModel):
         description="Whether the product is in stock at the retailer",
         example=True
     )
+    matched_brand_products: List[MatchScaffold] = Field(
+        description="List of matching candidates"
+    )
 
     class Config:
         orm_mode = True
@@ -129,7 +156,8 @@ class ProductPage(BaseModel):
                     inbjudande och skapa ett blickfång som imponerar!""",
                 review_average=3.7,
                 number_of_reviews=19,
-                in_stock=True
+                in_stock=True,
+                matched_brand_products=[]
             ),
             ProductScaffold(
                 id="1a3eff7b-cf8f-4019-959d-e68983322707",
@@ -158,7 +186,10 @@ class ProductPage(BaseModel):
                     naturligt mycket behöver inte möblerna impregneras lika ofta.""",
                 review_average=4.4,
                 number_of_reviews=32,
-                in_stock=True
+                in_stock=True,
+                matched_brand_products=[]
             )
         ]
     )
+
+    count: int = Field(description="The number of offers returned", example=20)

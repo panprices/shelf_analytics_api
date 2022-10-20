@@ -1,7 +1,6 @@
 import enum
-import json
 
-from sqlalchemy import Column, String, ForeignKey, Table, Integer, Enum, BigInteger, Float, Boolean, select, func
+from sqlalchemy import Column, String, ForeignKey, Table, Integer, Enum, BigInteger, Float, Boolean, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, column_property
@@ -84,7 +83,7 @@ class RetailerProduct(Base, GenericProductMixin, UpdatableMixin):
     category = relationship("RetailerCategory", back_populates="products")
 
     retailer_id = Column(UUID, ForeignKey("retailer.id"))
-    retailer = relationship("Retailer", back_populates="products")
+    retailer = relationship("Retailer", back_populates="products", lazy="joined")
 
     matched_brand_products = relationship("ProductMatching", back_populates="retailer_product")
     images = relationship("RetailerImage", back_populates="retailer_product")

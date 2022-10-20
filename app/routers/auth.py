@@ -47,7 +47,7 @@ def authenticate_verified_user(uid: str) -> AuthenticationResponse:
 
     token = jwt.encode({
         "data": token_data.dict(),
-        "exp": datetime.utcnow() + timedelta(hours=1)
+        "exp": datetime.utcnow() + timedelta(hours=8)
     }, JWT_SECRET_KEY, JWT_ALGORITHM)
 
     return AuthenticationResponse(jwt=token, success=True)

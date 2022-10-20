@@ -25,6 +25,7 @@ class BrandCategory(Base, GenericCategoryMixin):
     __tablename__ = "brand_category"
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brand.id"))
     brand = relationship("Brand", back_populates="categories")
+    products = relationship("BrandProduct", back_populates="category")
 
 
 class BrandImage(Base):
@@ -41,7 +42,10 @@ class BrandProduct(Base, GenericProductMixin, UpdatableMixin):
     __tablename__ = "brand_product"
 
     brand_id = Column(UUID, ForeignKey("brand.id"))
+    category_id = Column(UUID, ForeignKey("brand_category.id"))
 
     matched_retailer_products = relationship("ProductMatching", back_populates="brand_product")
     brand = relationship("Brand", back_populates="products")
     images = relationship("BrandImage", back_populates="product")
+    category = relationship("BrandCategory", back_populates="products")
+

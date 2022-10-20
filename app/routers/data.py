@@ -19,5 +19,6 @@ def get_products(page_global_filter: PagedGlobalFilter,
     products = crud.get_products(db, user.client, page_global_filter)
 
     return {
-        "products": products
+        "products": products,
+        "count": len(products)
     }
