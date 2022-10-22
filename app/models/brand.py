@@ -12,7 +12,6 @@ from app.models.retailer import retailer_brand_association_table
 class Brand(Base):
     __tablename__ = "brand"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String)
     url = Column(String)
 
@@ -33,7 +32,7 @@ class BrandImage(Base):
 
     url = Column(String)
     is_obsolete = Column(Boolean)
-    brand_product_id = Column(UUID, ForeignKey("brand_product.id"))
+    brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
 
     product = relationship("BrandProduct", back_populates="images")
 
@@ -41,8 +40,8 @@ class BrandImage(Base):
 class BrandProduct(Base, GenericProductMixin, UpdatableMixin):
     __tablename__ = "brand_product"
 
-    brand_id = Column(UUID, ForeignKey("brand.id"))
-    category_id = Column(UUID, ForeignKey("brand_category.id"))
+    brand_id = Column(UUID(as_uuid=True), ForeignKey("brand.id"))
+    category_id = Column(UUID(as_uuid=True), ForeignKey("brand_category.id"))
 
     matched_retailer_products = relationship("ProductMatching", back_populates="brand_product")
     brand = relationship("Brand", back_populates="products")

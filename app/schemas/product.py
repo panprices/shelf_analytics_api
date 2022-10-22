@@ -31,6 +31,10 @@ class MatchScaffold(BaseModel):
 
 
 class ProductScaffold(BaseModel):
+
+    def __int__(self, **kwargs):
+        super(ProductScaffold).__init__(**kwargs)
+
     """
     Holds the *scaffold* data for a product, meaning only the high level data directly visible in the data table,
     plus the product id to be used for further querying.

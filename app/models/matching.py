@@ -23,8 +23,8 @@ class MatchingCertaintyType(enum.Enum):
 class ProductMatching(Base, UpdatableMixin):
     __tablename__ = "product_matching"
 
-    brand_product_id = Column(UUID, ForeignKey("brand_product.id"))
-    retailer_product_id = Column(UUID, ForeignKey("retailer_product.id"))
+    brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
+    retailer_product_id = Column(UUID(as_uuid=True), ForeignKey("retailer_product.id"))
     type = Column(Enum(MatchingType))
     image_score = Column(Float)
     text_score = Column(Float)

@@ -3,6 +3,8 @@ from typing import List
 
 from pydantic import BaseModel, Field, validator
 
+from app.config.constants import DATE_FORMAT
+
 
 class GlobalFilter(BaseModel):
 
@@ -41,7 +43,7 @@ class GlobalFilter(BaseModel):
         if not isinstance(value, str):
             return value
 
-        return datetime.strptime(value, "%d/%m/%Y")
+        return datetime.strptime(value, DATE_FORMAT)
 
 
 class PagedGlobalFilter(GlobalFilter):

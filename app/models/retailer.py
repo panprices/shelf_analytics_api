@@ -31,7 +31,7 @@ class Retailer(Base):
 class RetailerCategory(Base, GenericCategoryMixin):
     __tablename__ = "retailer_category"
 
-    retailer_id = Column(UUID, ForeignKey("retailer.id"))
+    retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
 
     retailer = relationship("Retailer", back_populates="categories")
     products = relationship("RetailerProduct", back_populates="category")
@@ -62,7 +62,7 @@ class RetailerImage(Base):
     __tablename__ = "retailer_image"
 
     url = Column(String)
-    retailer_product_id = Column(UUID, ForeignKey("retailer_product.id"))
+    retailer_product_id = Column(UUID(as_uuid=True), ForeignKey("retailer_product.id"))
 
     retailer_product = relationship("RetailerProduct", back_populates="images")
 
@@ -79,10 +79,10 @@ class RetailerProduct(Base, GenericProductMixin, UpdatableMixin):
     is_discounted = Column(Boolean)
     original_price = Column(BigInteger)
 
-    category_id = Column(UUID, ForeignKey("retailer_category.id"))
+    category_id = Column(UUID(as_uuid=True), ForeignKey("retailer_category.id"))
     category = relationship("RetailerCategory", back_populates="products")
 
-    retailer_id = Column(UUID, ForeignKey("retailer.id"))
+    retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
     retailer = relationship("Retailer", back_populates="products", lazy="joined")
 
     matched_brand_products = relationship("ProductMatching", back_populates="retailer_product")
