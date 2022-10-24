@@ -1,11 +1,8 @@
-from datetime import datetime
 from typing import List
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
-from app.crud.brands import get_brand_categories
-from app.crud.retailers import get_retailers, get_countries
 from app.models import (
     RetailerProduct,
     BrandProduct,
@@ -17,20 +14,28 @@ from app.schemas.filters import PagedGlobalFilter
 def get_products(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
 ) -> List[RetailerProduct]:
-    retailers = global_filter.retailers
-    if not retailers:
-        retailers = [r.id.hex for r in get_retailers(db, brand_id)]
-    retailers_filter = f"""('{"', '".join(retailers)}')"""
+    """
+    Returns the list of products from each retailer corresponding to the client currently using the application.
 
-    categories = global_filter.categories
-    if not categories:
-        categories = [c.id.hex for c in get_brand_categories(db, brand_id)]
-    categories_filter = f"""('{"', '".join(categories)}')"""
+    A special request here was to also return unmatched items from the client (brand), so they can easily keep an eye
+    on the products they need to push on. These lists of unmatched items should be added on a 'per retailer' basis
+    meaning that if the item A is missing from retailers X and Y, then we need to add to rows corresponding to A at X,
+    and A at Y respectively.
 
-    countries = global_filter.countries
-    if not countries:
-        countries = [c[0] for c in get_countries(db, brand_id)]
-    countries_filter = f"""('{"', '".join(countries)}')"""
+    To fulfill this requirement, we use plain SQL queries concatenated by 'UNION ALL' statements, then we apply the
+    set LIMIT and OFFSET corresponding to paging on the result.
+
+    Note: the mock-up missing products are returned without the matching brand product. The connection between a
+    retailer product and a brand product is done through the `product_matching` association table, which does not have
+    any rows for the mock-up products. If you require the "match" as well, see :func:~`app.routers.data` for an example
+    of how to do that. We chose to keep that logic out of this file to avoid creating a dependency between 2 crud
+    solvers, which could evolve in a circular dependency in the future.
+
+    :param db:
+    :param brand_id:
+    :param global_filter:
+    :return:
+    """
 
     marched_statement = f"""
         SELECT rp.id, 
@@ -58,9 +63,9 @@ def get_products(
         JOIN brand b ON rtb.brand_id = b.id
         JOIN product_matching pm on pm.retailer_product_id = rp.id
         JOIN brand_product bp ON pm.brand_product_id = bp.id
-        WHERE bp.category_id IN {categories_filter}
-            AND rp.retailer_id IN {retailers_filter}
-            AND r.country IN {countries_filter}
+        WHERE bp.category_id IN :categories
+            AND rp.retailer_id IN :retailers
+            AND r.country IN :countries
             AND rp.created_at > :start_date
     """
 
@@ -83,46 +88,32 @@ def get_products(
                 False AS is_discounted,
                 0 AS original_price,
                 NULL AS category_id,
-                '{r}'::uuid AS retailer_id,
+                :retailer_{index} AS retailer_id,
                 'out_of_stock' as availability
             FROM (
                 SELECT * 
                 FROM brand_product 
-                WHERE brand_id = '{brand_id}' AND category_id IN {categories_filter}
+                WHERE brand_id = :brand_id AND category_id IN :categories
             ) bp 
             LEFT OUTER JOIN product_matching pm ON pm.brand_product_id = bp.id
             LEFT OUTER JOIN (
-                SELECT * FROM retailer_product WHERE retailer_id = '{r}'
+                SELECT * FROM retailer_product WHERE retailer_id = :retailer_{index}
             ) rp ON pm.retailer_product_id = rp.id
             WHERE rp.id is NULL
-        """ for r in retailers]
+        """ for index, _ in enumerate(global_filter.retailers)]
+
+    # perform "UNION ALL" operation on all the statements (existing products and non-existing per retailer"
     statement = "UNION ALL".join([marched_statement, *per_retailer_statements])
+
+    # enforce pagination
     statement += f"""OFFSET {global_filter.get_products_offset()} LIMIT {global_filter.page_size}"""
 
-    query = db.query(RetailerProduct).from_statement(text(statement))
-    """
-    This is a bit of a hackish move. By default SQLAlchemy constraints the results to be unique (constraint on the
-    primary key column). Here because we assign a dummy id to all the "missing" rows we want to avoid that. 
-
-    Upon expecting the source code I found the following: 
-    ```
-        if (
-            result._attributes.get("filtered", False)
-            and not self.load_options._yield_per
-        ):
-            result = result.unique()
-    ```
-
-    So it only applies the unique constraint if this parameter is not set. 
-    The purpose of the parameter is to tell SQLAlchemy that we want to load the data in chunks when a lot of data is 
-    loaded to avoid overusing RAM memory in the python process. 
-
-    See: https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.yield_per 
-    """
-    query.load_options += {'_yield_per': global_filter.page_size}
-
     return (
-        query
+        db.query(RetailerProduct).from_statement(text(statement))
+        # These options are required to load the nested referred classes together with the base queried class.
+        # Without these individual queries for each object are issued by SQLAlchemy when returning the result.
+        #
+        # See: https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#select-in-loading
         .options(
             selectinload(RetailerProduct.retailer),
             selectinload(RetailerProduct.images),
@@ -141,96 +132,20 @@ def get_products(
                 BrandProduct.category
             )
         )
-        .params(start_date=global_filter.start_date)
+        .params(
+            start_date=global_filter.start_date,
+            brand_id=brand_id,
+            categories=tuple(global_filter.categories),
+            retailers=tuple(global_filter.retailers),
+            countries=tuple(global_filter.countries),
+            # This is necessary to use SQLAlchemy parameter substitution mechanism. This is necessary to ensure
+            # protection against SQL injection.
+            #
+            # See: https://security.openstack.org/guidelines/dg_parameterize-database-queries.html
+            **{
+                f'retailer_{index}': retailer_id for index, retailer_id in enumerate(global_filter.retailers)
+            }
+        )
         .all()
     )
 
-
-def get_missing_products(
-    db: Session, brand_id: str, global_filter: PagedGlobalFilter
-) -> List[RetailerProduct]:
-    retailers = global_filter.retailers
-    if not retailers:
-        retailers = [r.id for r in get_retailers(db, brand_id)]
-
-    categories = global_filter.categories
-    if not categories:
-        categories = [c.id.hex for c in get_brand_categories(db, brand_id)]
-    categories_filter = f"""('{"', '".join(categories)}')"""
-
-    per_retailer_statements = [f"""
-            SELECT
-                bp.id as id, 
-                NULL as url,
-                bp.description AS description,
-                bp.specifications AS specifications,
-                bp.sku AS sku, 
-                bp.gtin AS gtin,
-                bp.name as name,
-                bp.created_at as created_at,
-                bp.updated_at as updated_at,
-                -1 AS popularity_index, 
-                0 AS price,
-                '' AS currency,
-                '{{}}'::json AS reviews,
-                0 AS review_average,
-                False AS is_discounted,
-                0 AS original_price,
-                NULL AS category_id,
-                '{r}'::uuid AS retailer_id,
-                'out_of_stock' as availability
-            FROM (
-                SELECT * 
-                FROM brand_product 
-                WHERE brand_id = '{brand_id}' AND category_id IN {categories_filter}
-            ) bp 
-            LEFT OUTER JOIN product_matching pm ON pm.brand_product_id = bp.id
-            LEFT OUTER JOIN (
-                SELECT * FROM retailer_product WHERE retailer_id = '{r}'
-            ) rp ON pm.retailer_product_id = rp.id
-            WHERE rp.id is NULL
-        """ for r in retailers]
-    statement = "UNION ALL".join(per_retailer_statements)
-    statement += f"""OFFSET {global_filter.get_products_offset()}
-        LIMIT {global_filter.page_size}
-    """
-
-    query = db.query(RetailerProduct).from_statement(text(statement))
-    """
-    This is a bit of a hackish move. By default SQLAlchemy constraints the results to be unique (constraint on the
-    primary key column). Here because we assign a dummy id to all the "missing" rows we want to avoid that. 
-    
-    Upon expecting the source code I found the following: 
-    ```
-        if (
-            result._attributes.get("filtered", False)
-            and not self.load_options._yield_per
-        ):
-            result = result.unique()
-    ```
-    
-    So it only applies the unique constraint if this parameter is not set. 
-    The purpose of the parameter is to tell SQLAlchemy that we want to load the data in chunks when a lot of data is 
-    loaded to avoid overusing RAM memory in the python process. 
-    
-    See: https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.yield_per 
-    """
-    query.load_options += {'_yield_per': global_filter.page_size}
-    return query.options(
-        selectinload(RetailerProduct.retailer),
-        selectinload(RetailerProduct.images),
-        selectinload(
-            RetailerProduct.matched_brand_products
-        ).selectinload(
-            ProductMatching.brand_product
-        ).selectinload(
-            BrandProduct.images
-        ),
-        selectinload(
-            RetailerProduct.matched_brand_products
-        ).selectinload(
-            ProductMatching.brand_product
-        ).selectinload(
-            BrandProduct.category
-        )
-    ).params(start_date=global_filter.start_date).all()
