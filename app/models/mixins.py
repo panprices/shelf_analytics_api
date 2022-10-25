@@ -1,5 +1,7 @@
+import uuid
+
 from sqlalchemy import String, Column, DateTime
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 
 class UpdatableMixin:
@@ -30,3 +32,11 @@ class GenericCategoryMixin:
     """
     category_tree = Column(JSONB)
     url = Column(String)
+
+
+class UUIDPrimaryKeyMixin:
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+
+class HistoricalMixin:
+    time = Column(DateTime, primary_key=True)

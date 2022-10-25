@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from app.models.mixins import UpdatableMixin
+from app.models.mixins import UpdatableMixin, UUIDPrimaryKeyMixin
 
 
 class MatchingType(enum.Enum):
@@ -20,7 +20,7 @@ class MatchingCertaintyType(enum.Enum):
     auto_low_confidence = object()
 
 
-class ProductMatching(Base, UpdatableMixin):
+class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     __tablename__ = "product_matching"
 
     brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))

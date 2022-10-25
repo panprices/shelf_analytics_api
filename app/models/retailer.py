@@ -1,12 +1,14 @@
 import enum
+from typing import List
 
-from sqlalchemy import Column, String, ForeignKey, Table, Integer, Enum, BigInteger, Float, Boolean, text
+from sqlalchemy import Column, String, ForeignKey, Table, Integer, Enum, BigInteger, Float, Boolean
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.orm import relationship
 
 from app.database import Base
-from app.models.mixins import GenericProductMixin, UpdatableMixin, GenericCategoryMixin
+from app.models.mixins import GenericProductMixin, UpdatableMixin, GenericCategoryMixin, UUIDPrimaryKeyMixin, \
+    HistoricalMixin
 
 retailer_brand_association_table = Table(
     "retailer_to_brand_mapping",
@@ -16,7 +18,7 @@ retailer_brand_association_table = Table(
 )
 
 
-class Retailer(Base):
+class Retailer(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "retailer"
 
     name = Column(String)
@@ -28,7 +30,7 @@ class Retailer(Base):
     products = relationship("RetailerProduct", back_populates="retailer")
 
 
-class RetailerCategory(Base, GenericCategoryMixin):
+class RetailerCategory(Base, UUIDPrimaryKeyMixin, GenericCategoryMixin):
     __tablename__ = "retailer_category"
 
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
@@ -57,8 +59,18 @@ class AvailabilityStatus(enum.Enum):
     pre_sale = object()
     sold_out = object()
 
+    @staticmethod
+    def available_status_list() -> List['AvailabilityStatus']:
+        return [
+            AvailabilityStatus.in_stock,
+            AvailabilityStatus.in_store_only,
+            AvailabilityStatus.online_only,
+            AvailabilityStatus.limited_availability,
+            AvailabilityStatus.discounted
+        ]
 
-class RetailerImage(Base):
+
+class RetailerImage(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "retailer_image"
 
     url = Column(String)
@@ -67,7 +79,18 @@ class RetailerImage(Base):
     retailer_product = relationship("RetailerProduct", back_populates="images")
 
 
-class RetailerProduct(Base, GenericProductMixin, UpdatableMixin):
+class RetailerProductHistory(Base, HistoricalMixin):
+    __tablename__ = 'retailer_product_time_series'
+
+    product_id = Column(UUID(as_uuid=True), ForeignKey("retailer_product.id"), primary_key=True)
+    price = Column(BigInteger)
+    currency = Column(String)
+    availability = Column(Enum(AvailabilityStatus))
+
+    product = relationship("RetailerProduct", back_populates="historical_data")
+
+
+class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):
     __tablename__ = "retailer_product"
 
     popularity_index = Column(Integer)
@@ -87,6 +110,7 @@ class RetailerProduct(Base, GenericProductMixin, UpdatableMixin):
 
     matched_brand_products = relationship("ProductMatching", back_populates="retailer_product")
     images = relationship("RetailerImage", back_populates="retailer_product")
+    historical_data = relationship("RetailerProductHistory", back_populates="product")
 
     @hybrid_property
     def retailer_images_count(self):
@@ -101,11 +125,7 @@ class RetailerProduct(Base, GenericProductMixin, UpdatableMixin):
 
     @hybrid_property
     def in_stock(self) -> bool:
-        return self.availability in [AvailabilityStatus.in_stock,
-                                     AvailabilityStatus.in_store_only,
-                                     AvailabilityStatus.online_only,
-                                     AvailabilityStatus.limited_availability,
-                                     AvailabilityStatus.discounted]
+        return self.availability in AvailabilityStatus.available_status_list()
 
     @hybrid_property
     def number_of_reviews(self) -> int:

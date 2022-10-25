@@ -1,7 +1,14 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from requests import Session
 
+from app import crud
+from app.database import get_db
+from app.preprocess import preprocess_global_filters
+from app.schemas.auth import TokenData
+from app.schemas.availability import HistoricalStockStatus, HistoricalVisibility
 from app.schemas.filters import GlobalFilter
 from app.schemas.scores import HistoricalScore
+from app.security import get_user_data
 from app.tags import TAG_AVAILABILITY, TAG_OVERVIEW
 
 router = APIRouter(prefix="/availability")
@@ -16,17 +23,37 @@ def get_overall_availability_score(client_id: str, global_filter: GlobalFilter):
     pass
 
 
-@router.post("/score/image", tags=[TAG_AVAILABILITY], response_model=HistoricalScore)
-def get_image_compliance_score(client_id: str, global_filter: GlobalFilter):
-    """
-    Returns the image compliance score corresponding to the applied filters.
-    """
-    pass
+@router.post(
+    "/in_stock",
+    tags=[TAG_AVAILABILITY],
+    response_model=HistoricalStockStatus
+)
+def get_in_stock_history(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db)
+):
+    global_filter = preprocess_global_filters(db, user.client, global_filter)
+
+    history = crud.get_historical_stock_status(db, user.client, global_filter)
+    return {
+        "history": history
+    }
 
 
-@router.post("/score/text", tags=[TAG_AVAILABILITY], response_model=HistoricalScore)
-def get_text_compliance_score(client_id: str, global_filter: GlobalFilter):
-    """
-    Returns the text compliance score corresponding to the applied filters.
-    """
-    pass
+@router.post(
+    "/visible",
+    tags=[TAG_AVAILABILITY],
+    response_model=HistoricalVisibility
+)
+def get_visible_history(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db)
+):
+    global_filter = preprocess_global_filters(db, user.client, global_filter)
+    history = crud.get_historical_visibility(db, user.client, global_filter)
+    return {
+        "history": history
+    }
+

@@ -1,14 +1,18 @@
 from typing import List
 
-from sqlalchemy import text
+from sqlalchemy import func, text, case
 from sqlalchemy.orm import Session, selectinload
 
+from app.crud.utils import convert_rows_to_dicts
 from app.models import (
     RetailerProduct,
     BrandProduct,
     ProductMatching,
+    RetailerProductHistory,
+    AvailabilityStatus,
+    Retailer
 )
-from app.schemas.filters import PagedGlobalFilter
+from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
 
 def get_products(
@@ -149,3 +153,84 @@ def get_products(
         .all()
     )
 
+
+def get_historical_stock_status(
+    db: Session, brand_id: str, global_filter: GlobalFilter
+):
+    result = (
+        db.query(
+            RetailerProductHistory.time,
+            func.sum(
+                case(
+                    [(RetailerProductHistory.availability.in_(AvailabilityStatus.available_status_list()), 1)]
+                )
+            ).label("available_count"),
+            func.sum(
+                case(
+                    [(~RetailerProductHistory.availability.in_(AvailabilityStatus.available_status_list()), 1)]
+                )
+            ).label("unavailable_count")
+        )
+        .join(RetailerProductHistory.product)
+        .join(RetailerProduct.matched_brand_products)
+        .join(ProductMatching.brand_product)
+        .join(RetailerProduct.retailer)
+        .filter(RetailerProduct.retailer_id.in_(global_filter.retailers))
+        .filter(BrandProduct.category_id.in_(global_filter.categories))
+        .filter(Retailer.country.in_(global_filter.countries))
+        .filter(RetailerProductHistory.time >= global_filter.start_date)
+        .filter(BrandProduct.brand_id == brand_id)
+        .group_by(RetailerProductHistory.time)
+        .all()
+    )
+
+    return convert_rows_to_dicts(result)
+
+
+def get_historical_visibility(
+    db: Session, brand_id: str, global_filter: GlobalFilter
+):
+    result = (
+        db.execute(
+            text("""
+                select time,
+                    coalesce (SUM(case when product_id is null then 1 end), 0) as not_visible_count,
+                    coalesce (SUM(case when product_id is not null then 1 end), 0) as visible_count
+                from (
+                    select brand_product_in_time.id, brand_product_in_time.time as time, rpts.product_id as product_id, 
+                        row_number() OVER (
+                            PARTITION BY brand_product_in_time.id, brand_product_in_time.time 
+                            ORDER BY rpts.product_id DESC
+                        ) as "rank"
+                    from (
+                        select distinct bp.id, rpts.time
+                        from brand_product bp
+                        CROSS join (
+                            select distinct time from retailer_product_time_series 
+                        ) rpts
+                        WHERE bp.brand_id = :brand_id
+                            AND bp.category_id IN :categories
+                    ) brand_product_in_time
+                    left join (
+                        select pm.*
+                        from product_matching pm
+                        inner join (
+                            select * from retailer_product 
+                            WHERE retailer_id in :retailers
+                        ) rp ON rp.id = pm.retailer_product_id
+                    ) pm on brand_product_in_time.id = pm.brand_product_id 
+                    left join retailer_product_time_series rpts ON rpts.product_id = pm.retailer_product_id 
+                ) matched_brand_product_in_time
+                where rank = 1
+                group by time"""),
+            params={
+                "brand_id": brand_id,
+                "start_date": global_filter.start_date,
+                "countries": tuple(global_filter.countries),
+                "retailers": tuple(global_filter.retailers),
+                "categories": tuple(global_filter.categories)
+            })
+        .all()
+    )
+
+    return convert_rows_to_dicts(result)

@@ -1,7 +1,4 @@
-import uuid
-
-from sqlalchemy import create_engine, Column
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -17,11 +14,7 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
-class Base(object):
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-
-Base = declarative_base(cls=Base)
+Base = declarative_base()
 
 
 def get_db():
