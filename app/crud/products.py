@@ -41,7 +41,7 @@ def get_products(
     :return:
     """
 
-    marched_statement = f"""
+    statement = f"""
         SELECT rp.id, 
             rp.url, 
             rp.description, 
@@ -64,53 +64,56 @@ def get_products(
         FROM retailer_product rp 
         JOIN retailer_to_brand_mapping rtb ON rtb.retailer_id = rp.retailer_id
         JOIN retailer r ON r.id = rp.retailer_id
-        JOIN brand b ON rtb.brand_id = b.id
         JOIN product_matching pm on pm.retailer_product_id = rp.id
         JOIN brand_product bp ON pm.brand_product_id = bp.id
-        WHERE bp.category_id IN :categories
-            AND rp.retailer_id IN :retailers
-            AND r.country IN :countries
-            AND rp.created_at > :start_date
+        WHERE rp.created_at > :start_date AND bp.brand_id = :brand_id
+            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+            {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND r.country IN :countries" if global_filter.countries else ""}
+        UNION ALL
+        SELECT
+            bp.id as id, 
+            NULL as url,
+            bp.description AS description,
+            bp.specifications AS specifications,
+            bp.sku AS sku, 
+            bp.gtin AS gtin,
+            bp.name as name,
+            bp.created_at as created_at,
+            bp.updated_at as updated_at,
+            -1 AS popularity_index, 
+            0 AS price,
+            '' AS currency,
+            '{{}}'::json AS reviews,
+            0 AS review_average,
+            False AS is_discounted,
+            0 AS original_price,
+            NULL AS category_id,
+            retailer_id,
+            'out_of_stock' as availability
+        from (
+            select *, 
+                row_number() over (
+                    partition by id, retailer_id order by is_match desc, retailer_product_id DESC nulls last 
+                ) as "rank"
+            from (
+                select retailer_brand_product.*, rp.id as retailer_product_id, 
+                    coalesce (retailer_brand_product.retailer_id = rp.retailer_id, false) as is_match
+                from (
+                    select aux.*, r.id as retailer_id
+                    from brand_product aux cross join retailer r
+                    WHERE 1 = 1
+                        {"AND r.id IN :retailers" if global_filter.retailers else ""}
+                        {"AND aux.category_id IN :categories" if global_filter.categories else ""}
+                ) retailer_brand_product
+                left outer join product_matching pm on pm.brand_product_id = retailer_brand_product.id
+                left outer join retailer_product rp on pm.retailer_product_id = rp.id
+            ) outer_aux
+        ) bp 
+        where bp.rank = 1 and not is_match
+        OFFSET :offset
+        LIMIT :limit
     """
-
-    per_retailer_statements = [f"""
-            SELECT
-                bp.id as id, 
-                NULL as url,
-                bp.description AS description,
-                bp.specifications AS specifications,
-                bp.sku AS sku, 
-                bp.gtin AS gtin,
-                bp.name as name,
-                bp.created_at as created_at,
-                bp.updated_at as updated_at,
-                -1 AS popularity_index, 
-                0 AS price,
-                '' AS currency,
-                '{{}}'::json AS reviews,
-                0 AS review_average,
-                False AS is_discounted,
-                0 AS original_price,
-                NULL AS category_id,
-                :retailer_{index} AS retailer_id,
-                'out_of_stock' as availability
-            FROM (
-                SELECT * 
-                FROM brand_product 
-                WHERE brand_id = :brand_id AND category_id IN :categories
-            ) bp 
-            LEFT OUTER JOIN product_matching pm ON pm.brand_product_id = bp.id
-            LEFT OUTER JOIN (
-                SELECT * FROM retailer_product WHERE retailer_id = :retailer_{index}
-            ) rp ON pm.retailer_product_id = rp.id
-            WHERE rp.id is NULL
-        """ for index, _ in enumerate(global_filter.retailers)]
-
-    # perform "UNION ALL" operation on all the statements (existing products and non-existing per retailer"
-    statement = "UNION ALL".join([marched_statement, *per_retailer_statements])
-
-    # enforce pagination
-    statement += f"""OFFSET {global_filter.get_products_offset()} LIMIT {global_filter.page_size}"""
 
     return (
         db.query(RetailerProduct).from_statement(text(statement))
@@ -142,13 +145,8 @@ def get_products(
             categories=tuple(global_filter.categories),
             retailers=tuple(global_filter.retailers),
             countries=tuple(global_filter.countries),
-            # This is necessary to use SQLAlchemy parameter substitution mechanism. This is necessary to ensure
-            # protection against SQL injection.
-            #
-            # See: https://security.openstack.org/guidelines/dg_parameterize-database-queries.html
-            **{
-                f'retailer_{index}': retailer_id for index, retailer_id in enumerate(global_filter.retailers)
-            }
+            offset=global_filter.get_products_offset(),
+            limit=global_filter.page_size
         )
         .all()
     )

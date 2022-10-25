@@ -13,6 +13,8 @@ requests = "*"
 python-jose = {extras = ["cryptography"], version = "*"}
 sqlalchemy = "*"
 psycopg2-binary = "*"
+structlog = "*"
+starlette = "*"
 
 [dev-packages]
 

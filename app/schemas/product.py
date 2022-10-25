@@ -51,7 +51,7 @@ class ProductScaffold(BaseModel):
         description="The product name as defined by the retailer",
         example="Matgrupp Copenhagen med Matstol Comfort"
     )
-    gtin: str = Field(
+    gtin: Optional[str] = Field(
         description="The GTIN associated by the customer to the product",
         example="7350133230816"
     )
@@ -90,7 +90,7 @@ class ProductScaffold(BaseModel):
         description="A score showing how similar the retailer's title is to the title from the client",
         example=0.67
     )
-    sku: str = Field(
+    sku: Optional[str] = Field(
         description="The SKU assigned by the client",
         example="16052-101"
     )
