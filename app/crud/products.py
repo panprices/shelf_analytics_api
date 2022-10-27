@@ -15,33 +15,8 @@ from app.models import (
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
 
-def get_products(
-    db: Session, brand_id: str, global_filter: PagedGlobalFilter
-) -> List[RetailerProduct]:
-    """
-    Returns the list of products from each retailer corresponding to the client currently using the application.
-
-    A special request here was to also return unmatched items from the client (brand), so they can easily keep an eye
-    on the products they need to push on. These lists of unmatched items should be added on a 'per retailer' basis
-    meaning that if the item A is missing from retailers X and Y, then we need to add to rows corresponding to A at X,
-    and A at Y respectively.
-
-    To fulfill this requirement, we use plain SQL queries concatenated by 'UNION ALL' statements, then we apply the
-    set LIMIT and OFFSET corresponding to paging on the result.
-
-    Note: the mock-up missing products are returned without the matching brand product. The connection between a
-    retailer product and a brand product is done through the `product_matching` association table, which does not have
-    any rows for the mock-up products. If you require the "match" as well, see :func:~`app.routers.data` for an example
-    of how to do that. We chose to keep that logic out of this file to avoid creating a dependency between 2 crud
-    solvers, which could evolve in a circular dependency in the future.
-
-    :param db:
-    :param brand_id:
-    :param global_filter:
-    :return:
-    """
-
-    statement = f"""
+def _create_query_for_products_datapool(global_filter: GlobalFilter) -> str:
+    return f"""
         SELECT rp.id, 
             rp.url, 
             rp.description, 
@@ -72,7 +47,7 @@ def get_products(
             {"AND r.country IN :countries" if global_filter.countries else ""}
         UNION ALL
         SELECT
-            bp.id as id, 
+            uuid_generate_v4() as id, 
             NULL as url,
             bp.description AS description,
             bp.specifications AS specifications,
@@ -104,6 +79,7 @@ def get_products(
                     from brand_product aux cross join retailer r
                     WHERE 1 = 1
                         {"AND r.id IN :retailers" if global_filter.retailers else ""}
+                        {"AND r.country IN :countries" if global_filter.countries else ""}
                         {"AND aux.category_id IN :categories" if global_filter.categories else ""}
                 ) retailer_brand_product
                 left outer join product_matching pm on pm.brand_product_id = retailer_brand_product.id
@@ -111,35 +87,72 @@ def get_products(
             ) outer_aux
         ) bp 
         where bp.rank = 1 and not is_match
+    """
+
+
+def get_products(
+    db: Session, brand_id: str, global_filter: PagedGlobalFilter
+) -> List[RetailerProduct]:
+    """
+    Returns the list of products from each retailer corresponding to the client currently using the application.
+
+    A special request here was to also return unmatched items from the client (brand), so they can easily keep an eye
+    on the products they need to push on. These lists of unmatched items should be added on a 'per retailer' basis
+    meaning that if the item A is missing from retailers X and Y, then we need to add to rows corresponding to A at X,
+    and A at Y respectively.
+
+    To fulfill this requirement, we use plain SQL queries concatenated by 'UNION ALL' statements, then we apply the
+    set LIMIT and OFFSET corresponding to paging on the result. A mock product will have a randomly generated id. We
+    tried also using the id of the brand product, but that resulted in duplicated values for the primary key (the same
+    brand product mocked for different retailers) which generated weird behaviour from SQLAlchemy.
+
+    Note: the mock-up missing products are returned without the matching brand product. The connection between a
+    retailer product and a brand product is done through the `product_matching` association table, which does not have
+    any rows for the mock-up products. If you require the "match" as well, see :func:~`app.routers.data` for an example
+    of how to do that. We chose to keep that logic out of this file to avoid creating a dependency between 2 crud
+    solvers, which could evolve in a circular dependency in the future.
+
+    :param db:
+    :param brand_id:
+    :param global_filter:
+    :return:
+    """
+
+    statement = f"""
+        SELECT * FROM (
+            {_create_query_for_products_datapool(global_filter)}
+        ) products_datapool
         OFFSET :offset
         LIMIT :limit
     """
+    query = db.query(RetailerProduct).from_statement(text(statement))
 
-    return (
-        db.query(RetailerProduct).from_statement(text(statement))
-        # These options are required to load the nested referred classes together with the base queried class.
-        # Without these individual queries for each object are issued by SQLAlchemy when returning the result.
-        #
-        # See: https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#select-in-loading
-        .options(
-            selectinload(RetailerProduct.retailer),
-            selectinload(RetailerProduct.images),
-            selectinload(
-                RetailerProduct.matched_brand_products
-            ).selectinload(
-                ProductMatching.brand_product
-            ).selectinload(
-                BrandProduct.images
-            ),
-            selectinload(
-                RetailerProduct.matched_brand_products
-            ).selectinload(
-                ProductMatching.brand_product
-            ).selectinload(
-                BrandProduct.category
-            )
+    """
+    These options are required to load the nested referred classes together with the base queried class.
+    Without these individual queries for each object are issued by SQLAlchemy when returning the result.
+    
+    See: https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#select-in-loading
+    """
+    query = query.options(
+        selectinload(RetailerProduct.retailer),
+        selectinload(RetailerProduct.images),
+        selectinload(
+            RetailerProduct.matched_brand_products
+        ).selectinload(
+            ProductMatching.brand_product
+        ).selectinload(
+            BrandProduct.images
+        ),
+        selectinload(
+            RetailerProduct.matched_brand_products
+        ).selectinload(
+            ProductMatching.brand_product
+        ).selectinload(
+            BrandProduct.category
         )
-        .params(
+    )
+    return (
+        query.params(
             start_date=global_filter.start_date,
             brand_id=brand_id,
             categories=tuple(global_filter.categories),
@@ -150,6 +163,22 @@ def get_products(
         )
         .all()
     )
+
+
+def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter) -> int:
+    statement = f"""
+        SELECT COUNT(*) FROM (
+            {_create_query_for_products_datapool(global_filter)}
+        ) products_datapool
+    """
+
+    return db.execute(text(statement), params={
+        "start_date": global_filter.start_date,
+        "brand_id": brand_id,
+        "categories": tuple(global_filter.categories),
+        "retailers": tuple(global_filter.retailers),
+        "countries": tuple(global_filter.countries)
+    }).scalar()
 
 
 def get_historical_stock_status(

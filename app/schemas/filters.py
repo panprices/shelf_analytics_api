@@ -29,12 +29,17 @@ class GlobalFilter(BaseModel):
         example=[]
     )
     retailers: List[str] = Field(
-        description="The list of desired retailers. If no retailer is specified all retailers are considered.",
+        description="""
+            The list of desired retailers (identified by database id). 
+            If no retailer is specified all retailers are considered.
+        """,
         example=[]
     )
     categories: List[str] = Field(
-        description="The list of desired countries. If no country is specified all countries are considered.",
-        # TODO: add an example for category selection
+        description="""
+            The list of desired categories (identified by database id). 
+            If no category is specified all categories are considered.
+        """,
         example=[]
     )
 

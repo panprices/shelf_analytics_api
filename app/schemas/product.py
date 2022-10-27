@@ -196,4 +196,6 @@ class ProductPage(BaseModel):
         ]
     )
 
+    offset: int = Field(description="How many items we skipped", example=100)
     count: int = Field(description="The number of offers returned", example=20)
+    total_count: int = Field(description="The total number of available offers", example=8121)

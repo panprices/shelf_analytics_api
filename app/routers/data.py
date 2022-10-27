@@ -5,7 +5,7 @@ from app import crud
 from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import PagedGlobalFilter
-from app.schemas.product import ProductPage
+from app.schemas.product import ProductPage, ProductScaffold
 from app.security import get_user_data
 from app.tags import TAG_DATA
 
@@ -16,8 +16,8 @@ router = APIRouter(prefix="/products")
 def get_products(page_global_filter: PagedGlobalFilter,
                  user: TokenData = Depends(get_user_data),
                  db: Session = Depends(get_db)):
-    # page_global_filter = preprocess_global_filters(db, user.client, page_global_filter)
     products = crud.get_products(db, user.client, page_global_filter)
+    products = [ProductScaffold.from_orm(p) for p in products]
 
     unmatched_products = [rp for rp in products if not rp.matched_brand_products]
     brand_products_ids = [rp.id for rp in unmatched_products]
@@ -30,5 +30,7 @@ def get_products(page_global_filter: PagedGlobalFilter,
 
     return {
         "products": products,
-        "count": len(products)
+        "count": len(products),
+        "offset": page_global_filter.get_products_offset(),
+        "total_count": crud.count_products(db, user.client, page_global_filter)
     }
