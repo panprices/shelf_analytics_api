@@ -21,3 +21,13 @@ class UserMetadata(BaseModel):
 
 class TokenData(UserMetadata):
     uid: str
+
+
+class UserInvitation(BaseModel):
+    first_name: str
+    last_name: str
+    email: str
+
+
+class InvitationResponse(BaseModel):
+    success: bool
