@@ -1,0 +1,24 @@
+#This is not working
+steps:
+  - name: "gcr.io/cloud-builders/gcloud"
+    waitFor: ["-"]
+    args:
+      - run
+      - deploy
+      - shelf-analytics-middleware
+      - --region=europe-west1
+      - --source=.
+    secretEnv: ['FIREBASE_API_KEY', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_HOST']
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/panprices/secrets/firebase_api_key/versions/latest
+      env: 'FIREBASE_API_KEY'
+    - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_SHELF_ANALYTICS_DB/versions/latest
+      env: 'DB_NAME'
+    - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_USER/versions/latest
+      env: 'DB_USER'
+    - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_PASSWORD/versions/latest
+      env: 'DB_PASS'
+    - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_HOST/versions/latest
+      env: 'DB_HOST'
