@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 from sqlalchemy import func, text, case
 from sqlalchemy.orm import Session, selectinload
@@ -10,7 +10,7 @@ from app.models import (
     ProductMatching,
     RetailerProductHistory,
     AvailabilityStatus,
-    Retailer
+    Retailer,
 )
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
@@ -136,33 +136,22 @@ def get_products(
     query = query.options(
         selectinload(RetailerProduct.retailer),
         selectinload(RetailerProduct.images),
-        selectinload(
-            RetailerProduct.matched_brand_products
-        ).selectinload(
-            ProductMatching.brand_product
-        ).selectinload(
-            BrandProduct.images
-        ),
-        selectinload(
-            RetailerProduct.matched_brand_products
-        ).selectinload(
-            ProductMatching.brand_product
-        ).selectinload(
-            BrandProduct.category
-        )
+        selectinload(RetailerProduct.matched_brand_products)
+        .selectinload(ProductMatching.brand_product)
+        .selectinload(BrandProduct.images),
+        selectinload(RetailerProduct.matched_brand_products)
+        .selectinload(ProductMatching.brand_product)
+        .selectinload(BrandProduct.category),
     )
-    return (
-        query.params(
-            start_date=global_filter.start_date,
-            brand_id=brand_id,
-            categories=tuple(global_filter.categories),
-            retailers=tuple(global_filter.retailers),
-            countries=tuple(global_filter.countries),
-            offset=global_filter.get_products_offset(),
-            limit=global_filter.page_size
-        )
-        .all()
-    )
+    return query.params(
+        start_date=global_filter.start_date,
+        brand_id=brand_id,
+        categories=tuple(global_filter.categories),
+        retailers=tuple(global_filter.retailers),
+        countries=tuple(global_filter.countries),
+        offset=global_filter.get_products_offset(),
+        limit=global_filter.page_size,
+    ).all()
 
 
 def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter) -> int:
@@ -172,13 +161,16 @@ def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter)
         ) products_datapool
     """
 
-    return db.execute(text(statement), params={
-        "start_date": global_filter.start_date,
-        "brand_id": brand_id,
-        "categories": tuple(global_filter.categories),
-        "retailers": tuple(global_filter.retailers),
-        "countries": tuple(global_filter.countries)
-    }).scalar()
+    return db.execute(
+        text(statement),
+        params={
+            "start_date": global_filter.start_date,
+            "brand_id": brand_id,
+            "categories": tuple(global_filter.categories),
+            "retailers": tuple(global_filter.retailers),
+            "countries": tuple(global_filter.countries),
+        },
+    ).scalar()
 
 
 def get_historical_stock_status(
@@ -189,14 +181,28 @@ def get_historical_stock_status(
             RetailerProductHistory.time,
             func.sum(
                 case(
-                    [(RetailerProductHistory.availability.in_(AvailabilityStatus.available_status_list()), 1)]
+                    [
+                        (
+                            RetailerProductHistory.availability.in_(
+                                AvailabilityStatus.available_status_list()
+                            ),
+                            1,
+                        )
+                    ]
                 )
             ).label("available_count"),
             func.sum(
                 case(
-                    [(~RetailerProductHistory.availability.in_(AvailabilityStatus.available_status_list()), 1)]
+                    [
+                        (
+                            ~RetailerProductHistory.availability.in_(
+                                AvailabilityStatus.available_status_list()
+                            ),
+                            1,
+                        )
+                    ]
                 )
-            ).label("unavailable_count")
+            ).label("unavailable_count"),
         )
         .join(RetailerProductHistory.product)
         .join(RetailerProduct.matched_brand_products)
@@ -214,12 +220,10 @@ def get_historical_stock_status(
     return convert_rows_to_dicts(result)
 
 
-def get_historical_visibility(
-    db: Session, brand_id: str, global_filter: GlobalFilter
-):
-    result = (
-        db.execute(
-            text("""
+def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalFilter):
+    result = db.execute(
+        text(
+            """
                 select time,
                     coalesce (SUM(case when product_id is null then 1 end), 0) as not_visible_count,
                     coalesce (SUM(case when product_id is not null then 1 end), 0) as visible_count
@@ -249,15 +253,51 @@ def get_historical_visibility(
                     left join retailer_product_time_series rpts ON rpts.product_id = pm.retailer_product_id 
                 ) matched_brand_product_in_time
                 where rank = 1
-                group by time"""),
-            params={
-                "brand_id": brand_id,
-                "start_date": global_filter.start_date,
-                "countries": tuple(global_filter.countries),
-                "retailers": tuple(global_filter.retailers),
-                "categories": tuple(global_filter.categories)
-            })
-        .all()
-    )
+                group by time"""
+        ),
+        params={
+            "brand_id": brand_id,
+            "start_date": global_filter.start_date,
+            "countries": tuple(global_filter.countries),
+            "retailers": tuple(global_filter.retailers),
+            "categories": tuple(global_filter.categories),
+        },
+    ).all()
 
     return convert_rows_to_dicts(result)
+
+
+def count_brand_products(db: Session, brand_id: str, global_filter: GlobalFilter) -> int:
+    products = db.query(BrandProduct).filter(BrandProduct.brand_id == brand_id)
+    if global_filter.categories:
+        products = products.filter(BrandProduct.category_id == global_filter.categories)
+        
+    return products.count()
+
+
+def count_available_products_by_retailers(db: Session, brand_id: str, global_filter: GlobalFilter) -> Dict:
+    statement = f"""
+        SELECT 
+            r.name AS retailer,
+            COUNT(*) AS available_products_count
+        FROM retailer_product rp
+            INNER JOIN product_matching m ON rp.id = m.retailer_product_id
+            INNER JOIN retailer r ON rp.retailer_id = r.id
+            INNER JOIN retailer_to_brand_mapping ON r.id = retailer_to_brand_mapping.retailer_id
+            INNER JOIN brand ON brand.id = retailer_to_brand_mapping.brand_id
+            INNER JOIN brand_product bp ON bp.id = m.brand_product_id
+        WHERE brand.id = :brand_id
+            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+            {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND r.country IN :countries" if global_filter.countries else ""}
+        GROUP BY r.id
+    """
+    rows = db.execute(text(statement), params={
+            "brand_id": brand_id,
+            "start_date": global_filter.start_date,
+            "countries": tuple(global_filter.countries),
+            "retailers": tuple(global_filter.retailers),
+            "categories": tuple(global_filter.categories),
+        },).fetchall()
+
+    return convert_rows_to_dicts(rows)

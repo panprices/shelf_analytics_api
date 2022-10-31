@@ -6,7 +6,7 @@ from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter
 from app.schemas.general import TrackedRetailerPool, ProductCategorisation, ActiveMarket
-from app.schemas.scores import HistoricalScore
+from app.schemas.scores import HistoricalScore, AvailableProductsPerRetailer
 from app.security import get_user_data
 from app.tags import TAG_OVERVIEW, TAG_FILTERING
 

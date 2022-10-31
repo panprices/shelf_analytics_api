@@ -21,3 +21,13 @@ class HistoricalScore(BaseModel):
             ScoreArchiveEntry(date="14/10/2022", value=0.73)
         ]
     )
+
+
+class AvailableProductsCount(BaseModel): 
+    retailer: str
+    available_products_count: int
+    not_available_products_count: int
+    
+class AvailableProductsPerRetailer(BaseModel):
+    """Used for Overview -> Available products per retailer"""
+    data: List[AvailableProductsCount]
