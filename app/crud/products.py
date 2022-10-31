@@ -268,30 +268,14 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
 
 
 def count_brand_products(db: Session, brand_id: str) -> int:
-    # statement = f"""
-    #     SELECT COUNT(*)
-    #     FROM (
-    #         {_create_query_for_products_datapool(global_filter)}
-    #     ) products_datapool
-    # """
-    statement = """
-        SELECT COUNT(*) AS nr_venture_design_product
-        FROM brand_product bp
-            INNER JOIN brand b ON bp.brand_id = b.id
-        WHERE b.id = :brand_id
-    """
-
-    return db.execute(
-        text(statement),
-        params={
-            "brand_id": brand_id,
-        },
-    ).scalar()
+    return db.query(BrandProduct).filter(BrandProduct.brand_id == brand_id).count()
 
 
 def count_available_products_by_retailers(db: Session, brand_id: str) -> Dict:
     statement = """
-        SELECT R.name, COUNT(*) AS available_products_count
+        SELECT 
+            R.name AS retailer,
+            COUNT(*) AS available_products_count
         FROM retailer_product P
             INNER JOIN product_matching M ON P.id = M.retailer_product_id
             INNER JOIN retailer R ON P.retailer_id = R.id
@@ -302,11 +286,4 @@ def count_available_products_by_retailers(db: Session, brand_id: str) -> Dict:
     """
     rows = db.execute(text(statement), params={"brand_id": brand_id}).fetchall()
 
-    data = [
-        {
-            "retailer": row[0],
-            "available_products_count": row[1],
-        }
-        for row in rows
-    ]
-    return data
+    return convert_rows_to_dicts(rows)
