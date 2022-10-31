@@ -8,6 +8,7 @@ steps:
       - shelf-analytics-middleware
       - --region=europe-west1
       - --source=.
+      - --add-cloudsql-instances=panprices:europe-west1:panprices-core-sandbox
     secretEnv: ['FIREBASE_API_KEY', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_HOST']
 
 availableSecrets:
