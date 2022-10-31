@@ -64,12 +64,14 @@ def get_visible_history(
     tags=[TAG_OVERVIEW],
     response_model=AvailableProductsPerRetailer,
 )
-def get_overview_availability_data(user: TokenData = Depends(get_user_data),
-                                   db: Session = Depends(get_db)):
+def get_overview_availability_data(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db)
+):
     brand_id = user.client
-    # brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e'
-    available_products_by_retailers = crud.count_available_products_by_retailers(db, brand_id)
-    available_products_count = crud.count_brand_products(db, brand_id)
+    available_products_by_retailers = crud.count_available_products_by_retailers(db, brand_id, global_filter)
+    available_products_count = crud.count_brand_products(db, brand_id, global_filter)
 
     return {
         "data": [

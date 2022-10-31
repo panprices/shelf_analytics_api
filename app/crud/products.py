@@ -267,23 +267,37 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
     return convert_rows_to_dicts(result)
 
 
-def count_brand_products(db: Session, brand_id: str) -> int:
-    return db.query(BrandProduct).filter(BrandProduct.brand_id == brand_id).count()
+def count_brand_products(db: Session, brand_id: str, global_filter: GlobalFilter) -> int:
+    products = db.query(BrandProduct).filter(BrandProduct.brand_id == brand_id)
+    if global_filter.categories:
+        products = products.filter(BrandProduct.category_id == global_filter.categories)
+        
+    return products.count()
 
 
-def count_available_products_by_retailers(db: Session, brand_id: str) -> Dict:
-    statement = """
+def count_available_products_by_retailers(db: Session, brand_id: str, global_filter: GlobalFilter) -> Dict:
+    statement = f"""
         SELECT 
-            R.name AS retailer,
+            r.name AS retailer,
             COUNT(*) AS available_products_count
-        FROM retailer_product P
-            INNER JOIN product_matching M ON P.id = M.retailer_product_id
-            INNER JOIN retailer R ON P.retailer_id = R.id
-            INNER JOIN retailer_to_brand_mapping ON R.id = retailer_to_brand_mapping.retailer_id
+        FROM retailer_product rp
+            INNER JOIN product_matching m ON rp.id = m.retailer_product_id
+            INNER JOIN retailer r ON rp.retailer_id = r.id
+            INNER JOIN retailer_to_brand_mapping ON r.id = retailer_to_brand_mapping.retailer_id
             INNER JOIN brand ON brand.id = retailer_to_brand_mapping.brand_id
+            INNER JOIN brand_product bp ON bp.id = m.brand_product_id
         WHERE brand.id = :brand_id
-        GROUP BY R.id
+            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+            {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND r.country IN :countries" if global_filter.countries else ""}
+        GROUP BY r.id
     """
-    rows = db.execute(text(statement), params={"brand_id": brand_id}).fetchall()
+    rows = db.execute(text(statement), params={
+            "brand_id": brand_id,
+            "start_date": global_filter.start_date,
+            "countries": tuple(global_filter.countries),
+            "retailers": tuple(global_filter.retailers),
+            "categories": tuple(global_filter.categories),
+        },).fetchall()
 
     return convert_rows_to_dicts(rows)
