@@ -7,7 +7,7 @@ from app.preprocess import preprocess_global_filters
 from app.schemas.auth import TokenData
 from app.schemas.availability import HistoricalStockStatus, HistoricalVisibility
 from app.schemas.filters import GlobalFilter
-from app.schemas.scores import HistoricalScore
+from app.schemas.scores import AvailableProductsPerRetailer, HistoricalScore
 from app.security import get_user_data
 from app.tags import TAG_AVAILABILITY, TAG_OVERVIEW
 
@@ -57,3 +57,27 @@ def get_visible_history(
         "history": history
     }
 
+
+
+@router.post(
+    "/per_retailer",
+    tags=[TAG_OVERVIEW],
+    response_model=AvailableProductsPerRetailer,
+)
+def get_overview_availability_data(user: TokenData = Depends(get_user_data),
+                                   db: Session = Depends(get_db)):
+    brand_id = user.client
+    # brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e'
+    available_products_by_retailers = crud.count_available_products_by_retailers(db, brand_id)
+    available_products_count = crud.count_brand_products(db, brand_id)
+
+    return {
+        "data": [
+            {
+                **data,
+                "not_available_products_count": available_products_count
+                - data["available_products_count"],
+            }
+            for data in available_products_by_retailers
+        ]
+    }
