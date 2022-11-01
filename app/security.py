@@ -3,10 +3,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import initialize_app
 from jose import jwt, JWTError
 
+from app.config.settings import get_settings
 from app.schemas.auth import TokenData
 
-firebase_app = initialize_app()
-JWT_SECRET_KEY = "ba3f8bc7627f332af25174ddf4bc8765a31d82d160238176dfe411abf0a21916"
+firebase_app = initialize_app(options={
+    "serviceAccountId": 'panprices@appspot.gserviceaccount.com'
+})
+JWT_SECRET_KEY = get_settings().jwt_secret
 JWT_ALGORITHM = "HS256"
 
 

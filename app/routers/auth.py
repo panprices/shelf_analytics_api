@@ -1,3 +1,4 @@
+import json
 import secrets
 import string
 from datetime import datetime, timedelta
@@ -9,11 +10,23 @@ from fastapi import Depends, Response, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth, firestore
 from jose import jwt
+from magic_admin import Magic
+from magic_admin.error import (
+    MagicError,
+)
 from starlette import status
 
 from app.config.settings import get_settings, Settings
-from app.schemas.auth import AuthenticationRequest, AuthenticationResponse, TokenData, UserMetadata, UserInvitation, \
-    InvitationResponse
+from app.schemas.auth import (
+    AuthenticationRequest,
+    AuthenticationResponse,
+    TokenData,
+    UserMetadata,
+    UserInvitation,
+    InvitationResponse,
+    MagicAuthResponse,
+    MagicAuthRequest,
+)
 from app.security import firebase_app, JWT_ALGORITHM, JWT_SECRET_KEY, get_user_data
 from app.tags import TAG_AUTH
 
@@ -21,14 +34,16 @@ router = fastapi.APIRouter(prefix="/authenticate")
 rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
 
 
-SHELF_ANALYTICS_USER_METADATA_COLLECTION = 'shelf-analytics-user-metadata'
+SHELF_ANALYTICS_USER_METADATA_COLLECTION = "shelf-analytics-user-metadata"
 SHELF_ANALYTICS_ROLE_READER = "reader"
 SHELF_ANALYTICS_ROLE_ADMIN = "admin"
 
 
 def get_user_metadata(uid: str) -> Optional[UserMetadata]:
     db = firestore.client()
-    user_metadata = db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION).document(uid).get()
+    user_metadata = (
+        db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION).document(uid).get()
+    )
 
     if not user_metadata.exists:
         return None
@@ -47,25 +62,28 @@ def authenticate_verified_user(uid: str) -> AuthenticationResponse:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Could not properly fulfill the authentication request. User exists but no permissions assigned!",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token_data = TokenData(
-        uid=uid, **user_metadata.dict()
-    )
+    token_data = TokenData(uid=uid, **user_metadata.dict())
 
-    token = jwt.encode({
-        "data": token_data.dict(),
-        "exp": datetime.utcnow() + timedelta(hours=8)
-    }, JWT_SECRET_KEY, JWT_ALGORITHM)
+    token = jwt.encode(
+        {"data": token_data.dict(), "exp": datetime.utcnow() + timedelta(hours=8)},
+        JWT_SECRET_KEY,
+        JWT_ALGORITHM,
+    )
 
     return AuthenticationResponse(jwt=token, success=True)
 
 
-@router.post("/withEmailAndPassword", tags=[TAG_AUTH], response_model=AuthenticationResponse)
-def authenticate(user: AuthenticationRequest,
-                 response: Response,
-                 settings: Settings = Depends(get_settings)):
+@router.post(
+    "/withEmailAndPassword", tags=[TAG_AUTH], response_model=AuthenticationResponse
+)
+def authenticate(
+    user: AuthenticationRequest,
+    response: Response,
+    settings: Settings = Depends(get_settings),
+):
     """
     This endpoint can be directly used with the credentials (email + password)
 
@@ -83,8 +101,9 @@ def authenticate(user: AuthenticationRequest,
         data={
             "email": user.email,
             "password": user.password,
-            "returnSecureToken": True
-        })
+            "returnSecureToken": True,
+        },
+    )
     if firebase_response.status_code != 200:
         response.status_code = firebase_response.status_code
         return AuthenticationResponse(success=False)
@@ -93,9 +112,11 @@ def authenticate(user: AuthenticationRequest,
     return authenticate_verified_user(uid)
 
 
-@router.post("/withFirebaseToken", tags=[TAG_AUTH], response_model=AuthenticationResponse)
+@router.post(
+    "/withFirebaseToken", tags=[TAG_AUTH], response_model=AuthenticationResponse
+)
 def authenticate_with_firebase_token(
-    credential: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))
+    credential: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ):
     """
     This method may be used if we are already logged into firebase through the frontend, so we use firebase's token
@@ -112,18 +133,18 @@ def authenticate_with_firebase_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Bearer authentication is needed",
-            headers={"WWW-Authenticate": 'Bearer error="invalid token"'}
+            headers={"WWW-Authenticate": 'Bearer error="invalid token"'},
         )
 
     try:
         token = credential.credentials
-        uid = auth.verify_id_token(token)['uid']
+        uid = auth.verify_id_token(token)["uid"]
         return authenticate_verified_user(uid)
     except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Could not validate credentials, {err}",
-            headers={"WWW-Authenticate": "Bearer"}
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
 
@@ -131,23 +152,38 @@ def authenticate_with_firebase_token(
 def invite_user_by_mail(
     invitation: UserInvitation,
     response: Response,
-    inviting_user: TokenData = Depends(get_user_data)
+    inviting_user: TokenData = Depends(get_user_data),
 ):
     if SHELF_ANALYTICS_ROLE_ADMIN not in inviting_user.roles:
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {"success": False}
 
     alphabet = string.ascii_letters + string.digits
-    password = ''.join(secrets.choice(alphabet) for _ in range(20))
+    password = "".join(secrets.choice(alphabet) for _ in range(20))
 
     new_user = auth.create_user(email=invitation.email, password=password)
     db = firestore.client()
-    db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION)\
-        .document(new_user.uid)\
-        .set({
+    db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION).document(new_user.uid).set(
+        {
             **invitation.dict(),
             "roles": [SHELF_ANALYTICS_ROLE_READER],
-            "client": inviting_user.client
-        })
+            "client": inviting_user.client,
+        }
+    )
 
     return {"success": True}
+
+
+@router.post("/magic", tags=[TAG_AUTH], response_model=MagicAuthResponse)
+def authenticate_with_magic_link(magic_request: MagicAuthRequest):
+    magic = Magic(api_secret_key=get_settings().magic_api_secret_key)
+    try:
+        magic.Token.validate(magic_request.did_token)
+        metadata = magic.User.get_metadata_by_token(magic_request.did_token)
+        email = metadata.data['email']
+        user = auth.get_user_by_email(email)
+        authentication_response = authenticate_verified_user(user.uid)
+        firebase_token = auth.create_custom_token(user.uid, app=firebase_app)
+        return {**authentication_response.dict(), "firebase_token": firebase_token}
+    except MagicError as e:
+        return AuthenticationResponse(success=False)

@@ -31,3 +31,11 @@ class UserInvitation(BaseModel):
 
 class InvitationResponse(BaseModel):
     success: bool
+
+
+class MagicAuthRequest(BaseModel):
+    did_token: str
+
+
+class MagicAuthResponse(AuthenticationResponse):
+    firebase_token: Optional[str] = Field(default=None, description="The JWT token to be used with firebase")

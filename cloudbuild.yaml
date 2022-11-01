@@ -9,7 +9,7 @@ steps:
       - --region=europe-west1
       - --source=.
       - --add-cloudsql-instances=panprices:europe-west1:panprices-core-sandbox
-    secretEnv: ['FIREBASE_API_KEY', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_HOST']
+    secretEnv: ['FIREBASE_API_KEY', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_HOST', 'MAGIC_API_SECRET_KEY', 'JWT_SECRET']
 
 availableSecrets:
   secretManager:
@@ -23,3 +23,7 @@ availableSecrets:
       env: 'DB_PASS'
     - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_HOST/versions/latest
       env: 'DB_HOST'
+    - versionName: projects/panprices/secrets/MAGIC_API_SECRET_KEY/versions/latest
+      env: 'MAGIC_API_SECRET_KEY'
+    - versionName: projects/panprices/secrets/SHELF_ANALYTICS_JWT_SECRET/versions/latest
+      env: 'JWT_SECRET'

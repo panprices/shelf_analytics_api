@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     db_name: str = Field()
     db_host: str = Field()
 
+    magic_api_secret_key: str = Field()
+    jwt_secret: str = Field()
+
     class Config:
         env_file = ".env"
 
