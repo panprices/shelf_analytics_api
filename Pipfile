@@ -15,7 +15,7 @@ sqlalchemy = "*"
 psycopg2-binary = "*"
 structlog = "*"
 starlette = "*"
-magic-sdk = "*"
+magic-admin = "*"
 
 [dev-packages]
 
