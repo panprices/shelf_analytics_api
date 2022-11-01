@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import date
 from typing import List
 
 from pydantic import BaseModel, Field
 
 
 class HistoricalItem(BaseModel):
-    time: datetime = Field(
+    time: date = Field(
         description="The time at which the state was created",
         example="2022-10-24T12:39:21.993787+00:00"
     )

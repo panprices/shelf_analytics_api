@@ -237,7 +237,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                         select distinct bp.id, rpts.time
                         from brand_product bp
                         CROSS join (
-                            select distinct time from retailer_product_time_series 
+                            select distinct time::date from retailer_product_time_series 
                         ) rpts
                         WHERE bp.brand_id = :brand_id
                             AND bp.category_id IN :categories
@@ -250,10 +250,14 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                             WHERE retailer_id in :retailers
                         ) rp ON rp.id = pm.retailer_product_id
                     ) pm on brand_product_in_time.id = pm.brand_product_id 
-                    left join retailer_product_time_series rpts ON rpts.product_id = pm.retailer_product_id 
+                    left join retailer_product_time_series rpts 
+                        ON rpts.product_id = pm.retailer_product_id 
+                            and brand_product_in_time.time::date = rpts.time::date
                 ) matched_brand_product_in_time
                 where rank = 1
-                group by time"""
+                group by time::date
+                ORDER BY time::date ASC
+                """
         ),
         params={
             "brand_id": brand_id,
