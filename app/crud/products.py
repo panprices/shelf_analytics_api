@@ -279,7 +279,7 @@ def count_brand_products(db: Session, brand_id: str, global_filter: GlobalFilter
     return products.count()
 
 
-def count_available_products_by_retailers(db: Session, brand_id: str, global_filter: GlobalFilter) -> Dict:
+def count_available_products_by_retailers(db: Session, brand_id: str, global_filter: GlobalFilter) -> List[Dict]:
     statement = f"""
         SELECT 
             r.name AS retailer,

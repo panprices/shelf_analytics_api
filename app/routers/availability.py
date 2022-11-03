@@ -58,7 +58,6 @@ def get_visible_history(
     }
 
 
-
 @router.post(
     "/per_retailer",
     tags=[TAG_OVERVIEW],
