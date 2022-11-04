@@ -45,9 +45,10 @@ def get_categories_split(
     statement = f"""
         select category_tree -> json_array_length(category_tree) - 1 -> 'name' as category_name, categories_split.*
         from (
-            select category_id, brand, COUNT(*) as product_count from (
-                select rp.id, rp.category_id as category_id, CASE 
+            select category_id, brand, COUNT(*) as product_count, is_customer from (
+                select rp.id, rp.category_id as category_id, b.id = :brand_id as is_customer, CASE 
                     WHEN b.id = :brand_id then b.name
+                    WHEN rp.brand is NULL then 'No brand'
                     ELSE rp.brand
                 end as brand
                 from retailer_product rp
@@ -62,10 +63,11 @@ def get_categories_split(
                     join product_matching pm on rp.id = pm.retailer_product_id 
                 where rp.retailer_id = :retailer_id
             )
-            group by brand, category_id
+            group by brand, category_id, is_customer
         ) categories_split
         join retailer_category rc on categories_split.category_id = rc.id
         {brand_category_filter}
+        ORDER BY is_customer ASC
     """
     rows = db.execute(
         text(statement),
