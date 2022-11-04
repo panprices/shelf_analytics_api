@@ -271,15 +271,19 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
     return convert_rows_to_dicts(result)
 
 
-def count_brand_products(db: Session, brand_id: str, global_filter: GlobalFilter) -> int:
+def count_brand_products(
+    db: Session, brand_id: str, global_filter: GlobalFilter
+) -> int:
     products = db.query(BrandProduct).filter(BrandProduct.brand_id == brand_id)
     if global_filter.categories:
         products = products.filter(BrandProduct.category_id == global_filter.categories)
-        
+
     return products.count()
 
 
-def count_available_products_by_retailers(db: Session, brand_id: str, global_filter: GlobalFilter) -> List[Dict]:
+def count_available_products_by_retailers(
+    db: Session, brand_id: str, global_filter: GlobalFilter
+) -> List[Dict]:
     statement = f"""
         SELECT 
             r.name AS retailer,
@@ -296,12 +300,15 @@ def count_available_products_by_retailers(db: Session, brand_id: str, global_fil
             {"AND r.country IN :countries" if global_filter.countries else ""}
         GROUP BY r.id
     """
-    rows = db.execute(text(statement), params={
+    rows = db.execute(
+        text(statement),
+        params={
             "brand_id": brand_id,
             "start_date": global_filter.start_date,
             "countries": tuple(global_filter.countries),
             "retailers": tuple(global_filter.retailers),
             "categories": tuple(global_filter.categories),
-        },).fetchall()
+        },
+    ).fetchall()
 
     return convert_rows_to_dicts(rows)
