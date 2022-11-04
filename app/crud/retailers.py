@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.crud.utils import convert_rows_to_dicts
-from app.models import retailer, brand
+from app.models import retailer, brand, RetailerProduct, Retailer, ProductMatching
 from app.schemas.filters import GlobalFilter
 
 
@@ -79,3 +79,22 @@ def get_categories_split(
     ).fetchall()
 
     return convert_rows_to_dicts(rows)
+
+
+def get_retailer_products_for_brand_product(
+    db: Session, global_filter: GlobalFilter, brand_product_id: str
+):
+    query = (
+        db.query(RetailerProduct)
+        .join(RetailerProduct.retailer)
+        .join(RetailerProduct.matched_brand_products)
+        .filter(ProductMatching.brand_product_id == brand_product_id)
+    )
+
+    if global_filter.countries:
+        query = query.filter(Retailer.country.in_(global_filter.countries))
+
+    if global_filter.retailers:
+        query = query.filter(Retailer.id.in_(global_filter.retailers))
+
+    return query.all()

@@ -21,6 +21,10 @@ class BrandCategoryScaffold(BaseModel):
 
 
 class MatchedBrandProductScaffold(BaseModel):
+    """
+    This is the information of the brand product sent together with a retailer product, and not on its own
+    """
+
     id: Union[str, uuid.UUID] = Field(description="The id of the brand product")
     category: BrandCategoryScaffold
 
@@ -28,27 +32,19 @@ class MatchedBrandProductScaffold(BaseModel):
         orm_mode = True
 
 
-class MatchScaffold(BaseModel):
+class RetailerToBrandProductMatchScaffold(BaseModel):
     brand_product: MatchedBrandProductScaffold
 
     class Config:
         orm_mode = True
 
 
-class ProductScaffold(BaseModel):
-    def __int__(self, **kwargs):
-        super(ProductScaffold).__init__(**kwargs)
-
-    """
-    Holds the *scaffold* data for a product, meaning only the high level data directly visible in the data table,
-    plus the product id to be used for further querying.
-    """
-
+class BaseRetailerProductScaffold(BaseModel):
     id: Union[str, uuid.UUID] = Field(
         description="""
-        UUID identifying the product uniquely. This id identifies the product, not the offer. 
-        To fetch the same offer a query should include both this id and the retailer
-        """,
+            UUID identifying the product uniquely. This id identifies the product, not the offer. 
+            To fetch the same offer a query should include both this id and the retailer
+            """,
         example="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
     )
     name: str = Field(
@@ -70,6 +66,16 @@ class ProductScaffold(BaseModel):
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
+
+
+class RetailerProductScaffold(BaseRetailerProductScaffold):
+    """
+    Holds the *scaffold* data for a product, meaning only the high level data directly visible in the data table,
+    plus the product id to be used for further querying.
+
+    This is the result by itself, as opposed to `MatchedRetailerProductScaffold`.
+    """
+
     margin: Optional[float] = Field(
         description="The margin of profit obtained by the retailer on this product",
         example=0.56,
@@ -109,7 +115,7 @@ class ProductScaffold(BaseModel):
         description="Whether the product is in stock at the retailer",
         example=True,
     )
-    matched_brand_products: List[MatchScaffold] = Field(
+    matched_brand_products: List[RetailerToBrandProductMatchScaffold] = Field(
         description="List of matching candidates"
     )
 
@@ -122,10 +128,10 @@ class ProductPage(BaseModel):
     Holds the data for a page of products as showed on the data page in FE.
     """
 
-    products: List[ProductScaffold] = Field(
+    products: List[RetailerProductScaffold] = Field(
         description="The list of products",
         example=[
-            ProductScaffold(
+            RetailerProductScaffold(
                 id="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
                 name="Matgrupp Copenhagen med Matstol Comfort",
                 gtin="7350133230816",
@@ -154,7 +160,7 @@ class ProductPage(BaseModel):
                 in_stock=True,
                 matched_brand_products=[],
             ),
-            ProductScaffold(
+            RetailerProductScaffold(
                 id="1a3eff7b-cf8f-4019-959d-e68983322707",
                 name="KENYA Matbord",
                 gtin="7350133230725",
@@ -192,3 +198,49 @@ class ProductPage(BaseModel):
     total_count: int = Field(
         description="The total number of available offers", example=8121
     )
+
+
+class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
+    """
+    This is the information of the retailer product sent together with a brand product, and not on its own.
+    """
+
+    class Config:
+        orm_mode = True
+
+
+class BrandProductMatchesScaffold(BaseModel):
+    matches: List[MatchedRetailerProductScaffold]
+
+    class Config:
+        orm_mode = True
+
+
+class BrandProductImageScaffold(BaseModel):
+    url: str = Field(description="The url of the image")
+
+    class Config:
+        orm_mode = True
+
+
+class BrandProductScaffold(BaseModel):
+    """
+    This is the brand product sent when we query for brand products and in it, we will have matched retailer product.
+
+    Not to be confused with `MatchedBrandProductScaffold` that is returned when we query primarily for retailer
+    products, and we returned little information about the matched brand product.
+    """
+
+    id: Union[str, uuid.UUID] = Field(description="The id of the brand product")
+    description: str = Field(
+        description="The description of the product set by the brand"
+    )
+    name: str = Field(description="The name of the product as set by the brand")
+    gtin: Optional[str] = Field(description="The gtin of the product")
+    sku: Optional[str] = Field(description="The sku of the product as set by the brand")
+    images: List[BrandProductImageScaffold] = Field(
+        description="URLs to the images set for the product by the brand"
+    )
+
+    class Config:
+        orm_mode = True
