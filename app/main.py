@@ -4,7 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from app.routers import auth, users, availability, data, overview
+from app.routers import auth, performance, availability, data, overview
 
 app = FastAPI(
     title="Panprices - Digital Shelf Analytics Solution API",
@@ -29,7 +29,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
-app.include_router(users.router)
+app.include_router(performance.router)
 app.include_router(availability.router)
 app.include_router(data.router)
 app.include_router(overview.router)
