@@ -15,7 +15,7 @@ from app.tags import TAG_PERFORMANCE
 router = APIRouter(prefix="/performance")
 
 
-@router.post("/", tags=[TAG_PERFORMANCE], response_model=RetailerPerformance)
+@router.post("", tags=[TAG_PERFORMANCE], response_model=RetailerPerformance)
 async def get_category_performance(
     global_filter: GlobalFilter,
     user: TokenData = Depends(get_user_data),
