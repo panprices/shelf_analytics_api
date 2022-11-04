@@ -223,7 +223,7 @@ def get_historical_stock_status(
 def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalFilter):
     result = db.execute(
         text(
-            """
+            f"""
                 select time,
                     coalesce (SUM(case when product_id is null then 1 end), 0) as not_visible_count,
                     coalesce (SUM(case when product_id is not null then 1 end), 0) as visible_count
@@ -240,14 +240,14 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                             select distinct time::date from retailer_product_time_series 
                         ) rpts
                         WHERE bp.brand_id = :brand_id
-                            AND bp.category_id IN :categories
+                            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     ) brand_product_in_time
                     left join (
                         select pm.*
                         from product_matching pm
                         inner join (
                             select * from retailer_product 
-                            WHERE retailer_id in :retailers
+                            {"WHERE retailer_id in :retailers" if global_filter.retailers else ""}
                         ) rp ON rp.id = pm.retailer_product_id
                     ) pm on brand_product_in_time.id = pm.brand_product_id 
                     left join retailer_product_time_series rpts 
