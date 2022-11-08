@@ -1,17 +1,12 @@
 from typing import List
-from uuid import UUID
 
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import (
     brand,
     BrandProduct,
-    Brand,
     ProductMatching,
-    RetailerProduct,
-    Retailer,
 )
-from app.schemas.filters import GlobalFilter
 
 
 def get_brand_categories(db: Session, brand_id: str) -> List[brand.BrandCategory]:
@@ -22,13 +17,13 @@ def get_brand_categories(db: Session, brand_id: str) -> List[brand.BrandCategory
     )
 
 
-def get_brand_products_for_ids(
-    db: Session, ids: List[UUID]
+def get_brand_products_for_gtins(
+    db: Session, gtins: List[str]
 ) -> List[brand.BrandProduct]:
     return (
         db.query(BrandProduct)
         .options(selectinload(BrandProduct.category))
-        .filter(BrandProduct.id.in_(ids))
+        .filter(BrandProduct.gtin.in_(gtins))
         .all()
     )
 

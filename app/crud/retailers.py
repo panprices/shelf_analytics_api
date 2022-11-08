@@ -83,7 +83,7 @@ def get_categories_split(
 
 def get_retailer_products_for_brand_product(
     db: Session, global_filter: GlobalFilter, brand_product_id: str
-):
+) -> List[RetailerProduct]:
     query = (
         db.query(RetailerProduct)
         .join(RetailerProduct.retailer)

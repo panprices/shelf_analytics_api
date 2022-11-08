@@ -7,10 +7,6 @@ from app.schemas.general import NamedRetailer
 
 
 class BrandCategoryScaffold(BaseModel):
-    url: str = Field(
-        description="The url to the category",
-        example="https://www.venturedesign.se/utemobler/bord/cafbord",
-    )
     id: Union[str, uuid.UUID] = Field(
         description="The id of the category",
         example="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
@@ -46,6 +42,9 @@ class BaseRetailerProductScaffold(BaseModel):
             To fetch the same offer a query should include both this id and the retailer
             """,
         example="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
+    )
+    url: Optional[str] = Field(
+        description="The url from the retailer where we can find the product"
     )
     name: str = Field(
         description="The product name as defined by the retailer",
