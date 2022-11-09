@@ -65,6 +65,25 @@ class BaseRetailerProductScaffold(BaseModel):
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
+    review_average: float = Field(
+        description="The rating of this product, average of the scores from the reviews the product received.",
+        example=3.7,
+    )
+    number_of_reviews: int = Field(description="Count of reviews", example=19)
+    popularity_index: int = Field(
+        description="The ranking of this product inside its leaf category at the retailer",
+        example=13,
+    )
+    retailer_images_count: int = Field(
+        description="The number of images the retailer shows", example=6
+    )
+    client_images_count: int = Field(
+        description="The number of images recommended by the client", example=9
+    )
+    title_matching_score: Optional[float] = Field(
+        description="A score showing how similar the retailer's title is to the title from the client",
+        example=0.67,
+    )
 
 
 class RetailerProductScaffold(BaseRetailerProductScaffold):
@@ -79,16 +98,6 @@ class RetailerProductScaffold(BaseRetailerProductScaffold):
         description="The margin of profit obtained by the retailer on this product",
         example=0.56,
     )
-    retailer_images_count: int = Field(
-        description="The number of images the retailer shows", example=6
-    )
-    client_images_count: int = Field(
-        description="The number of images recommended by the client", example=9
-    )
-    title_matching_score: Optional[float] = Field(
-        description="A score showing how similar the retailer's title is to the title from the client",
-        example=0.67,
-    )
     sku: Optional[str] = Field(
         description="The SKU assigned by the client", example="16052-101"
     )
@@ -96,19 +105,10 @@ class RetailerProductScaffold(BaseRetailerProductScaffold):
         description="The price at which the client sells the item to the retailer (the value captured by the brand)",
         example=2602,
     )
-    popularity_index: int = Field(
-        description="The ranking of this product inside its leaf category at the retailer",
-        example=13,
-    )
     description: str = Field(
         description="Meta hehe. Kidding. This is the description displayed by the retailer for this product",
         example="Imagine a very long description here",
     )
-    review_average: float = Field(
-        description="The rating of this product, average of the scores from the reviews the product received.",
-        example=3.7,
-    )
-    number_of_reviews: int = Field(description="Count of reviews", example=19)
     in_stock: bool = Field(
         default=True,
         description="Whether the product is in stock at the retailer",
