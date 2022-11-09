@@ -223,41 +223,32 @@ def get_historical_stock_status(
 def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalFilter):
     result = db.execute(
         text(
-            """
-                select time,
-                    coalesce (SUM(case when product_id is null then 1 end), 0) as not_visible_count,
-                    coalesce (SUM(case when product_id is not null then 1 end), 0) as visible_count
+            f"""
+                select full_products.date as time, full_count - visible_count as not_visible_count, visible_count
                 from (
-                    select brand_product_in_time.id, brand_product_in_time.time as time, rpts.product_id as product_id, 
-                        row_number() OVER (
-                            PARTITION BY brand_product_in_time.id, brand_product_in_time.time 
-                            ORDER BY rpts.product_id DESC
-                        ) as "rank"
-                    from (
-                        select distinct bp.id, rpts.time
-                        from brand_product bp
-                        CROSS join (
-                            select distinct time::date from retailer_product_time_series 
-                        ) rpts
-                        WHERE bp.brand_id = :brand_id
-                            AND bp.category_id IN :categories
-                    ) brand_product_in_time
-                    left join (
-                        select pm.*
-                        from product_matching pm
-                        inner join (
-                            select * from retailer_product 
-                            WHERE retailer_id in :retailers
-                        ) rp ON rp.id = pm.retailer_product_id
-                    ) pm on brand_product_in_time.id = pm.brand_product_id 
-                    left join retailer_product_time_series rpts 
-                        ON rpts.product_id = pm.retailer_product_id 
-                            and brand_product_in_time.time::date = rpts.time::date
-                ) matched_brand_product_in_time
-                where rank = 1
-                group by time::date
-                ORDER BY time::date ASC
-                """
+                    select rpts.time::date as date, COUNT(distinct bp.id) as visible_count
+                    from brand_product bp 
+                        join product_matching pm on bp.id = pm.brand_product_id 
+                        join retailer_product_time_series rpts on pm.retailer_product_id = rpts.product_id
+                        join retailer_product rp on rpts.product_id = rp.id 
+                        join retailer r on rp.retailer_id = r.id
+                    where bp.brand_id = :brand_id
+                        {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                        {"AND r.id in :retailers" if global_filter.retailers else ""}
+                        {"AND r.country in :countries" if global_filter.countries else ""}
+                    group by rpts.time::date
+                ) visible_products join (
+                    select rpts.time::date as date, COUNT(distinct bp.id) as full_count
+                    from brand_product bp 
+                    CROSS join (
+                        select distinct time::date from retailer_product_time_series 
+                    ) rpts
+                    where bp.created_at <= rpts.time::date and bp.brand_id = :brand_id
+                        {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                    group by rpts.time::date
+                ) full_products on visible_products.date = full_products.date 
+                order by full_products.date asc 
+            """
         ),
         params={
             "brand_id": brand_id,
@@ -271,15 +262,21 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
     return convert_rows_to_dicts(result)
 
 
-def count_brand_products(db: Session, brand_id: str, global_filter: GlobalFilter) -> int:
+def count_brand_products(
+    db: Session, brand_id: str, global_filter: GlobalFilter
+) -> int:
     products = db.query(BrandProduct).filter(BrandProduct.brand_id == brand_id)
     if global_filter.categories:
-        products = products.filter(BrandProduct.category_id == global_filter.categories)
-        
+        products = products.filter(
+            BrandProduct.category_id.in_(global_filter.categories)
+        )
+
     return products.count()
 
 
-def count_available_products_by_retailers(db: Session, brand_id: str, global_filter: GlobalFilter) -> List[Dict]:
+def count_available_products_by_retailers(
+    db: Session, brand_id: str, global_filter: GlobalFilter
+) -> List[Dict]:
     statement = f"""
         SELECT 
             r.name AS retailer,
@@ -296,12 +293,15 @@ def count_available_products_by_retailers(db: Session, brand_id: str, global_fil
             {"AND r.country IN :countries" if global_filter.countries else ""}
         GROUP BY r.id
     """
-    rows = db.execute(text(statement), params={
+    rows = db.execute(
+        text(statement),
+        params={
             "brand_id": brand_id,
             "start_date": global_filter.start_date,
             "countries": tuple(global_filter.countries),
             "retailers": tuple(global_filter.retailers),
             "categories": tuple(global_filter.categories),
-        },).fetchall()
+        },
+    ).fetchall()
 
     return convert_rows_to_dicts(rows)

@@ -7,119 +7,114 @@ from app.schemas.general import NamedRetailer
 
 
 class BrandCategoryScaffold(BaseModel):
-    url: str = Field(description="The url to the category",
-                     example="https://www.venturedesign.se/utemobler/bord/cafbord")
-    id: Union[str, uuid.UUID] = Field(description="The id of the category",
-                                      example="31ef6c6c-be2d-4478-a948-10a66dad1d2a")
+    id: Union[str, uuid.UUID] = Field(
+        description="The id of the category",
+        example="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
+    )
 
     class Config:
         orm_mode = True
 
 
 class MatchedBrandProductScaffold(BaseModel):
+    """
+    This is the information of the brand product sent together with a retailer product, and not on its own
+    """
+
+    id: Union[str, uuid.UUID] = Field(description="The id of the brand product")
     category: BrandCategoryScaffold
 
     class Config:
         orm_mode = True
 
 
-class MatchScaffold(BaseModel):
+class RetailerToBrandProductMatchScaffold(BaseModel):
     brand_product: MatchedBrandProductScaffold
 
     class Config:
         orm_mode = True
 
 
-class ProductScaffold(BaseModel):
-
-    def __int__(self, **kwargs):
-        super(ProductScaffold).__init__(**kwargs)
-
-    """
-    Holds the *scaffold* data for a product, meaning only the high level data directly visible in the data table,
-    plus the product id to be used for further querying.
-    """
-
+class BaseRetailerProductScaffold(BaseModel):
     id: Union[str, uuid.UUID] = Field(
         description="""
-        UUID identifying the product uniquely. This id identifies the product, not the offer. 
-        To fetch the same offer a query should include both this id and the retailer
-        """,
-        example="31ef6c6c-be2d-4478-a948-10a66dad1d2a"
+            UUID identifying the product uniquely. This id identifies the product, not the offer. 
+            To fetch the same offer a query should include both this id and the retailer
+            """,
+        example="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
+    )
+    url: Optional[str] = Field(
+        description="The url from the retailer where we can find the product"
     )
     name: str = Field(
         description="The product name as defined by the retailer",
-        example="Matgrupp Copenhagen med Matstol Comfort"
+        example="Matgrupp Copenhagen med Matstol Comfort",
     )
     gtin: Optional[str] = Field(
         description="The GTIN associated by the customer to the product",
-        example="7350133230816"
+        example="7350133230816",
     )
     retailer: NamedRetailer = Field(
-        description="The retailer selling this product",
-        example="Trademax"
+        description="The retailer selling this product", example="Trademax"
     )
     country: str = Field(
-        description="The code representation of a country",
-        example="SE"
+        description="The code representation of a country", example="SE"
     )
-    price: float = Field(
-        description="The price scraped at the retailer",
-        example=3201
-    )
+    price: float = Field(description="The price scraped at the retailer", example=3201)
     currency: str = Field(
         description="The currency in which the product is being sold",
-        examples={
-            'sweden': "SEK",
-            'eu': "EUR"
-        }
-    )
-    margin: Optional[float] = Field(
-        description="The margin of profit obtained by the retailer on this product",
-        example=0.56
-    )
-    retailer_images_count: int = Field(
-        description="The number of images the retailer shows",
-        example=6
-    )
-    client_images_count: int = Field(
-        description="The number of images recommended by the client",
-        example=9
-    )
-    title_matching_score: Optional[float] = Field(
-        description="A score showing how similar the retailer's title is to the title from the client",
-        example=0.67
-    )
-    sku: Optional[str] = Field(
-        description="The SKU assigned by the client",
-        example="16052-101"
-    )
-    wholesale_price: Optional[float] = Field(
-        description="The price at which the client sells the item to the retailer (the value captured by the brand)",
-        example=2602
-    )
-    popularity_index: int = Field(
-        description="The ranking of this product inside its leaf category at the retailer",
-        example=13
-    )
-    description: str = Field(
-        description="Meta hehe. Kidding. This is the description displayed by the retailer for this product",
-        example="Imagine a very long description here"
+        examples={"sweden": "SEK", "eu": "EUR"},
     )
     review_average: float = Field(
         description="The rating of this product, average of the scores from the reviews the product received.",
-        example=3.7
+        example=3.7,
     )
-    number_of_reviews: int = Field(
-        description="Count of reviews",
-        example=19
+    number_of_reviews: int = Field(description="Count of reviews", example=19)
+    popularity_index: int = Field(
+        description="The ranking of this product inside its leaf category at the retailer",
+        example=13,
+    )
+    retailer_images_count: int = Field(
+        description="The number of images the retailer shows", example=6
+    )
+    client_images_count: int = Field(
+        description="The number of images recommended by the client", example=9
+    )
+    title_matching_score: Optional[float] = Field(
+        description="A score showing how similar the retailer's title is to the title from the client",
+        example=0.67,
+    )
+
+
+class RetailerProductScaffold(BaseRetailerProductScaffold):
+    """
+    Holds the *scaffold* data for a product, meaning only the high level data directly visible in the data table,
+    plus the product id to be used for further querying.
+
+    This is the result by itself, as opposed to `MatchedRetailerProductScaffold`.
+    """
+
+    margin: Optional[float] = Field(
+        description="The margin of profit obtained by the retailer on this product",
+        example=0.56,
+    )
+    sku: Optional[str] = Field(
+        description="The SKU assigned by the client", example="16052-101"
+    )
+    wholesale_price: Optional[float] = Field(
+        description="The price at which the client sells the item to the retailer (the value captured by the brand)",
+        example=2602,
+    )
+    description: str = Field(
+        description="Meta hehe. Kidding. This is the description displayed by the retailer for this product",
+        example="Imagine a very long description here",
     )
     in_stock: bool = Field(
         default=True,
         description="Whether the product is in stock at the retailer",
-        example=True
+        example=True,
     )
-    matched_brand_products: List[MatchScaffold] = Field(
+    matched_brand_products: List[RetailerToBrandProductMatchScaffold] = Field(
         description="List of matching candidates"
     )
 
@@ -131,16 +126,17 @@ class ProductPage(BaseModel):
     """
     Holds the data for a page of products as showed on the data page in FE.
     """
-    products: List[ProductScaffold] = Field(
+
+    products: List[RetailerProductScaffold] = Field(
         description="The list of products",
         example=[
-            ProductScaffold(
+            RetailerProductScaffold(
                 id="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
                 name="Matgrupp Copenhagen med Matstol Comfort",
                 gtin="7350133230816",
                 retailer={
                     "id": "07da79c0-995c-46e6-ae7b-26b5663afab5",
-                    "name": "Trademax"
+                    "name": "Trademax",
                 },
                 country="SE",
                 price=3201,
@@ -161,15 +157,15 @@ class ProductPage(BaseModel):
                 review_average=3.7,
                 number_of_reviews=19,
                 in_stock=True,
-                matched_brand_products=[]
+                matched_brand_products=[],
             ),
-            ProductScaffold(
+            RetailerProductScaffold(
                 id="1a3eff7b-cf8f-4019-959d-e68983322707",
                 name="KENYA Matbord",
                 gtin="7350133230725",
                 retailer={
                     "name": "Trademax",
-                    "id": "07da79c0-995c-46e6-ae7b-26b5663afab5"
+                    "id": "07da79c0-995c-46e6-ae7b-26b5663afab5",
                 },
                 country="DK",
                 price=10350,
@@ -191,11 +187,59 @@ class ProductPage(BaseModel):
                 review_average=4.4,
                 number_of_reviews=32,
                 in_stock=True,
-                matched_brand_products=[]
-            )
-        ]
+                matched_brand_products=[],
+            ),
+        ],
     )
 
     offset: int = Field(description="How many items we skipped", example=100)
     count: int = Field(description="The number of offers returned", example=20)
-    total_count: int = Field(description="The total number of available offers", example=8121)
+    total_count: int = Field(
+        description="The total number of available offers", example=8121
+    )
+
+
+class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
+    """
+    This is the information of the retailer product sent together with a brand product, and not on its own.
+    """
+
+    class Config:
+        orm_mode = True
+
+
+class BrandProductMatchesScaffold(BaseModel):
+    matches: List[MatchedRetailerProductScaffold]
+
+    class Config:
+        orm_mode = True
+
+
+class BrandProductImageScaffold(BaseModel):
+    url: str = Field(description="The url of the image")
+
+    class Config:
+        orm_mode = True
+
+
+class BrandProductScaffold(BaseModel):
+    """
+    This is the brand product sent when we query for brand products and in it, we will have matched retailer product.
+
+    Not to be confused with `MatchedBrandProductScaffold` that is returned when we query primarily for retailer
+    products, and we returned little information about the matched brand product.
+    """
+
+    id: Union[str, uuid.UUID] = Field(description="The id of the brand product")
+    description: str = Field(
+        description="The description of the product set by the brand"
+    )
+    name: str = Field(description="The name of the product as set by the brand")
+    gtin: Optional[str] = Field(description="The gtin of the product")
+    sku: Optional[str] = Field(description="The sku of the product as set by the brand")
+    images: List[BrandProductImageScaffold] = Field(
+        description="URLs to the images set for the product by the brand"
+    )
+
+    class Config:
+        orm_mode = True

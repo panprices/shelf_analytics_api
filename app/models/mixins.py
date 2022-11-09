@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy import String, Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class UpdatableMixin:
@@ -30,6 +31,7 @@ class GenericCategoryMixin:
 
     The data comes from the underlying services (scraping, matching, etc.)
     """
+
     category_tree = Column(JSONB)
     url = Column(String)
 
@@ -40,3 +42,7 @@ class UUIDPrimaryKeyMixin:
 
 class HistoricalMixin:
     time = Column(DateTime, primary_key=True)
+
+    @hybrid_property
+    def time_as_date(self):
+        return self.time.date()

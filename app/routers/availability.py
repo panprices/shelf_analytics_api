@@ -14,7 +14,9 @@ from app.tags import TAG_AVAILABILITY, TAG_OVERVIEW
 router = APIRouter(prefix="/availability")
 
 
-@router.post("/score", tags=[TAG_AVAILABILITY, TAG_OVERVIEW], response_model=HistoricalScore)
+@router.post(
+    "/score", tags=[TAG_AVAILABILITY, TAG_OVERVIEW], response_model=HistoricalScore
+)
 def get_overall_availability_score(client_id: str, global_filter: GlobalFilter):
     """
     Returns the overall availability score corresponding to the applied filters. This is the same as the score that
@@ -23,39 +25,26 @@ def get_overall_availability_score(client_id: str, global_filter: GlobalFilter):
     pass
 
 
-@router.post(
-    "/in_stock",
-    tags=[TAG_AVAILABILITY],
-    response_model=HistoricalStockStatus
-)
+@router.post("/in_stock", tags=[TAG_AVAILABILITY], response_model=HistoricalStockStatus)
 def get_in_stock_history(
     global_filter: GlobalFilter,
     user: TokenData = Depends(get_user_data),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     global_filter = preprocess_global_filters(db, user.client, global_filter)
 
     history = crud.get_historical_stock_status(db, user.client, global_filter)
-    return {
-        "history": history
-    }
+    return {"history": history}
 
 
-@router.post(
-    "/visible",
-    tags=[TAG_AVAILABILITY],
-    response_model=HistoricalVisibility
-)
+@router.post("/visible", tags=[TAG_AVAILABILITY], response_model=HistoricalVisibility)
 def get_visible_history(
     global_filter: GlobalFilter,
     user: TokenData = Depends(get_user_data),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    global_filter = preprocess_global_filters(db, user.client, global_filter)
     history = crud.get_historical_visibility(db, user.client, global_filter)
-    return {
-        "history": history
-    }
+    return {"history": history}
 
 
 @router.post(
@@ -66,10 +55,12 @@ def get_visible_history(
 def get_overview_availability_data(
     global_filter: GlobalFilter,
     user: TokenData = Depends(get_user_data),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     brand_id = user.client
-    available_products_by_retailers = crud.count_available_products_by_retailers(db, brand_id, global_filter)
+    available_products_by_retailers = crud.count_available_products_by_retailers(
+        db, brand_id, global_filter
+    )
     available_products_count = crud.count_brand_products(db, brand_id, global_filter)
 
     return {
