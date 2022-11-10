@@ -109,6 +109,10 @@ class RetailerProductHistory(Base, HistoricalMixin):
 
     product = relationship("RetailerProduct", back_populates="historical_data")
 
+    @hybrid_property
+    def price_standard(self):
+        return self.price / 100
+
 
 class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):
     __tablename__ = "retailer_product"
@@ -156,3 +160,7 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     @hybrid_property
     def country(self) -> str:
         return self.retailer.country
+
+    @hybrid_property
+    def price_standard(self):
+        return self.price / 100

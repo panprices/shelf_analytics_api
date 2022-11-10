@@ -124,7 +124,7 @@ def get_historical_prices_for_brand_product(
         )
 
         result[retailer_key]["data"].append(
-            {"x": history_item.time_as_date, "y": history_item.price / 100}
+            {"x": history_item.time_as_date, "y": history_item.price_standard}
         )
 
         return result
@@ -134,15 +134,15 @@ def get_historical_prices_for_brand_product(
     ):
         history_date = history_item.time_as_date
         result[history_date] = result.get(
-            history_date, {"x": history_date, "y": history_item.price / 100}
+            history_date, {"x": history_date, "y": history_item.price_standard}
         )
 
-        if result[history_date]["y"] > history_item.price:
-            result[history_date]["y"] = history_item.price
+        if result[history_date]["y"] > history_item.price_standard:
+            result[history_date]["y"] = history_item.price_standard
 
         return result
 
-    max_value = max([i.price / 100 for i in history]) if history else 0
+    max_value = max([i.price_standard for i in history]) if history else 0
     retailers = [v for v in reduce(append_to_history, history, {}).values()]
     minimal_values = [v for v in reduce(extract_min_for_date, history, {}).values()]
 

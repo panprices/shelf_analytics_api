@@ -60,7 +60,9 @@ class BaseRetailerProductScaffold(BaseModel):
     country: str = Field(
         description="The code representation of a country", example="SE"
     )
-    price: float = Field(description="The price scraped at the retailer", example=3201)
+    price_standard: float = Field(
+        description="The price scraped at the retailer", example=3201
+    )
     currency: str = Field(
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
@@ -140,7 +142,7 @@ class ProductPage(BaseModel):
                     "name": "Trademax",
                 },
                 country="SE",
-                price=3201,
+                price_standard=3201,
                 currency="SEK",
                 margin=0.56,
                 retailer_images_count=6,
@@ -170,7 +172,7 @@ class ProductPage(BaseModel):
                     "id": "07da79c0-995c-46e6-ae7b-26b5663afab5",
                 },
                 country="DK",
-                price=10350,
+                price_standard=10350,
                 currency="DKK",
                 margin=0.25,
                 retailer_images_count=3,

@@ -15,7 +15,7 @@ from app.models import (
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
 
-def _create_query_for_products_datapool(global_filter: GlobalFilter) -> str:
+def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str:
     return f"""
         SELECT rp.id, 
             rp.url, 
@@ -45,6 +45,7 @@ def _create_query_for_products_datapool(global_filter: GlobalFilter) -> str:
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
             {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
             {"AND r.country IN :countries" if global_filter.countries else ""}
+            {"AND (bp.sku LIKE :search_text OR bp.gtin LIKE :search_text)" if global_filter.search_text else ""}
         UNION ALL
         SELECT
             uuid_generate_v4() as id, 
@@ -81,6 +82,11 @@ def _create_query_for_products_datapool(global_filter: GlobalFilter) -> str:
                         {"AND r.id IN :retailers" if global_filter.retailers else ""}
                         {"AND r.country IN :countries" if global_filter.countries else ""}
                         {"AND aux.category_id IN :categories" if global_filter.categories else ""}
+                        {
+                            "AND (aux.sku LIKE :search_text OR aux.gtin LIKE :search_text)" 
+                            if global_filter.search_text 
+                            else ""
+                        }
                 ) retailer_brand_product
                 left outer join product_matching pm on pm.brand_product_id = retailer_brand_product.id
                 left outer join retailer_product rp on pm.retailer_product_id = rp.id
@@ -151,6 +157,7 @@ def get_products(
         countries=tuple(global_filter.countries),
         offset=global_filter.get_products_offset(),
         limit=global_filter.page_size,
+        search_text=f"{global_filter.search_text}%",
     ).all()
 
 
@@ -169,6 +176,7 @@ def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter)
             "categories": tuple(global_filter.categories),
             "retailers": tuple(global_filter.retailers),
             "countries": tuple(global_filter.countries),
+            "search_text": f"{global_filter.search_text}%",
         },
     ).scalar()
 
