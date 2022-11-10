@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, validator
 
@@ -23,27 +23,28 @@ class GlobalFilter(BaseModel):
 
     Retailers and categories are passed by their literal values (as returned by this API).
     """
+
     start_date: datetime = Field(description="Test description", example="15/10/2022")
     countries: List[str] = Field(
         description="The list of desired countries. If no country is specified all countries are considered.",
-        example=[]
+        example=[],
     )
     retailers: List[str] = Field(
         description="""
             The list of desired retailers (identified by database id). 
             If no retailer is specified all retailers are considered.
         """,
-        example=[]
+        example=[],
     )
     categories: List[str] = Field(
         description="""
             The list of desired categories (identified by database id). 
             If no category is specified all categories are considered.
         """,
-        example=[]
+        example=[],
     )
 
-    @validator('start_date', pre=True)
+    @validator("start_date", pre=True)
     def parse_start_date(cls, value):
         if not isinstance(value, str):
             return value
@@ -54,12 +55,13 @@ class GlobalFilter(BaseModel):
 class PagedGlobalFilter(GlobalFilter):
     page_number: int = Field(
         description="The number of the currently requested page in the pagination system. Index is 1 based.",
-        example=1
+        example=1,
     )
     page_size: int = Field(
-        default=10,
-        description="The number of results displayed per page.",
-        example=10
+        default=10, description="The number of results displayed per page.", example=10
+    )
+    search_text: Optional[str] = Field(
+        description="The text used to search the data", example="7350133230816"
     )
 
     def get_products_offset(self):

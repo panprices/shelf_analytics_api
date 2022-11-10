@@ -1,13 +1,16 @@
+import io
 from functools import reduce
-from typing import Dict
+from typing import Dict, List
 
+import pandas
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
+from starlette.responses import StreamingResponse
 
 from app import crud
 from app.database import get_db
-from app.models import RetailerProductHistory
+from app.models import RetailerProductHistory, RetailerProduct
 from app.schemas.auth import TokenData
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 from app.schemas.prices import HistoricalPriceResponse
@@ -23,13 +26,10 @@ from app.tags import TAG_DATA
 router = APIRouter(prefix="/products")
 
 
-@router.post("", tags=[TAG_DATA], response_model=ProductPage)
-def get_products(
-    page_global_filter: PagedGlobalFilter,
-    user: TokenData = Depends(get_user_data),
-    db: Session = Depends(get_db),
-):
-    products = crud.get_products(db, user.client, page_global_filter)
+def _preprocess_products(
+    db: Session,
+    products: List[RetailerProduct],
+) -> List[RetailerProductScaffold]:
     products = [RetailerProductScaffold.from_orm(p) for p in products]
 
     unmatched_products = [rp for rp in products if not rp.matched_brand_products]
@@ -43,6 +43,17 @@ def get_products(
             p.matched_brand_products = [
                 {"brand_product": bp} for bp in brand_products if bp.gtin == p.gtin
             ]
+    return products
+
+
+@router.post("", tags=[TAG_DATA], response_model=ProductPage)
+def get_products(
+    page_global_filter: PagedGlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    products = crud.get_products(db, user.client, page_global_filter)
+    products = _preprocess_products(db, products)
 
     return {
         "products": products,
@@ -50,6 +61,23 @@ def get_products(
         "offset": page_global_filter.get_products_offset(),
         "total_count": crud.count_products(db, user.client, page_global_filter),
     }
+
+
+@router.post("/export", tags=[TAG_DATA])
+async def export_products_to_csv(
+    page_global_filter: PagedGlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    products = crud.export_full_brand_products_result(
+        db, user.client, page_global_filter
+    )
+    products = [RetailerProductScaffold.from_orm(p) for p in products]
+
+    products_df = pandas.DataFrame([p.dict() for p in products])
+    response = StreamingResponse(io.StringIO(products_df.to_csv(index=False)))
+    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
+    return response
 
 
 @router.get(
@@ -124,7 +152,7 @@ def get_historical_prices_for_brand_product(
         )
 
         result[retailer_key]["data"].append(
-            {"x": history_item.time_as_date, "y": history_item.price / 100}
+            {"x": history_item.time_as_date, "y": history_item.price_standard}
         )
 
         return result
@@ -134,15 +162,15 @@ def get_historical_prices_for_brand_product(
     ):
         history_date = history_item.time_as_date
         result[history_date] = result.get(
-            history_date, {"x": history_date, "y": history_item.price / 100}
+            history_date, {"x": history_date, "y": history_item.price_standard}
         )
 
-        if result[history_date]["y"] > history_item.price:
-            result[history_date]["y"] = history_item.price
+        if result[history_date]["y"] > history_item.price_standard:
+            result[history_date]["y"] = history_item.price_standard
 
         return result
 
-    max_value = max([i.price / 100 for i in history]) if history else 0
+    max_value = max([i.price_standard for i in history]) if history else 0
     retailers = [v for v in reduce(append_to_history, history, {}).values()]
     minimal_values = [v for v in reduce(extract_min_for_date, history, {}).values()]
 
