@@ -107,7 +107,7 @@ class RetailerProductScaffold(BaseRetailerProductScaffold):
         description="The price at which the client sells the item to the retailer (the value captured by the brand)",
         example=2602,
     )
-    description: str = Field(
+    description: Optional[str] = Field(
         description="Meta hehe. Kidding. This is the description displayed by the retailer for this product",
         example="Imagine a very long description here",
     )

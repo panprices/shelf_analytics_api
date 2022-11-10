@@ -96,6 +96,39 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
     """
 
 
+def _get_full_product_list(
+    db: Session, brand_id: str, statement: str, global_filter: PagedGlobalFilter
+):
+    query = db.query(RetailerProduct).from_statement(text(statement))
+
+    """
+    These options are required to load the nested referred classes together with the base queried class.
+    Without these individual queries for each object are issued by SQLAlchemy when returning the result.
+
+    See: https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#select-in-loading
+    """
+    query = query.options(
+        selectinload(RetailerProduct.retailer),
+        selectinload(RetailerProduct.images),
+        selectinload(RetailerProduct.matched_brand_products)
+        .selectinload(ProductMatching.brand_product)
+        .selectinload(BrandProduct.images),
+        selectinload(RetailerProduct.matched_brand_products)
+        .selectinload(ProductMatching.brand_product)
+        .selectinload(BrandProduct.category),
+    )
+    return query.params(
+        start_date=global_filter.start_date,
+        brand_id=brand_id,
+        categories=tuple(global_filter.categories),
+        retailers=tuple(global_filter.retailers),
+        countries=tuple(global_filter.countries),
+        offset=global_filter.get_products_offset(),
+        limit=global_filter.page_size,
+        search_text=f"{global_filter.search_text}%",
+    ).all()
+
+
 def get_products(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
 ) -> List[RetailerProduct]:
@@ -131,34 +164,8 @@ def get_products(
         OFFSET :offset
         LIMIT :limit
     """
-    query = db.query(RetailerProduct).from_statement(text(statement))
 
-    """
-    These options are required to load the nested referred classes together with the base queried class.
-    Without these individual queries for each object are issued by SQLAlchemy when returning the result.
-    
-    See: https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#select-in-loading
-    """
-    query = query.options(
-        selectinload(RetailerProduct.retailer),
-        selectinload(RetailerProduct.images),
-        selectinload(RetailerProduct.matched_brand_products)
-        .selectinload(ProductMatching.brand_product)
-        .selectinload(BrandProduct.images),
-        selectinload(RetailerProduct.matched_brand_products)
-        .selectinload(ProductMatching.brand_product)
-        .selectinload(BrandProduct.category),
-    )
-    return query.params(
-        start_date=global_filter.start_date,
-        brand_id=brand_id,
-        categories=tuple(global_filter.categories),
-        retailers=tuple(global_filter.retailers),
-        countries=tuple(global_filter.countries),
-        offset=global_filter.get_products_offset(),
-        limit=global_filter.page_size,
-        search_text=f"{global_filter.search_text}%",
-    ).all()
+    return _get_full_product_list(db, brand_id, statement, global_filter)
 
 
 def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter) -> int:
@@ -280,6 +287,17 @@ def count_brand_products(
         )
 
     return products.count()
+
+
+def export_full_brand_products_result(
+    db: Session, brand_id: str, global_filter: PagedGlobalFilter
+):
+    return _get_full_product_list(
+        db,
+        brand_id,
+        statement=_create_query_for_products_datapool(global_filter),
+        global_filter=global_filter,
+    )
 
 
 def count_available_products_by_retailers(
