@@ -136,6 +136,7 @@ class ProductPage(BaseModel):
                 gtin="7350133230816",
                 retailer={
                     "id": "07da79c0-995c-46e6-ae7b-26b5663afab5",
+                    "country": "SE",
                     "name": "Trademax",
                 },
                 country="SE",
@@ -165,6 +166,7 @@ class ProductPage(BaseModel):
                 gtin="7350133230725",
                 retailer={
                     "name": "Trademax",
+                    "country": "SE",
                     "id": "07da79c0-995c-46e6-ae7b-26b5663afab5",
                 },
                 country="DK",
