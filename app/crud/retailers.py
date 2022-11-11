@@ -43,7 +43,10 @@ def get_categories_split(
     )
 
     statement = f"""
-        select category_tree -> json_array_length(category_tree) - 1 -> 'name' as category_name, categories_split.*
+        select 
+            (
+                select string_agg(value::json ->> 'name', ' > ') from json_array_elements_text(category_tree)
+            ) as category_name, categories_split.*
         from (
             select category_id, brand, COUNT(*) as product_count, is_customer from (
                 select rp.id, rp.category_id as category_id, b.id = :brand_id as is_customer, CASE 
