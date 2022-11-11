@@ -23,6 +23,7 @@ class MatchedBrandProductScaffold(BaseModel):
 
     id: Union[str, uuid.UUID] = Field(description="The id of the brand product")
     category: BrandCategoryScaffold
+    sku: str
 
     class Config:
         orm_mode = True
