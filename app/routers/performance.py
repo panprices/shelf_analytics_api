@@ -1,5 +1,5 @@
 from functools import reduce
-from typing import Dict
+from typing import Dict, List
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -8,9 +8,13 @@ from app import crud
 from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter
-from app.schemas.performance import RetailerPerformance
+from app.schemas.performance import (
+    RetailerPerformance,
+    RetailersCategoryPerformanceDetails,
+    IndividualRetailerCategoryPerformanceDetails,
+)
 from app.security import get_user_data
-from app.tags import TAG_PERFORMANCE
+from app.tags import TAG_PERFORMANCE, TAG_DATA
 
 router = APIRouter(prefix="/performance")
 
@@ -44,3 +48,25 @@ async def get_category_performance(
 
     result_as_dict = reduce(append_result, category_split, {})
     return {"categories": [{"category_id": k, **v} for k, v in result_as_dict.items()]}
+
+
+@router.post(
+    "/categories",
+    tags=[TAG_PERFORMANCE, TAG_DATA],
+    response_model=RetailersCategoryPerformanceDetails,
+)
+async def get_performance_for_categories(
+    categories: List[str],
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    categories_performance_details = crud.get_individual_category_performance_details(
+        db, categories
+    )
+
+    return {
+        "categories": {
+            c["id"]: IndividualRetailerCategoryPerformanceDetails(**c)
+            for c in categories_performance_details
+        }
+    }

@@ -204,10 +204,21 @@ class ProductPage(BaseModel):
     )
 
 
+class MatchedRetailerProductCategoryScaffold(BaseModel):
+    id: Union[str, uuid.UUID]
+    full_name: str
+    url: str
+
+    class Config:
+        orm_mode = True
+
+
 class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
     """
     This is the information of the retailer product sent together with a brand product, and not on its own.
     """
+
+    category: MatchedRetailerProductCategoryScaffold
 
     class Config:
         orm_mode = True
