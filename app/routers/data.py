@@ -1,4 +1,5 @@
 import io
+from datetime import timedelta
 from functools import reduce
 from typing import Dict, List
 
@@ -139,6 +140,11 @@ def get_historical_prices_for_brand_product(
         db, global_filter, brand_product_id
     )
 
+    # Keep a list of the sorted dates to insert None when values are missing
+    sorted_dates = sorted(list(set([h.time_as_week for h in history])))
+    beginning_of_time = sorted_dates[0] - timedelta(days=7) if sorted_dates else None
+    sorted_dates.insert(0, beginning_of_time)
+
     def append_to_history(
         result: Dict[str, Dict[str, any]], history_item: RetailerProductHistory
     ):
@@ -151,8 +157,22 @@ def get_historical_prices_for_brand_product(
             },
         )
 
+        # Check if we skipped any date (relies on the fact that the data coming from postgres is sorted by date
+        # If we skipped some dates, we add them with `None` values to display gaps in the price chart
+        current_date_index = sorted_dates.index(history_item.time_as_week)
+        last_known_date = (
+            result[retailer_key]["data"][-1]["x"]
+            if result[retailer_key]["data"]
+            else beginning_of_time
+        )
+        last_known_date_index = sorted_dates.index(last_known_date)
+
+        if current_date_index - last_known_date_index > 1:
+            for i in range(last_known_date_index + 1, current_date_index):
+                result[retailer_key]["data"].append({"x": sorted_dates[i], "y": None})
+
         result[retailer_key]["data"].append(
-            {"x": history_item.time_as_date, "y": history_item.price_standard}
+            {"x": history_item.time_as_week, "y": history_item.price_standard}
         )
 
         return result
@@ -160,7 +180,7 @@ def get_historical_prices_for_brand_product(
     def extract_min_for_date(
         result: Dict[str, Dict[str, any]], history_item: RetailerProductHistory
     ):
-        history_date = history_item.time_as_date
+        history_date = history_item.time_as_week
         result[history_date] = result.get(
             history_date, {"x": history_date, "y": history_item.price_standard}
         )
@@ -173,6 +193,17 @@ def get_historical_prices_for_brand_product(
     max_value = max([i.price_standard for i in history]) if history else 0
     retailers = [v for v in reduce(append_to_history, history, {}).values()]
     minimal_values = [v for v in reduce(extract_min_for_date, history, {}).values()]
+    minimal_values = (
+        [
+            *minimal_values,
+            {
+                "x": minimal_values[-1]["x"] + timedelta(days=1),
+                "y": minimal_values[-1]["y"],
+            },
+        ]
+        if minimal_values
+        else []
+    )
 
     return {
         "retailers": retailers,
