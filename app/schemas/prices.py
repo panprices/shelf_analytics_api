@@ -1,12 +1,14 @@
 import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 
 class RetailerPriceHistoricalItem(BaseModel):
     x: datetime.date
-    y: float
+    y: Optional[float] = Field(
+        description="If the value is missing for a day, this field will be `None`"
+    )
 
 
 class RetailerHistoricalPrices(BaseModel):

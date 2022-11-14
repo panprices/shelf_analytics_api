@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 
 from sqlalchemy import String, Column, DateTime
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -46,3 +47,7 @@ class HistoricalMixin:
     @hybrid_property
     def time_as_date(self):
         return self.time.date()
+
+    @hybrid_property
+    def time_as_week(self):
+        return self.time_as_date - timedelta(days=self.time_as_date.weekday())
