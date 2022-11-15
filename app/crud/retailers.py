@@ -112,7 +112,7 @@ def get_individual_category_performance_details(db: Session, categories: List[st
     rows = db.execute(
         text(
             """
-        select rc.id, r.category_page_size as page_size, COUNT(rp.*) as products_count,
+        select rc.id, r.category_page_size as page_size, MAX(rp.popularity_index) as products_count,
             (
                 select string_agg(value::json ->> 'name', ' > ') from json_array_elements_text(category_tree)
             ) as full_name
