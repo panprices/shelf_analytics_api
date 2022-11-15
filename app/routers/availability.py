@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends
 from requests import Session
 
@@ -44,6 +46,10 @@ def get_visible_history(
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_visibility(db, user.client, global_filter)
+    if len(history) == 1:
+        history.insert(
+            0, {**history[0], "time": history[0]["time"] - timedelta(days=7)}
+        )
     return {"history": history}
 
 
