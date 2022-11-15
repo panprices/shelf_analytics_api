@@ -1,7 +1,7 @@
 from typing import List, Dict
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.crud.utils import convert_rows_to_dicts
 from app.models import retailer, brand, RetailerProduct, Retailer, ProductMatching
@@ -102,4 +102,28 @@ def get_retailer_products_for_brand_product(
     if global_filter.retailers:
         query = query.filter(Retailer.id.in_(global_filter.retailers))
 
-    return query.all()
+    return query.options(selectinload(RetailerProduct.category)).all()
+
+
+def get_individual_category_performance_details(db: Session, categories: List[str]):
+    if not categories:
+        return []
+
+    rows = db.execute(
+        text(
+            """
+        select rc.id, r.category_page_size as page_size, COUNT(rp.*) as products_count,
+            (
+                select string_agg(value::json ->> 'name', ' > ') from json_array_elements_text(category_tree)
+            ) as full_name
+        from retailer_category rc 
+            join retailer r on rc.retailer_id = r.id
+            join retailer_product rp on rp.category_id = rc.id
+        where rc.id in :categories
+        group by rc.id, page_size, full_name
+    """
+        ),
+        params={"categories": tuple(categories)},
+    ).fetchall()
+
+    return convert_rows_to_dicts(rows)

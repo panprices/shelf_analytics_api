@@ -36,6 +36,10 @@ class GenericCategoryMixin:
     category_tree = Column(JSONB)
     url = Column(String)
 
+    @hybrid_property
+    def full_name(self) -> str:
+        return " > ".join([p["name"] for p in self.category_tree])
+
 
 class UUIDPrimaryKeyMixin:
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
