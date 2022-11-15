@@ -306,7 +306,7 @@ def count_available_products_by_retailers(
     statement = f"""
         SELECT 
             r.name AS retailer,
-            COUNT(*) AS available_products_count
+            COUNT(DISTINCT bp.id) AS available_products_count
         FROM retailer_product rp
             INNER JOIN product_matching m ON rp.id = m.retailer_product_id
             INNER JOIN retailer r ON rp.retailer_id = r.id
