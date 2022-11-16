@@ -304,21 +304,26 @@ def count_available_products_by_retailers(
     db: Session, brand_id: str, global_filter: GlobalFilter
 ) -> List[Dict]:
     statement = f"""
-        SELECT 
-            r.name AS retailer,
-            COUNT(DISTINCT bp.id) AS available_products_count
-        FROM retailer_product rp
-            INNER JOIN product_matching m ON rp.id = m.retailer_product_id
-            INNER JOIN retailer r ON rp.retailer_id = r.id
-            INNER JOIN retailer_to_brand_mapping ON r.id = retailer_to_brand_mapping.retailer_id
-            INNER JOIN brand ON brand.id = retailer_to_brand_mapping.brand_id
-            INNER JOIN brand_product bp ON bp.id = m.brand_product_id
-        WHERE brand.id = :brand_id
-            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-            {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
-            {"AND r.country IN :countries" if global_filter.countries else ""}
-        GROUP BY r.id
+        select retailer, available_products_count, 
+            total_count - available_products_count as not_available_products_count
+        from (
+            SELECT
+              r.name AS retailer,
+              COUNT(DISTINCT bp.id) AS available_products_count,
+              (select COUNT(*) from brand_product) as total_count
+            from product_matching pm 
+                join brand_product bp on bp.id = pm.brand_product_id 
+                join retailer_product rp on rp.id = pm.retailer_product_id
+                join retailer r on r.id = rp.retailer_id 
+            where bp.brand_id = :brand_id
+                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
+                {"AND r.country IN :countries" if global_filter.countries else ""}
+            GROUP BY
+              r.id
+        ) product_availability
     """
+
     rows = db.execute(
         text(statement),
         params={
