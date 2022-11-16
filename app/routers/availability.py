@@ -67,15 +67,5 @@ def get_overview_availability_data(
     available_products_by_retailers = crud.count_available_products_by_retailers(
         db, brand_id, global_filter
     )
-    available_products_count = crud.count_brand_products(db, brand_id, global_filter)
 
-    return {
-        "data": [
-            {
-                **data,
-                "not_available_products_count": available_products_count
-                - data["available_products_count"],
-            }
-            for data in available_products_by_retailers
-        ]
-    }
+    return {"data": available_products_by_retailers}
