@@ -241,7 +241,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
             f"""
                 select full_products.date as time, full_count - visible_count as not_visible_count, visible_count
                 from (
-                    select rpts.time::date as date, COUNT(distinct bp.id) as visible_count
+                    select date_trunc('week', rpts.time)::date as date, COUNT(distinct bp.id) as visible_count
                     from brand_product bp 
                         join product_matching pm on bp.id = pm.brand_product_id 
                         join retailer_product_time_series rpts on pm.retailer_product_id = rpts.product_id
@@ -251,16 +251,16 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                         {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                         {"AND r.id in :retailers" if global_filter.retailers else ""}
                         {"AND r.country in :countries" if global_filter.countries else ""}
-                    group by rpts.time::date
+                    group by date_trunc('week', rpts.time)::date
                 ) visible_products join (
-                    select rpts.time::date as date, COUNT(distinct bp.id) as full_count
+                    select rpts.time as date, COUNT(distinct bp.id) as full_count
                     from brand_product bp 
                     CROSS join (
-                        select distinct time::date from retailer_product_time_series 
+                        select distinct date_trunc('week', time)::date as time from retailer_product_time_series 
                     ) rpts
                     where bp.created_at <= rpts.time::date and bp.brand_id = :brand_id
                         {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-                    group by rpts.time::date
+                    group by rpts.time
                 ) full_products on visible_products.date = full_products.date 
                 order by full_products.date asc 
             """
