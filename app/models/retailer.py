@@ -111,6 +111,8 @@ class RetailerProductHistory(Base, HistoricalMixin):
 
     @hybrid_property
     def price_standard(self):
+        if not self.price:
+            return self.price
         return self.price / 100
 
 
