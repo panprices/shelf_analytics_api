@@ -51,6 +51,10 @@ class BaseRetailerProductScaffold(BaseModel):
         description="The product name as defined by the retailer",
         example="Matgrupp Copenhagen med Matstol Comfort",
     )
+    description: Optional[str] = Field(
+        description="Meta hehe. Kidding. This is the description displayed by the retailer for this product",
+        example="Imagine a very long description here",
+    )
     gtin: Optional[str] = Field(
         description="The GTIN associated by the customer to the product",
         example="7350133230816",
@@ -107,10 +111,6 @@ class RetailerProductScaffold(BaseRetailerProductScaffold):
     wholesale_price: Optional[float] = Field(
         description="The price at which the client sells the item to the retailer (the value captured by the brand)",
         example=2602,
-    )
-    description: Optional[str] = Field(
-        description="Meta hehe. Kidding. This is the description displayed by the retailer for this product",
-        example="Imagine a very long description here",
     )
     in_stock: bool = Field(
         default=True,
@@ -213,12 +213,30 @@ class MatchedRetailerProductCategoryScaffold(BaseModel):
         orm_mode = True
 
 
+class GenericProductImageScaffold(BaseModel):
+    url: str = Field(description="The url of the image")
+
+    class Config:
+        orm_mode = True
+
+
+class BrandProductImageScaffold(GenericProductImageScaffold):
+    pass
+
+
+class RetailerProductImageScaffold(GenericProductImageScaffold):
+    pass
+
+
 class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
     """
     This is the information of the retailer product sent together with a brand product, and not on its own.
     """
 
     category: MatchedRetailerProductCategoryScaffold
+    images: List[RetailerProductImageScaffold] = Field(
+        description="The images set by the retailer"
+    )
 
     class Config:
         orm_mode = True
@@ -226,13 +244,6 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
 
 class BrandProductMatchesScaffold(BaseModel):
     matches: List[MatchedRetailerProductScaffold]
-
-    class Config:
-        orm_mode = True
-
-
-class BrandProductImageScaffold(BaseModel):
-    url: str = Field(description="The url of the image")
 
     class Config:
         orm_mode = True
