@@ -263,7 +263,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                     group by rpts.time
                 ) full_products on visible_products.date = full_products.date 
                 -- Only present data up to last week:
-                where full_products.date < date_trunc('week', time)::date
+                where full_products.date < date_trunc('week', now())::date
                 order by full_products.date asc 
             """
         ),
