@@ -258,7 +258,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                     CROSS join (
                         select distinct date_trunc('week', time)::date as time from retailer_product_time_series 
                     ) rpts
-                    where bp.created_at <= rpts.time::date and bp.brand_id = :brand_id
+                    where date_trunc('week', bp.created_at) <= rpts.time::date and bp.brand_id = :brand_id
                         {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     group by rpts.time
                 ) full_products on visible_products.date = full_products.date 
