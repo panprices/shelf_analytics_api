@@ -216,7 +216,9 @@ def get_historical_prices_for_brand_product(
     ]
 
     max_value = (
-        max([i.price_standard for i in history if i.price_standard]) if history else 0
+        max([i.price_standard for i in history if i.price_standard is not None])
+        if history
+        else 0
     )
 
     return {
