@@ -38,20 +38,20 @@ def get_historical_prices_by_retailer_for_brand_product(
             ) per_retailer_time_series
             where rank = 1
         )
-        select ap.product_id, 
+        select dates.product_id, 
             ap.price, 
             ap.currency, 
             ap.availability, 
             dates.time
         from (
-            select retailer_id,
+            select retailer_id, product_id,
                 generate_series(
                     (select min(time) from available_prices), 
                     (select max(time) from available_prices), 
                     '1w'
                 )::timestamp as time
             from available_prices
-            group by retailer_id
+            group by retailer_id, product_id
         ) dates left join available_prices ap using (retailer_id, time)
         order by dates.time asc
     """

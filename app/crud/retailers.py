@@ -37,7 +37,7 @@ def get_categories_split(
                 join brand_product bp on bp.id = pm.brand_product_id 
                 where bp.category_id in :brand_categories
         )
-    """
+        """
         if global_filter.categories
         else ""
     )
