@@ -15,27 +15,28 @@ def get_historical_prices_by_retailer_for_brand_product(
 ) -> List[RetailerProductHistory]:
     statement = f"""
         with available_prices as (
-            select product_id, 
-                rpts.price, 
-                rpts.currency, 
-                rpts.availability, 
-                date_trunc('week', time)::timestamp as time, 
-                rank
-            from (
-                    select *, 
-                        row_number() over (
-                            partition by product_id, date_trunc('week', time)
-                        ) as "rank"
-                    from retailer_product_time_series
-                ) rpts 
-                join retailer_product rp on rp.id = rpts.product_id 
-                join product_matching pm on rp.id = pm.retailer_product_id 
-                join brand_product bp on bp.id = pm.brand_product_id 
-            where rank = 1 and bp.id = :brand_product_id and rpts.price <> 0
-                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-                {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
-                {"AND r.country IN :countries" if global_filter.countries else ""}
-            order by time asc
+            select * 
+            from (	
+                select product_id, 
+                    rp.retailer_id,
+                    rpts.price, 
+                    rpts.currency, 
+                    rpts.availability, 
+                    date_trunc('week', time)::timestamp as time, 
+                    row_number() over (
+                        partition by rp.retailer_id, date_trunc('week', time)
+                    ) as "rank"
+                from retailer_product_time_series rpts 
+                    join retailer_product rp on rp.id = rpts.product_id 
+                    join product_matching pm on rp.id = pm.retailer_product_id 
+                    join brand_product bp on bp.id = pm.brand_product_id 
+                where bp.id = :brand_product_id and rpts.price <> 0
+                    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                    {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
+                    {"AND r.country IN :countries" if global_filter.countries else ""}
+                order by time asc
+            ) per_retailer_time_series
+            where rank = 1
         )
         select dates.product_id, 
             ap.price, 
@@ -43,15 +44,15 @@ def get_historical_prices_by_retailer_for_brand_product(
             ap.availability, 
             dates.time
         from (
-            select product_id, 
+            select retailer_id, product_id,
                 generate_series(
                     (select min(time) from available_prices), 
                     (select max(time) from available_prices), 
                     '1w'
                 )::timestamp as time
             from available_prices
-            group by product_id
-        ) dates left join available_prices ap using (product_id, time)
+            group by retailer_id, product_id
+        ) dates left join available_prices ap using (retailer_id, time)
         order by dates.time asc
     """
 

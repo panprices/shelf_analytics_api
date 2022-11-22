@@ -125,7 +125,7 @@ def _get_full_product_list(
         countries=tuple(global_filter.countries),
         offset=global_filter.get_products_offset(),
         limit=global_filter.page_size,
-        search_text=f"{global_filter.search_text}%",
+        search_text=f"%{global_filter.search_text}%",
     ).all()
 
 
@@ -183,7 +183,7 @@ def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter)
             "categories": tuple(global_filter.categories),
             "retailers": tuple(global_filter.retailers),
             "countries": tuple(global_filter.countries),
-            "search_text": f"{global_filter.search_text}%",
+            "search_text": f"%{global_filter.search_text}%",
         },
     ).scalar()
 
@@ -312,7 +312,11 @@ def count_available_products_by_retailers(
             SELECT
               r.name AS retailer,
               COUNT(DISTINCT bp.id) AS available_products_count,
-              (select COUNT(*) from brand_product) as total_count
+              (
+                select COUNT(*) from brand_product
+                WHERE brand_id = :brand_id
+                    {"AND category_id IN :categories" if global_filter.categories else ""}
+              ) as total_count
             from product_matching pm 
                 join brand_product bp on bp.id = pm.brand_product_id 
                 join retailer_product rp on rp.id = pm.retailer_product_id
