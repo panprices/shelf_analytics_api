@@ -163,11 +163,10 @@ def get_matched_retailer_products_for_brand_product(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Must be authenticated"
         )
 
-    return {
-        "matches": crud.get_retailer_products_for_brand_product(
-            db, global_filter, brand_product_id
-        )
-    }
+    matches = crud.get_retailer_products_for_brand_product(
+        db, global_filter, brand_product_id
+    )
+    return {"matches": matches}
 
 
 @router.post(
@@ -209,7 +208,7 @@ def get_historical_prices_for_brand_product(
         {
             **v,
             "data": _add_extra_date_value_to_historical_prices(
-                v["data"], extra_date, None
+                v["data"], extra_date, v["data"][-1]["y"]
             ),
         }
         for v in reduce(_append_to_history, history, {}).values()

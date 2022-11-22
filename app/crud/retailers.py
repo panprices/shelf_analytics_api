@@ -1,6 +1,6 @@
 from typing import List, Dict
 
-from sqlalchemy import text
+from sqlalchemy import text, func
 from sqlalchemy.orm import Session, selectinload
 
 from app.crud.utils import convert_rows_to_dicts
@@ -89,20 +89,36 @@ def get_categories_split(
 def get_retailer_products_for_brand_product(
     db: Session, global_filter: GlobalFilter, brand_product_id: str
 ) -> List[RetailerProduct]:
-    query = (
+    statement = f"""
+        select * from (
+            select rp.*, 
+                row_number() over (
+                    partition by retailer_id
+                ) as "rank"
+            from product_matching pm 
+                join brand_product bp on bp.id = pm.brand_product_id
+                join retailer_product rp on pm.retailer_product_id = rp.id
+                join retailer r on r.id = rp.retailer_id
+            where bp.id = 'ed5145cb-790d-4bc7-97b7-9b08de20106c'
+                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
+                {"AND r.country IN :countries" if global_filter.countries else ""}
+        ) ranked_matches
+        where ranked_matches.rank = 1
+    """
+
+    return (
         db.query(RetailerProduct)
-        .join(RetailerProduct.retailer)
-        .join(RetailerProduct.matched_brand_products)
-        .filter(ProductMatching.brand_product_id == brand_product_id)
+        .from_statement(text(statement))
+        .params(
+            brand_product_id=brand_product_id,
+            categories=tuple(global_filter.categories),
+            retailers=tuple(global_filter.retailers),
+            countries=tuple(global_filter.countries),
+        )
+        .options(selectinload(RetailerProduct.category))
+        .all()
     )
-
-    if global_filter.countries:
-        query = query.filter(Retailer.country.in_(global_filter.countries))
-
-    if global_filter.retailers:
-        query = query.filter(Retailer.id.in_(global_filter.retailers))
-
-    return query.options(selectinload(RetailerProduct.category)).all()
 
 
 def get_individual_category_performance_details(db: Session, categories: List[str]):
