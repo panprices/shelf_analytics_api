@@ -258,7 +258,7 @@ class BrandProductScaffold(BaseModel):
     """
 
     id: Union[str, uuid.UUID] = Field(description="The id of the brand product")
-    description: str = Field(
+    description: Optional[str] = Field(
         description="The description of the product set by the brand"
     )
     name: str = Field(description="The name of the product as set by the brand")
