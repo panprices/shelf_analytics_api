@@ -99,7 +99,7 @@ def get_retailer_products_for_brand_product(
                 join brand_product bp on bp.id = pm.brand_product_id
                 join retailer_product rp on pm.retailer_product_id = rp.id
                 join retailer r on r.id = rp.retailer_id
-            where bp.id = 'ed5145cb-790d-4bc7-97b7-9b08de20106c'
+            where bp.id = :brand_product_id
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                 {"AND r.country IN :countries" if global_filter.countries else ""}
