@@ -1,10 +1,10 @@
 from typing import List, Dict
 
-from sqlalchemy import text, func
+from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
 from app.crud.utils import convert_rows_to_dicts
-from app.models import retailer, brand, RetailerProduct, Retailer, ProductMatching
+from app.models import retailer, brand, RetailerProduct, ProductMatching, BrandProduct
 from app.schemas.filters import GlobalFilter
 
 
@@ -116,7 +116,14 @@ def get_retailer_products_for_brand_product(
             retailers=tuple(global_filter.retailers),
             countries=tuple(global_filter.countries),
         )
-        .options(selectinload(RetailerProduct.category))
+        .options(
+            selectinload(RetailerProduct.category),
+            selectinload(RetailerProduct.images),
+            selectinload(RetailerProduct.retailer),
+            selectinload(RetailerProduct.matched_brand_products)
+            .selectinload(ProductMatching.brand_product)
+            .selectinload(BrandProduct.images),
+        )
         .all()
     )
 

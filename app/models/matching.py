@@ -30,5 +30,25 @@ class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     text_score = Column(Float)
     certainty = Column(Enum(MatchingCertaintyType))
 
-    brand_product = relationship("BrandProduct", back_populates="matched_retailer_products")
-    retailer_product = relationship("RetailerProduct", back_populates="matched_brand_products")
+    brand_product = relationship(
+        "BrandProduct", back_populates="matched_retailer_products"
+    )
+    retailer_product = relationship(
+        "RetailerProduct", back_populates="matched_brand_products"
+    )
+    image_matches = relationship("ImageMatching", back_populates="product_matching")
+
+
+class ImageMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
+    __tablename__ = "image_matching"
+
+    product_matching_id = Column(UUID(as_uuid=True), ForeignKey("product_matching.id"))
+    brand_image_id = Column(UUID(as_uuid=True), ForeignKey("brand_image.id"))
+    retailer_image_id = Column(UUID(as_uuid=True), ForeignKey("retailer_image.id"))
+    distance = Column(Float)
+
+    product_matching = relationship("ProductMatching", back_populates="image_matches")
+    brand_image = relationship("BrandImage", back_populates="matched_retailer_images")
+    retailer_image = relationship(
+        "RetailerImage", back_populates="matched_brand_images"
+    )

@@ -95,6 +95,9 @@ class RetailerImage(Base, UUIDPrimaryKeyMixin):
     retailer_product_id = Column(UUID(as_uuid=True), ForeignKey("retailer_product.id"))
 
     retailer_product = relationship("RetailerProduct", back_populates="images")
+    matched_brand_images = relationship(
+        "ImageMatching", back_populates="retailer_image"
+    )
 
 
 class RetailerProductHistory(Base, HistoricalMixin):
