@@ -1,5 +1,8 @@
+from typing import List
+
 from sqlalchemy import Column, String, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -8,6 +11,7 @@ from app.models.mixins import (
     UpdatableMixin,
     GenericProductMixin,
     UUIDPrimaryKeyMixin,
+    ImageMixin,
 )
 from app.models.retailer import retailer_brand_association_table
 
@@ -32,10 +36,9 @@ class BrandCategory(Base, UUIDPrimaryKeyMixin, GenericCategoryMixin):
     products = relationship("BrandProduct", back_populates="category")
 
 
-class BrandImage(Base, UUIDPrimaryKeyMixin):
+class BrandImage(Base, UUIDPrimaryKeyMixin, ImageMixin):
     __tablename__ = "brand_image"
 
-    url = Column(String)
     is_obsolete = Column(Boolean)
     brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
 
@@ -55,5 +58,9 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
         "ProductMatching", back_populates="brand_product"
     )
     brand = relationship("Brand", back_populates="products")
-    images = relationship("BrandImage", back_populates="product")
+    images: List[BrandImage] = relationship("BrandImage", back_populates="product")
     category = relationship("BrandCategory", back_populates="products")
+
+    @hybrid_property
+    def processed_images(self):
+        return [i for i in self.images if i.image_hash is not None]
