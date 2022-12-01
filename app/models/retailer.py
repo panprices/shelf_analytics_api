@@ -1,4 +1,5 @@
 import enum
+from functools import reduce
 from typing import List
 
 from sqlalchemy import (
@@ -25,6 +26,7 @@ from app.models.mixins import (
     HistoricalMixin,
     ImageMixin,
 )
+from app.utils.reducers import _reduce_to_dict_by_key
 
 retailer_brand_association_table = Table(
     "retailer_to_brand_mapping",
@@ -174,4 +176,10 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
 
     @hybrid_property
     def processed_images(self):
-        return [i for i in self.images if i.image_hash is not None]
+        dict_by_hash = reduce(
+            _reduce_to_dict_by_key(lambda t: t.image_hash),
+            [i for i in self.images if i.image_hash is not None],
+            {},
+        )
+
+        return [v[0] for v in dict_by_hash.values()]

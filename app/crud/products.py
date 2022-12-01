@@ -279,18 +279,6 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
     return convert_rows_to_dicts(result)
 
 
-def count_brand_products(
-    db: Session, brand_id: str, global_filter: GlobalFilter
-) -> int:
-    products = db.query(BrandProduct).filter(BrandProduct.brand_id == brand_id)
-    if global_filter.categories:
-        products = products.filter(
-            BrandProduct.category_id.in_(global_filter.categories)
-        )
-
-    return products.count()
-
-
 def export_full_brand_products_result(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
 ):
