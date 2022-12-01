@@ -216,6 +216,7 @@ class MatchedRetailerProductCategoryScaffold(BaseModel):
 class GenericProductImageScaffold(BaseModel):
     id: Union[uuid.UUID, str] = Field(description="The id of the image")
     url: str = Field(description="The url of the image")
+    image_hash: str = Field(description="The computed hash of the image")
 
     class Config:
         orm_mode = True

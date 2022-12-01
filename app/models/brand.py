@@ -1,4 +1,3 @@
-from functools import reduce
 from typing import List
 
 from sqlalchemy import Column, String, ForeignKey, Boolean
@@ -15,7 +14,6 @@ from app.models.mixins import (
     ImageMixin,
 )
 from app.models.retailer import retailer_brand_association_table
-from app.utils.reducers import _reduce_to_dict_by_key
 
 
 class Brand(Base, UUIDPrimaryKeyMixin):
@@ -65,10 +63,4 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
 
     @hybrid_property
     def processed_images(self):
-        dict_by_hash = reduce(
-            _reduce_to_dict_by_key(lambda t: t.image_hash),
-            [i for i in self.images if i.image_hash is not None],
-            {},
-        )
-
-        return [v[0] for v in dict_by_hash.values()]
+        return [i for i in self.images if i.image_hash is not None]
