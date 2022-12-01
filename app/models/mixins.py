@@ -55,3 +55,8 @@ class HistoricalMixin:
     @hybrid_property
     def time_as_week(self):
         return self.time_as_date - timedelta(days=self.time_as_date.weekday())
+
+
+class ImageMixin:
+    image_hash = Column(String)
+    url = Column(String)

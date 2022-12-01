@@ -214,7 +214,18 @@ class MatchedRetailerProductCategoryScaffold(BaseModel):
 
 
 class GenericProductImageScaffold(BaseModel):
+    id: Union[uuid.UUID, str] = Field(description="The id of the image")
     url: str = Field(description="The url of the image")
+    image_hash: str = Field(description="The computed hash of the image")
+
+    class Config:
+        orm_mode = True
+
+
+class RetailerToBrandImageMatchScaffold(BaseModel):
+    brand_image_id: Union[uuid.UUID, str] = Field(
+        description="The id of the matched brand image"
+    )
 
     class Config:
         orm_mode = True
@@ -225,7 +236,9 @@ class BrandProductImageScaffold(GenericProductImageScaffold):
 
 
 class RetailerProductImageScaffold(GenericProductImageScaffold):
-    pass
+    matched_brand_images: List[RetailerToBrandImageMatchScaffold] = Field(
+        description="List of matching brand images"
+    )
 
 
 class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
@@ -234,7 +247,7 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
     """
 
     category: MatchedRetailerProductCategoryScaffold
-    images: List[RetailerProductImageScaffold] = Field(
+    processed_images: List[RetailerProductImageScaffold] = Field(
         description="The images set by the retailer"
     )
 
@@ -264,7 +277,7 @@ class BrandProductScaffold(BaseModel):
     name: str = Field(description="The name of the product as set by the brand")
     gtin: Optional[str] = Field(description="The gtin of the product")
     sku: Optional[str] = Field(description="The sku of the product as set by the brand")
-    images: List[BrandProductImageScaffold] = Field(
+    processed_images: List[BrandProductImageScaffold] = Field(
         description="URLs to the images set for the product by the brand"
     )
 

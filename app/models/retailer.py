@@ -23,6 +23,7 @@ from app.models.mixins import (
     GenericCategoryMixin,
     UUIDPrimaryKeyMixin,
     HistoricalMixin,
+    ImageMixin,
 )
 
 retailer_brand_association_table = Table(
@@ -88,13 +89,15 @@ class AvailabilityStatus(enum.Enum):
         ]
 
 
-class RetailerImage(Base, UUIDPrimaryKeyMixin):
+class RetailerImage(Base, UUIDPrimaryKeyMixin, ImageMixin):
     __tablename__ = "retailer_image"
 
-    url = Column(String)
     retailer_product_id = Column(UUID(as_uuid=True), ForeignKey("retailer_product.id"))
 
     retailer_product = relationship("RetailerProduct", back_populates="images")
+    matched_brand_images = relationship(
+        "ImageMatching", back_populates="retailer_image"
+    )
 
 
 class RetailerProductHistory(Base, HistoricalMixin):
@@ -137,7 +140,9 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     matched_brand_products = relationship(
         "ProductMatching", back_populates="retailer_product"
     )
-    images = relationship("RetailerImage", back_populates="retailer_product")
+    images: List[RetailerImage] = relationship(
+        "RetailerImage", back_populates="retailer_product"
+    )
     historical_data = relationship("RetailerProductHistory", back_populates="product")
 
     @hybrid_property
@@ -166,3 +171,7 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     @hybrid_property
     def price_standard(self):
         return self.price / 100
+
+    @hybrid_property
+    def processed_images(self):
+        return [i for i in self.images if i.image_hash is not None]
