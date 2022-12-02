@@ -262,6 +262,17 @@ class BrandProductMatchesScaffold(BaseModel):
         orm_mode = True
 
 
+class BrandKeywordsScaffold(BaseModel):
+    title_keywords: List[List[str]] = Field(description="The actual list of keywords")
+    description_keywords: List[List[str]] = Field(
+        description="The actual list of keywords"
+    )
+    language: str = Field(description="The language for the keywords")
+
+    class Config:
+        orm_mode = True
+
+
 class BrandProductScaffold(BaseModel):
     """
     This is the brand product sent when we query for brand products and in it, we will have matched retailer product.
@@ -279,6 +290,9 @@ class BrandProductScaffold(BaseModel):
     sku: Optional[str] = Field(description="The sku of the product as set by the brand")
     processed_images: List[BrandProductImageScaffold] = Field(
         description="URLs to the images set for the product by the brand"
+    )
+    keywords: List[BrandKeywordsScaffold] = Field(
+        description="The keywords we had defined"
     )
 
     class Config:

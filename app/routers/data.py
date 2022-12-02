@@ -144,7 +144,8 @@ def get_brand_product_details(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Must be authenticated"
         )
 
-    return crud.get_brand_product_detailed_for_id(db, brand_product_id)
+    result = crud.get_brand_product_detailed_for_id(db, brand_product_id)
+    return result
 
 
 @router.post(

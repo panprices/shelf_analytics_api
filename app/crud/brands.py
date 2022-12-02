@@ -37,6 +37,7 @@ def get_brand_product_detailed_for_id(db: Session, product_id: str):
                 ProductMatching.retailer_product
             ),
             selectinload(BrandProduct.images),
+            selectinload(BrandProduct.keywords),
         )
         .first()
     )
