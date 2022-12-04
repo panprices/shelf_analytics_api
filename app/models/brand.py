@@ -1,8 +1,7 @@
 from typing import List
 
 from sqlalchemy import Column, String, ForeignKey, Boolean
-from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -77,7 +76,3 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     keywords: List[BrandKeywords] = relationship(
         "BrandKeywords", back_populates="product"
     )
-
-    @hybrid_property
-    def processed_images(self):
-        return [i for i in self.images if i.image_hash is not None]

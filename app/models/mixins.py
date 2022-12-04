@@ -1,7 +1,9 @@
+import enum
 import uuid
 from datetime import timedelta
+from typing import List
 
-from sqlalchemy import String, Column, DateTime
+from sqlalchemy import String, Column, DateTime, Enum
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -11,6 +13,17 @@ class UpdatableMixin:
     updated_at = Column(DateTime)
 
 
+class ImageType(enum.Enum):
+    environmental = object()
+    transparent = object()
+
+
+class ImageMixin:
+    image_hash = Column(String)
+    url = Column(String)
+    image_type = Column(Enum(ImageType))
+
+
 class GenericProductMixin:
     url = Column(String)
     name = Column(String)
@@ -18,6 +31,19 @@ class GenericProductMixin:
     specifications = Column(JSONB)
     sku = Column(String)
     gtin = Column(String)
+    images: List[ImageMixin] = Column()
+
+    @hybrid_property
+    def processed_images(self):
+        return [i for i in self.images if i.image_hash is not None]
+
+    @hybrid_property
+    def environmental_images_count(self):
+        return len([i for i in self.images if i.image_type == ImageType.environmental])
+
+    @hybrid_property
+    def transparent_images_count(self):
+        return len([i for i in self.images if i.image_hash == ImageType.transparent])
 
 
 class GenericCategoryMixin:
@@ -55,8 +81,3 @@ class HistoricalMixin:
     @hybrid_property
     def time_as_week(self):
         return self.time_as_date - timedelta(days=self.time_as_date.weekday())
-
-
-class ImageMixin:
-    image_hash = Column(String)
-    url = Column(String)

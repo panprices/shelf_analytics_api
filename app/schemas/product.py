@@ -91,6 +91,13 @@ class BaseRetailerProductScaffold(BaseModel):
         description="A score showing how similar the retailer's title is to the title from the client",
         example=0.67,
     )
+    environmental_images_count: int = Field(
+        description="The number of environmental images shown for the product",
+        example=5,
+    )
+    transparent_images_count: int = Field(
+        description="The number of transparent images shown for the product", example=3
+    )
 
 
 class RetailerProductScaffold(BaseRetailerProductScaffold):
@@ -160,6 +167,8 @@ class ProductPage(BaseModel):
                     inbjudande och skapa ett blickfång som imponerar!""",
                 review_average=3.7,
                 number_of_reviews=19,
+                environmental_images_count=5,
+                transparent_images_count=3,
                 in_stock=True,
                 matched_brand_products=[],
             ),
@@ -191,6 +200,8 @@ class ProductPage(BaseModel):
                     naturligt mycket behöver inte möblerna impregneras lika ofta.""",
                 review_average=4.4,
                 number_of_reviews=32,
+                environmental_images_count=5,
+                transparent_images_count=3,
                 in_stock=True,
                 matched_brand_products=[],
             ),

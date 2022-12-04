@@ -171,7 +171,3 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     @hybrid_property
     def price_standard(self):
         return self.price / 100
-
-    @hybrid_property
-    def processed_images(self):
-        return [i for i in self.images if i.image_hash is not None]
