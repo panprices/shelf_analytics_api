@@ -91,11 +91,11 @@ class BaseRetailerProductScaffold(BaseModel):
         description="A score showing how similar the retailer's title is to the title from the client",
         example=0.67,
     )
-    environmental_image_count: int = Field(
+    environmental_images_count: int = Field(
         description="The number of environmental images shown for the product",
         example=5,
     )
-    transparent_image_count: int = Field(
+    transparent_images_count: int = Field(
         description="The number of transparent images shown for the product", example=3
     )
 

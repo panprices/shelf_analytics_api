@@ -38,11 +38,11 @@ class GenericProductMixin:
         return [i for i in self.images if i.image_hash is not None]
 
     @hybrid_property
-    def environmental_image_count(self):
+    def environmental_images_count(self):
         return len([i for i in self.images if i.image_type == ImageType.environmental])
 
     @hybrid_property
-    def transparent_image_count(self):
+    def transparent_images_count(self):
         return len([i for i in self.images if i.image_hash == ImageType.transparent])
 
 
