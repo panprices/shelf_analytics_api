@@ -88,10 +88,10 @@ def get_categories_split(
 
 def get_retailer_products_for_brand_product(
     db: Session, global_filter: GlobalFilter, brand_product_id: str
-) -> List[RetailerProduct]:
+) -> List[ProductMatching]:
     statement = f"""
         select * from (
-            select rp.*, 
+            select pm.*, 
                 row_number() over (
                     partition by retailer_id
                 ) as "rank"
@@ -108,7 +108,7 @@ def get_retailer_products_for_brand_product(
     """
 
     return (
-        db.query(RetailerProduct)
+        db.query(ProductMatching)
         .from_statement(text(statement))
         .params(
             brand_product_id=brand_product_id,
@@ -117,10 +117,17 @@ def get_retailer_products_for_brand_product(
             countries=tuple(global_filter.countries),
         )
         .options(
-            selectinload(RetailerProduct.category),
-            selectinload(RetailerProduct.images),
-            selectinload(RetailerProduct.retailer),
-            selectinload(RetailerProduct.matched_brand_products)
+            selectinload(ProductMatching.retailer_product).selectinload(
+                RetailerProduct.category
+            ),
+            selectinload(ProductMatching.retailer_product).selectinload(
+                RetailerProduct.images
+            ),
+            selectinload(ProductMatching.retailer_product).selectinload(
+                RetailerProduct.retailer
+            ),
+            selectinload(ProductMatching.retailer_product)
+            .selectinload(RetailerProduct.matched_brand_products)
             .selectinload(ProductMatching.brand_product)
             .selectinload(BrandProduct.images),
         )

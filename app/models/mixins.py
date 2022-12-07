@@ -43,7 +43,7 @@ class GenericProductMixin:
 
     @hybrid_property
     def transparent_images_count(self):
-        return len([i for i in self.images if i.image_hash == ImageType.transparent])
+        return len([i for i in self.images if i.image_type == ImageType.transparent])
 
 
 class GenericCategoryMixin:

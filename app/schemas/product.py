@@ -266,8 +266,16 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
         orm_mode = True
 
 
+class BrandToRetailerProductMatchingScaffold(BaseModel):
+    retailer_product: MatchedRetailerProductScaffold
+    image_score: float = Field(description="Image score up to 100", default=0)
+
+    class Config:
+        orm_mode = True
+
+
 class BrandProductMatchesScaffold(BaseModel):
-    matches: List[MatchedRetailerProductScaffold]
+    matches: List[BrandToRetailerProductMatchingScaffold]
 
     class Config:
         orm_mode = True
