@@ -24,6 +24,7 @@ from app.models.mixins import (
     UUIDPrimaryKeyMixin,
     HistoricalMixin,
     ImageMixin,
+    ImageTypeMixin,
 )
 
 retailer_brand_association_table = Table(
@@ -89,6 +90,16 @@ class AvailabilityStatus(enum.Enum):
         ]
 
 
+class RetailerImageType(Base, ImageTypeMixin):
+    __tablename__ = "retailer_image_types"
+
+    image_id = Column(
+        UUID(as_uuid=True), ForeignKey("retailer_image.id"), primary_key=True
+    )
+
+    retailer_image = relationship("RetailerImage", back_populates="type_predictions")
+
+
 class RetailerImage(Base, UUIDPrimaryKeyMixin, ImageMixin):
     __tablename__ = "retailer_image"
 
@@ -97,6 +108,9 @@ class RetailerImage(Base, UUIDPrimaryKeyMixin, ImageMixin):
     retailer_product = relationship("RetailerProduct", back_populates="images")
     matched_brand_images = relationship(
         "ImageMatching", back_populates="retailer_image"
+    )
+    type_predictions = relationship(
+        "RetailerImageType", back_populates="retailer_image"
     )
 
 
