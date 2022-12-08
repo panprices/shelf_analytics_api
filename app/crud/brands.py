@@ -6,6 +6,7 @@ from app.models import (
     brand,
     BrandProduct,
     ProductMatching,
+    BrandImage,
 )
 
 
@@ -37,6 +38,7 @@ def get_brand_product_detailed_for_id(db: Session, product_id: str):
                 ProductMatching.retailer_product
             ),
             selectinload(BrandProduct.images),
+            selectinload(BrandProduct.images).selectinload(BrandImage.type_predictions),
             selectinload(BrandProduct.keywords),
         )
         .first()

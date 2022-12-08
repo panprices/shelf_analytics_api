@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
+from app.models.mixins import ImageType, ImageTypeModel
 from app.schemas.general import NamedRetailer
 
 
@@ -224,10 +225,24 @@ class MatchedRetailerProductCategoryScaffold(BaseModel):
         orm_mode = True
 
 
+class ImageTypeScaffold(BaseModel):
+    prediction: str
+    confidence: float
+    model: str
+    version: int
+
+    class Config:
+        orm_mode = True
+
+
 class GenericProductImageScaffold(BaseModel):
     id: Union[uuid.UUID, str] = Field(description="The id of the image")
     url: str = Field(description="The url of the image")
     image_hash: str = Field(description="The computed hash of the image")
+
+    type_predictions: List[ImageTypeScaffold] = Field(
+        description="Predictions for the type of the image"
+    )
 
     class Config:
         orm_mode = True
@@ -269,6 +284,7 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
 class BrandToRetailerProductMatchingScaffold(BaseModel):
     retailer_product: MatchedRetailerProductScaffold
     image_score: Optional[float] = Field(description="Image score up to 100", default=0)
+    text_score: Optional[float] = Field(description="Text score up to 100", default=0)
 
     class Config:
         orm_mode = True

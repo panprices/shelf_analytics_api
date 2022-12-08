@@ -3,7 +3,7 @@ import uuid
 from datetime import timedelta
 from typing import List
 
-from sqlalchemy import String, Column, DateTime, Enum
+from sqlalchemy import String, Column, DateTime, Enum, Integer, Float
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 
@@ -13,15 +13,28 @@ class UpdatableMixin:
     updated_at = Column(DateTime)
 
 
-class ImageType(enum.Enum):
-    environmental = object()
-    transparent = object()
+class ImageType(str, enum.Enum):
+    environmental = "environmental"
+    transparent = "transparent"
+
+
+class ImageTypeModel(str, enum.Enum):
+    heuristics = "heuristics"
+    automl = "automl"
+    manual = "manual"
+
+
+class ImageTypeMixin:
+    prediction = Column(Enum(ImageType))
+    model = Column(Enum(ImageTypeModel), primary_key=True)
+    version = Column(Integer, primary_key=True)
+    confidence = Column(Float)
 
 
 class ImageMixin:
     image_hash = Column(String)
     url = Column(String)
-    image_type = Column(Enum(ImageType))
+    type_predictions: List[ImageTypeMixin]
 
 
 class GenericProductMixin:
@@ -39,11 +52,35 @@ class GenericProductMixin:
 
     @hybrid_property
     def environmental_images_count(self):
-        return len([i for i in self.images if i.image_type == ImageType.environmental])
+        return len(
+            [
+                i
+                for i in self.processed_images
+                if len(i.type_predictions) > 0
+                and (
+                    sorted(
+                        i.type_predictions, key=lambda x: x.confidence, reverse=True
+                    )[0].prediction
+                    == ImageType.environmental
+                )
+            ]
+        )
 
     @hybrid_property
     def transparent_images_count(self):
-        return len([i for i in self.images if i.image_type == ImageType.transparent])
+        return len(
+            [
+                i
+                for i in self.processed_images
+                if len(i.type_predictions) > 0
+                and (
+                    sorted(
+                        i.type_predictions, key=lambda x: x.confidence, reverse=True
+                    )[0].prediction
+                    == ImageType.transparent
+                )
+            ]
+        )
 
 
 class GenericCategoryMixin:

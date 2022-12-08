@@ -11,6 +11,7 @@ from app.models.mixins import (
     GenericProductMixin,
     UUIDPrimaryKeyMixin,
     ImageMixin,
+    ImageTypeMixin,
 )
 from app.models.retailer import retailer_brand_association_table
 
@@ -35,6 +36,16 @@ class BrandCategory(Base, UUIDPrimaryKeyMixin, GenericCategoryMixin):
     products = relationship("BrandProduct", back_populates="category")
 
 
+class BrandImageType(Base, ImageTypeMixin):
+    __tablename__ = "brand_image_types"
+
+    image_id = Column(
+        UUID(as_uuid=True), ForeignKey("brand_image.id"), primary_key=True
+    )
+
+    brand_image = relationship("BrandImage", back_populates="type_predictions")
+
+
 class BrandImage(Base, UUIDPrimaryKeyMixin, ImageMixin):
     __tablename__ = "brand_image"
 
@@ -45,6 +56,7 @@ class BrandImage(Base, UUIDPrimaryKeyMixin, ImageMixin):
     matched_retailer_images = relationship(
         "ImageMatching", back_populates="brand_image"
     )
+    type_predictions = relationship("BrandImageType", back_populates="brand_image")
 
 
 class BrandKeywords(Base):

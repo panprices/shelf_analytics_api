@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.crud.utils import convert_rows_to_dicts
 from app.models import retailer, brand, RetailerProduct, ProductMatching, BrandProduct
+from app.models.retailer import RetailerImage
 from app.schemas.filters import GlobalFilter
 
 
@@ -126,6 +127,9 @@ def get_retailer_products_for_brand_product(
             selectinload(ProductMatching.retailer_product).selectinload(
                 RetailerProduct.retailer
             ),
+            selectinload(ProductMatching.retailer_product)
+            .selectinload(RetailerProduct.images)
+            .selectinload(RetailerImage.type_predictions),
             selectinload(ProductMatching.retailer_product)
             .selectinload(RetailerProduct.matched_brand_products)
             .selectinload(ProductMatching.brand_product)
