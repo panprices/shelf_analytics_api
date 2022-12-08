@@ -284,6 +284,7 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
 class BrandToRetailerProductMatchingScaffold(BaseModel):
     retailer_product: MatchedRetailerProductScaffold
     image_score: Optional[float] = Field(description="Image score up to 100", default=0)
+    text_score: Optional[float] = Field(description="Text score up to 100", default=0)
 
     class Config:
         orm_mode = True
