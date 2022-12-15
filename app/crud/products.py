@@ -11,6 +11,7 @@ from app.models import (
     RetailerProductHistory,
     AvailabilityStatus,
     Retailer,
+    BrandImage,
 )
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
@@ -109,10 +110,17 @@ def _get_full_product_list(
     """
     query = query.options(
         selectinload(RetailerProduct.retailer),
+        selectinload(RetailerProduct.retailer).selectinload(
+            Retailer.country_to_language
+        ),
         selectinload(RetailerProduct.images),
         selectinload(RetailerProduct.matched_brand_products)
         .selectinload(ProductMatching.brand_product)
         .selectinload(BrandProduct.images),
+        selectinload(RetailerProduct.matched_brand_products)
+        .selectinload(ProductMatching.brand_product)
+        .selectinload(BrandProduct.images)
+        .selectinload(BrandImage.type_predictions),
         selectinload(RetailerProduct.matched_brand_products)
         .selectinload(ProductMatching.brand_product)
         .selectinload(BrandProduct.category),

@@ -35,18 +35,27 @@ retailer_brand_association_table = Table(
 )
 
 
+class CountryToLanguage(Base):
+    __tablename__ = "country_to_language"
+
+    country = Column(String, primary_key=True, unique=True)
+    language = Column(String, primary_key=True)
+
+
 class Retailer(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "retailer"
 
     name = Column(String)
     url = Column(String)
-    country = Column(String)
+    country = Column(String, ForeignKey("country_to_language.country"))
 
     brands = relationship(
         "Brand", secondary=retailer_brand_association_table, back_populates="retailers"
     )
     categories = relationship("RetailerCategory", back_populates="retailer")
     products = relationship("RetailerProduct", back_populates="retailer")
+
+    country_to_language = relationship("CountryToLanguage")
 
 
 class RetailerCategory(Base, UUIDPrimaryKeyMixin, GenericCategoryMixin):

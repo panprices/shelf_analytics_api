@@ -19,10 +19,22 @@ class ActiveMarket(BaseModel):
     )
 
 
+class CountryToLanguageScaffold(BaseModel):
+    country: str = Field(description="Country of the retailer")
+    language: str = Field(description="Language to use with the country")
+
+    class Config:
+        orm_mode = True
+
+
 class NamedRetailer(BaseModel):
     name: str = Field(description="The name of the retailer")
     country: str = Field(description="The country in which this retailer activates")
     id: uuid.UUID = Field(description="The id of the retailer in the database")
+
+    country_to_language: CountryToLanguageScaffold = Field(
+        description="The country and mapping to language"
+    )
 
     class Config:
         orm_mode = True
