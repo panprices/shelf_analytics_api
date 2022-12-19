@@ -1,7 +1,7 @@
 from typing import Dict, List
 
 from sqlalchemy import func, text, case
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from app.crud.utils import convert_rows_to_dicts
 from app.models import (
@@ -11,8 +11,8 @@ from app.models import (
     RetailerProductHistory,
     AvailabilityStatus,
     Retailer,
-    BrandImage,
 )
+from app.models.retailer import MockRetailerProductGridItem
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
 
@@ -36,12 +36,53 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
             rp.original_price,
             rp.category_id,
             rp.retailer_id,
-            rp.availability
+            rp.availability,
+            r.country,
+            r.name as retailer_name,
+            rp.price::float / 100 as price_standard,
+            coalesce((reviews ->> 'reviewCount')::int, 0) as number_of_reviews,
+            (
+                SELECT COUNT(*)
+                FROM retailer_image ri 
+                WHERE ri.retailer_product_id = rp.id AND ri.image_hash IS NOT NULL
+            ) as retailer_images_count,
+            (
+                SELECT COUNT(*)
+                FROM brand_image bi 
+                WHERE bi.brand_product_id = bp.id AND bi.image_hash IS NOT NULL
+            ) as client_images_count,
+            pm.text_score as title_matching_score, 
+            0 as wholesale_price,
+            rp.availability IN (
+                'in_stock', 
+                'in_store_only', 
+                'online_only', 
+                'limited_availability', 
+                'discounted'
+            ) as in_stock,
+            environmental_images_count,
+            transparent_images_count,
+            bp.id as matched_brand_product_id
         FROM retailer_product rp 
-        JOIN retailer_to_brand_mapping rtb ON rtb.retailer_id = rp.retailer_id
-        JOIN retailer r ON r.id = rp.retailer_id
-        JOIN product_matching pm on pm.retailer_product_id = rp.id
-        JOIN brand_product bp ON pm.brand_product_id = bp.id
+            JOIN retailer_to_brand_mapping rtb ON rtb.retailer_id = rp.retailer_id
+            JOIN retailer r ON r.id = rp.retailer_id
+            JOIN product_matching pm on pm.retailer_product_id = rp.id
+            JOIN brand_product bp ON pm.brand_product_id = bp.id
+            JOIN (
+                SELECT rp.id, 
+                    COUNT(*) FILTER (where image_type = 'environmental'::image_type) as environmental_images_count, 
+                    COUNT(*) FILTER (where image_type = 'transparent'::image_type) as transparent_images_count
+                FROM ( 
+                    SELECT ri.*, rit.*, 
+                        row_number() over (
+                            partition by ri.id order by rit.confidence desc 
+                        ) as "rank"
+                    FROM retailer_image ri 
+                        join retailer_image_types rit on ri.id = rit.image_id
+                ) aux join retailer_product rp on rp.id = aux.retailer_product_id
+                WHERE rank = 1
+                GROUP BY rp.id
+            ) retailer_image_type_counts ON retailer_image_type_counts.id = rp.id
         WHERE rp.created_at > :start_date AND bp.brand_id = :brand_id
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
             {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
@@ -67,17 +108,33 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
             0 AS original_price,
             NULL AS category_id,
             retailer_id,
-            'out_of_stock' as availability
+            'out_of_stock' as availability,
+            country,
+            retailer_name,
+            0 as price_standard,
+            0 as number_of_reviews,
+            0 as retailer_images_count,
+            (
+                SELECT COUNT(*)
+                FROM brand_image bi 
+                WHERE bi.brand_product_id = bp.id AND bi.image_hash IS NOT NULL
+            ) as client_images_count,
+            0 title_matching_score, 
+            0 as wholesale_price,
+            'false'::boolean as in_stock,
+            0 as environmental_images_count,
+            0 as transparent_images_count,
+            bp.id as matched_brand_product_id
         from (
             select *, 
                 row_number() over (
                     partition by id, retailer_id order by is_match desc, retailer_product_id DESC nulls last 
                 ) as "rank"
             from (
-                select retailer_brand_product.*, rp.id as retailer_product_id, 
+                select retailer_brand_product.*, rp.id as retailer_product_id,
                     coalesce (retailer_brand_product.retailer_id = rp.retailer_id, false) as is_match
                 from (
-                    select aux.*, r.id as retailer_id
+                    select aux.*, r.id as retailer_id, r.country, r.name as retailer_name
                     from brand_product aux cross join retailer r
                     WHERE 1 = 1
                         {"AND r.id IN :retailers" if global_filter.retailers else ""}
@@ -100,41 +157,21 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
 def _get_full_product_list(
     db: Session, brand_id: str, statement: str, global_filter: PagedGlobalFilter
 ):
-    query = db.query(RetailerProduct).from_statement(text(statement))
-
-    """
-    These options are required to load the nested referred classes together with the base queried class.
-    Without these individual queries for each object are issued by SQLAlchemy when returning the result.
-
-    See: https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#select-in-loading
-    """
-    query = query.options(
-        selectinload(RetailerProduct.retailer),
-        selectinload(RetailerProduct.retailer).selectinload(
-            Retailer.country_to_language
-        ),
-        selectinload(RetailerProduct.images),
-        selectinload(RetailerProduct.matched_brand_products)
-        .selectinload(ProductMatching.brand_product)
-        .selectinload(BrandProduct.images),
-        selectinload(RetailerProduct.matched_brand_products)
-        .selectinload(ProductMatching.brand_product)
-        .selectinload(BrandProduct.images)
-        .selectinload(BrandImage.type_predictions),
-        selectinload(RetailerProduct.matched_brand_products)
-        .selectinload(ProductMatching.brand_product)
-        .selectinload(BrandProduct.category),
+    return (
+        db.query(MockRetailerProductGridItem)
+        .from_statement(text(statement))
+        .params(
+            start_date=global_filter.start_date,
+            brand_id=brand_id,
+            categories=tuple(global_filter.categories),
+            retailers=tuple(global_filter.retailers),
+            countries=tuple(global_filter.countries),
+            offset=global_filter.get_products_offset(),
+            limit=global_filter.page_size,
+            search_text=f"%{global_filter.search_text}%",
+        )
+        .all()
     )
-    return query.params(
-        start_date=global_filter.start_date,
-        brand_id=brand_id,
-        categories=tuple(global_filter.categories),
-        retailers=tuple(global_filter.retailers),
-        countries=tuple(global_filter.countries),
-        offset=global_filter.get_products_offset(),
-        limit=global_filter.page_size,
-        search_text=f"%{global_filter.search_text}%",
-    ).all()
 
 
 def get_products(
@@ -169,6 +206,10 @@ def get_products(
         SELECT * FROM (
             {_create_query_for_products_datapool(global_filter)}
         ) products_datapool
+        {
+            "ORDER BY " + global_filter.sorting.column + " " + global_filter.sorting.direction 
+            if global_filter.sorting else ""
+        }
         OFFSET :offset
         LIMIT :limit
     """

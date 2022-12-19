@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Literal, Union
 
 from pydantic import BaseModel, Field, validator
 
@@ -52,6 +52,22 @@ class GlobalFilter(BaseModel):
         return datetime.strptime(value, DATE_FORMAT)
 
 
+class DataGridFilterItem(BaseModel):
+    column: str
+    operator: str
+    value: Union[str, int, float]
+
+
+class DataGridFilters(BaseModel):
+    items: Optional[List[DataGridFilterItem]]
+    operator: Optional[Literal["or", "and"]]
+
+
+class DataGridSorting(BaseModel):
+    column: str
+    direction: Literal["asc", "desc"]
+
+
 class PagedGlobalFilter(GlobalFilter):
     page_number: int = Field(
         description="The number of the currently requested page in the pagination system. Index is 1 based.",
@@ -63,6 +79,9 @@ class PagedGlobalFilter(GlobalFilter):
     search_text: Optional[str] = Field(
         description="The text used to search the data", example="7350133230816"
     )
+
+    data_grid_filter: DataGridFilters
+    sorting: Optional[DataGridSorting]
 
     def get_products_offset(self):
         return (self.page_number - 1) * self.page_size
