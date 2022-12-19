@@ -17,7 +17,7 @@ from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
 
 def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str:
-    return f"""
+    statement = f"""
         SELECT rp.id, 
             rp.url, 
             rp.description, 
@@ -153,6 +153,20 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
         where bp.rank = 1 and not is_match
     """
 
+    return f"""
+        SELECT * FROM ({statement}) aux
+        {
+            (
+                "WHERE " + (" " + global_filter.data_grid_filter.operator + " ")
+                    .join([
+                        i.to_postgres_condition(index) 
+                        for index, i in enumerate(global_filter.data_grid_filter.items)
+                    ])
+            )
+            if global_filter.data_grid_filter.items else ""
+        }
+    """
+
 
 def _get_full_product_list(
     db: Session, brand_id: str, statement: str, global_filter: PagedGlobalFilter
@@ -169,6 +183,10 @@ def _get_full_product_list(
             offset=global_filter.get_products_offset(),
             limit=global_filter.page_size,
             search_text=f"%{global_filter.search_text}%",
+            **{
+                f"fv_{index}": i.get_safe_postgres_value()
+                for index, i in enumerate(global_filter.data_grid_filter.items)
+            },
         )
         .all()
     )
@@ -233,6 +251,10 @@ def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter)
             "retailers": tuple(global_filter.retailers),
             "countries": tuple(global_filter.countries),
             "search_text": f"%{global_filter.search_text}%",
+            **{
+                f"fv_{index}": i.get_safe_postgres_value()
+                for index, i in enumerate(global_filter.data_grid_filter.items)
+            },
         },
     ).scalar()
 

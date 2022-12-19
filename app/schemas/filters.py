@@ -55,12 +55,40 @@ class GlobalFilter(BaseModel):
 class DataGridFilterItem(BaseModel):
     column: str
     operator: str
-    value: Union[str, int, float]
+    value: Optional[Union[str, int, float, List[str]]]
+
+    def to_postgres_condition(self, index: int):
+        if self.operator == "contains":
+            return f"{self.column} LIKE ('%' || :fv_{index} || '%')"
+        elif self.operator == "startsWith":
+            return f"{self.column} LIKE (:fv_{index} || '%')"
+        elif self.operator == "endsWith":
+            return f"{self.column} LIKE ('%' || :fv_{index})"
+        elif self.operator == "equals":
+            return f"{self.column} = :fv_{index}"
+        elif self.operator == "isEmpty":
+            return f"({self.column} = '' OR {self.column} IS NULL)"
+        elif self.operator == "isNotEmpty":
+            return f"{self.column} <> ''"
+        elif self.operator == "isAnyOf":
+            return f"{self.column} IN :fv_{index}"
+        elif self.operator == "!=":
+            return f"{self.column} <> :fv_{index}"
+        elif self.operator in [">", "<", "<=", ">=", "="]:
+            return f"{self.column} {self.operator} :fv_{index}"
+
+        return ""
+
+    def get_safe_postgres_value(self):
+        if self.operator == "isAnyOf":
+            return tuple(self.value) if self.value else ()
+
+        return self.value if self.value else ""
 
 
 class DataGridFilters(BaseModel):
-    items: Optional[List[DataGridFilterItem]]
-    operator: Optional[Literal["or", "and"]]
+    items: List[DataGridFilterItem]
+    operator: Literal["or", "and"]
 
 
 class DataGridSorting(BaseModel):
