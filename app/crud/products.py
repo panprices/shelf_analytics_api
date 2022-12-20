@@ -17,147 +17,18 @@ from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
 
 def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str:
-    statement = f"""
-        SELECT rp.id, 
-            rp.url, 
-            rp.description, 
-            rp.specifications, 
-            rp.sku, 
-            rp.gtin, 
-            rp.name, 
-            rp.created_at, 
-            rp.updated_at,
-            rp.popularity_index,
-            rp.price,
-            rp.currency,
-            rp.reviews,
-            rp.review_average,
-            rp.is_discounted,
-            rp.original_price,
-            rp.category_id,
-            rp.retailer_id,
-            rp.availability,
-            r.country,
-            r.name as retailer_name,
-            rp.price::float / 100 as price_standard,
-            coalesce((reviews ->> 'reviewCount')::int, 0) as number_of_reviews,
-            (
-                SELECT COUNT(*)
-                FROM retailer_image ri 
-                WHERE ri.retailer_product_id = rp.id AND ri.image_hash IS NOT NULL
-            ) as retailer_images_count,
-            (
-                SELECT COUNT(*)
-                FROM brand_image bi 
-                WHERE bi.brand_product_id = bp.id AND bi.image_hash IS NOT NULL
-            ) as client_images_count,
-            pm.text_score as title_matching_score, 
-            0 as wholesale_price,
-            rp.availability IN (
-                'in_stock', 
-                'in_store_only', 
-                'online_only', 
-                'limited_availability', 
-                'discounted'
-            ) as in_stock,
-            environmental_images_count,
-            transparent_images_count,
-            bp.id as matched_brand_product_id
-        FROM retailer_product rp 
-            JOIN retailer_to_brand_mapping rtb ON rtb.retailer_id = rp.retailer_id
-            JOIN retailer r ON r.id = rp.retailer_id
-            JOIN product_matching pm on pm.retailer_product_id = rp.id
-            JOIN brand_product bp ON pm.brand_product_id = bp.id
-            JOIN (
-                SELECT rp.id, 
-                    COUNT(*) FILTER (where image_type = 'environmental'::image_type) as environmental_images_count, 
-                    COUNT(*) FILTER (where image_type = 'transparent'::image_type) as transparent_images_count
-                FROM ( 
-                    SELECT ri.*, rit.*, 
-                        row_number() over (
-                            partition by ri.id order by rit.confidence desc 
-                        ) as "rank"
-                    FROM retailer_image ri 
-                        join retailer_image_types rit on ri.id = rit.image_id
-                ) aux join retailer_product rp on rp.id = aux.retailer_product_id
-                WHERE rank = 1
-                GROUP BY rp.id
-            ) retailer_image_type_counts ON retailer_image_type_counts.id = rp.id
-        WHERE rp.created_at > :start_date AND bp.brand_id = :brand_id
-            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-            {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
-            {"AND r.country IN :countries" if global_filter.countries else ""}
-            {"AND (bp.sku LIKE :search_text OR bp.gtin LIKE :search_text)" if global_filter.search_text else ""}
-        UNION ALL
-        SELECT
-            uuid_generate_v4() as id, 
-            NULL as url,
-            bp.description AS description,
-            bp.specifications AS specifications,
-            bp.sku AS sku, 
-            bp.gtin AS gtin,
-            bp.name as name,
-            bp.created_at as created_at,
-            bp.updated_at as updated_at,
-            -1 AS popularity_index, 
-            0 AS price,
-            '' AS currency,
-            '{{}}'::json AS reviews,
-            0 AS review_average,
-            False AS is_discounted,
-            0 AS original_price,
-            NULL AS category_id,
-            retailer_id,
-            'out_of_stock' as availability,
-            country,
-            retailer_name,
-            0 as price_standard,
-            0 as number_of_reviews,
-            0 as retailer_images_count,
-            (
-                SELECT COUNT(*)
-                FROM brand_image bi 
-                WHERE bi.brand_product_id = bp.id AND bi.image_hash IS NOT NULL
-            ) as client_images_count,
-            0 title_matching_score, 
-            0 as wholesale_price,
-            'false'::boolean as in_stock,
-            0 as environmental_images_count,
-            0 as transparent_images_count,
-            bp.id as matched_brand_product_id
-        from (
-            select *, 
-                row_number() over (
-                    partition by id, retailer_id order by is_match desc, retailer_product_id DESC nulls last 
-                ) as "rank"
-            from (
-                select retailer_brand_product.*, rp.id as retailer_product_id,
-                    coalesce (retailer_brand_product.retailer_id = rp.retailer_id, false) as is_match
-                from (
-                    select aux.*, r.id as retailer_id, r.country, r.name as retailer_name
-                    from brand_product aux cross join retailer r
-                    WHERE 1 = 1
-                        {"AND r.id IN :retailers" if global_filter.retailers else ""}
-                        {"AND r.country IN :countries" if global_filter.countries else ""}
-                        {"AND aux.category_id IN :categories" if global_filter.categories else ""}
-                        {
-                            "AND (aux.sku LIKE :search_text OR aux.gtin LIKE :search_text)" 
-                            if global_filter.search_text 
-                            else ""
-                        }
-                ) retailer_brand_product
-                left outer join product_matching pm on pm.brand_product_id = retailer_brand_product.id
-                left outer join retailer_product rp on pm.retailer_product_id = rp.id
-            ) outer_aux
-        ) bp 
-        where bp.rank = 1 and not is_match
-    """
-
     return f"""
-        SELECT * FROM ({statement}) aux
+        SELECT * 
+        FROM retailer_product_including_unavailable_matview
+        WHERE created_at > :start_date 
+            AND brand_id = :brand_id
+            {"AND category_id IN :categories" if global_filter.categories else ""}
+            {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND country IN :countries" if global_filter.countries else ""}
+            {"AND (sku LIKE :search_text OR gtin LIKE :search_text)" if global_filter.search_text else ""}
         {
             (
-                "WHERE " + (" " + global_filter.data_grid_filter.operator + " ")
+                "AND " + (" " + global_filter.data_grid_filter.operator + " ")
                     .join([
                         i.to_postgres_condition(index) 
                         for index, i in enumerate(global_filter.data_grid_filter.items)
