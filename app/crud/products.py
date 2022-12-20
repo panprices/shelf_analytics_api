@@ -28,7 +28,7 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
             {"AND (sku LIKE :search_text OR gtin LIKE :search_text)" if global_filter.search_text else ""}
         {
             (
-                "WHERE " + (" " + global_filter.data_grid_filter.operator + " ")
+                "AND " + (" " + global_filter.data_grid_filter.operator + " ")
                     .join([
                         i.to_postgres_condition(index) 
                         for index, i in enumerate(global_filter.data_grid_filter.items)
