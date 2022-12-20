@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Literal, Union
 
 from pydantic import BaseModel, Field, validator
 
@@ -52,6 +52,50 @@ class GlobalFilter(BaseModel):
         return datetime.strptime(value, DATE_FORMAT)
 
 
+class DataGridFilterItem(BaseModel):
+    column: str
+    operator: str
+    value: Optional[Union[str, int, float, List[str]]]
+
+    def to_postgres_condition(self, index: int):
+        if self.operator == "contains":
+            return f"{self.column} LIKE ('%' || :fv_{index} || '%')"
+        elif self.operator == "startsWith":
+            return f"{self.column} LIKE (:fv_{index} || '%')"
+        elif self.operator == "endsWith":
+            return f"{self.column} LIKE ('%' || :fv_{index})"
+        elif self.operator == "equals":
+            return f"{self.column} = :fv_{index}"
+        elif self.operator == "isEmpty":
+            return f"({self.column} = '' OR {self.column} IS NULL)"
+        elif self.operator == "isNotEmpty":
+            return f"{self.column} <> ''"
+        elif self.operator == "isAnyOf":
+            return f"{self.column} IN :fv_{index}"
+        elif self.operator == "!=":
+            return f"{self.column} <> :fv_{index}"
+        elif self.operator in [">", "<", "<=", ">=", "="]:
+            return f"{self.column} {self.operator} :fv_{index}"
+
+        return ""
+
+    def get_safe_postgres_value(self):
+        if self.operator == "isAnyOf":
+            return tuple(self.value) if self.value else ()
+
+        return self.value if self.value else ""
+
+
+class DataGridFilters(BaseModel):
+    items: List[DataGridFilterItem]
+    operator: Literal["or", "and"]
+
+
+class DataGridSorting(BaseModel):
+    column: str
+    direction: Literal["asc", "desc"]
+
+
 class PagedGlobalFilter(GlobalFilter):
     page_number: int = Field(
         description="The number of the currently requested page in the pagination system. Index is 1 based.",
@@ -63,6 +107,9 @@ class PagedGlobalFilter(GlobalFilter):
     search_text: Optional[str] = Field(
         description="The text used to search the data", example="7350133230816"
     )
+
+    data_grid_filter: DataGridFilters
+    sorting: Optional[DataGridSorting]
 
     def get_products_offset(self):
         return (self.page_number - 1) * self.page_size

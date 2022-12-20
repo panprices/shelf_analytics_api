@@ -12,40 +12,20 @@ from starlette.responses import StreamingResponse
 
 from app import crud
 from app.database import get_db
-from app.models import RetailerProductHistory, RetailerProduct
+from app.models import RetailerProductHistory
 from app.schemas.auth import TokenData
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 from app.schemas.prices import HistoricalPriceResponse, RetailerPriceHistoricalItem
 from app.schemas.product import (
     ProductPage,
-    RetailerProductScaffold,
     BrandProductScaffold,
     BrandProductMatchesScaffold,
+    MockRetailerProductGridItem,
 )
 from app.security import get_user_data
 from app.tags import TAG_DATA
 
 router = APIRouter(prefix="/products")
-
-
-def _preprocess_products(
-    db: Session,
-    products: List[RetailerProduct],
-) -> List[RetailerProductScaffold]:
-    products = [RetailerProductScaffold.from_orm(p) for p in products]
-
-    unmatched_products = [rp for rp in products if not rp.matched_brand_products]
-    brand_products_gtins = [rp.gtin for rp in unmatched_products]
-
-    if unmatched_products:
-        brand_products = crud.get_brand_products_for_gtins(db, brand_products_gtins)
-
-        for p in unmatched_products:
-            p.url = None
-            p.matched_brand_products = [
-                {"brand_product": bp} for bp in brand_products if bp.gtin == p.gtin
-            ]
-    return products
 
 
 def _add_extra_date_value_to_historical_prices(
@@ -104,7 +84,6 @@ def get_products(
     db: Session = Depends(get_db),
 ):
     products = crud.get_products(db, user.client, page_global_filter)
-    products = _preprocess_products(db, products)
 
     return {
         "products": products,
@@ -123,7 +102,7 @@ async def export_products_to_csv(
     products = crud.export_full_brand_products_result(
         db, user.client, page_global_filter
     )
-    products = [RetailerProductScaffold.from_orm(p) for p in products]
+    products = [MockRetailerProductGridItem.from_orm(p) for p in products]
 
     products_df = pandas.DataFrame([p.dict() for p in products])
     response = StreamingResponse(io.StringIO(products_df.to_csv(index=False)))

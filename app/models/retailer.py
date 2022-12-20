@@ -142,6 +142,35 @@ class RetailerProductHistory(Base, HistoricalMixin):
         return self.price / 100
 
 
+class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
+    __tablename__ = "__mocked__"
+    url = Column(String)
+    name = Column(String)
+    description = Column(String)
+    specifications = Column(JSONB)
+    sku = Column(String)
+    gtin = Column(String)
+
+    retailer_name = Column(String)
+    country = Column(String)
+    popularity_index = Column(Integer)
+    availability = Column(Enum(AvailabilityStatus))
+    price_standard = Column(Float)
+    currency = Column(String)
+    review_average = Column(Float)
+    number_of_reviews = Column(Integer)
+    retailer_images_count = Column(Integer)
+    client_images_count = Column(Integer)
+    title_matching_score = Column(Float)
+    transparent_images_count = Column(Integer)
+    environmental_images_count = Column(Integer)
+    wholesale_price = Column(Float)
+    in_stock = Column(Boolean)
+    is_discounted = Column(Boolean)
+    original_price = Column(BigInteger)
+    matched_brand_product_id = Column(String)
+
+
 class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):
     __tablename__ = "retailer_product"
 
