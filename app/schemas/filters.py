@@ -67,9 +67,9 @@ class DataGridFilterItem(BaseModel):
         elif self.operator == "equals":
             return f"{self.column} = :fv_{index}"
         elif self.operator == "isEmpty":
-            return f"({self.column} = '' OR {self.column} IS NULL)"
+            return f"{self.column} IS NULL"
         elif self.operator == "isNotEmpty":
-            return f"{self.column} <> ''"
+            return f"{self.column} IS NOT NULL"
         elif self.operator == "isAnyOf":
             return f"{self.column} IN :fv_{index}"
         elif self.operator == "!=":
@@ -84,6 +84,13 @@ class DataGridFilterItem(BaseModel):
             return tuple(self.value) if self.value else ()
 
         return self.value if self.value else ""
+
+    @staticmethod
+    def get_no_value_operators() -> List[str]:
+        return ["isEmpty", "isNotEmpty"]
+
+    def is_well_defined(self):
+        return not not self.value or self.operator in self.get_no_value_operators()
 
 
 class DataGridFilters(BaseModel):
