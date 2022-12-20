@@ -20,12 +20,12 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
     return f"""
         SELECT * 
         FROM retailer_product_including_unavailable_matview
-        WHERE rp.created_at > :start_date 
-            AND bp.brand_id = :brand_id
-            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-            {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
-            {"AND r.country IN :countries" if global_filter.countries else ""}
-            {"AND (bp.sku LIKE :search_text OR bp.gtin LIKE :search_text)" if global_filter.search_text else ""}
+        WHERE created_at > :start_date 
+            AND brand_id = :brand_id
+            {"AND category_id IN :categories" if global_filter.categories else ""}
+            {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND country IN :countries" if global_filter.countries else ""}
+            {"AND (sku LIKE :search_text OR gtin LIKE :search_text)" if global_filter.search_text else ""}
         {
             (
                 "WHERE " + (" " + global_filter.data_grid_filter.operator + " ")
