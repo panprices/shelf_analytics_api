@@ -39,6 +39,7 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
             )
             if well_defined_grid_filters else ""
         }
+        ORDER BY id ASC
     """
 
 
