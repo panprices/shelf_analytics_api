@@ -17,6 +17,9 @@ from app.schemas.filters import PagedGlobalFilter, GlobalFilter
 
 
 def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str:
+    well_defined_grid_filters = [
+        i for i in global_filter.data_grid_filter.items if i.is_well_defined()
+    ]
     return f"""
         SELECT * 
         FROM retailer_product_including_unavailable_matview
@@ -31,11 +34,12 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
                 "AND " + (" " + global_filter.data_grid_filter.operator + " ")
                     .join([
                         i.to_postgres_condition(index) 
-                        for index, i in enumerate(global_filter.data_grid_filter.items)
+                        for index, i in enumerate(well_defined_grid_filters)
                     ])
             )
-            if global_filter.data_grid_filter.items else ""
+            if well_defined_grid_filters else ""
         }
+        ORDER BY id ASC
     """
 
 
@@ -57,6 +61,7 @@ def _get_full_product_list(
             **{
                 f"fv_{index}": i.get_safe_postgres_value()
                 for index, i in enumerate(global_filter.data_grid_filter.items)
+                if i.is_well_defined()
             },
         )
         .all()
@@ -125,6 +130,7 @@ def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter)
             **{
                 f"fv_{index}": i.get_safe_postgres_value()
                 for index, i in enumerate(global_filter.data_grid_filter.items)
+                if i.is_well_defined()
             },
         },
     ).scalar()
