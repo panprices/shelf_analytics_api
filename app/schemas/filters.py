@@ -76,6 +76,8 @@ class DataGridFilterItem(BaseModel):
             return f"{self.column} <> :fv_{index}"
         elif self.operator in [">", "<", "<=", ">=", "="]:
             return f"{self.column} {self.operator} :fv_{index}"
+        elif self.operator == "is":
+            return f"{self.column} = :fv_{index}"
 
         return ""
 
