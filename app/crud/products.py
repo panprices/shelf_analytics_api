@@ -22,7 +22,7 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
     ]
     return f"""
         SELECT * 
-        FROM retailer_product_including_unavailable_matview
+        FROM retailer_product_including_unavailable_matview_v2_tmp
         WHERE created_at > :start_date 
             AND brand_id = :brand_id
             {"AND category_id IN :categories" if global_filter.categories else ""}
