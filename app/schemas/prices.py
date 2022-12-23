@@ -4,21 +4,21 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-class RetailerPriceHistoricalItem(BaseModel):
+class RetailerHistoricalItem(BaseModel):
     x: datetime.date
     y: Optional[float] = Field(
         description="If the value is missing for a day, this field will be `None`"
     )
 
 
-class RetailerHistoricalPrices(BaseModel):
+class RetailerHistoricalValues(BaseModel):
     id: str
-    data: List[RetailerPriceHistoricalItem]
+    data: List[RetailerHistoricalItem]
 
 
-class HistoricalPriceResponse(BaseModel):
-    retailers: List[RetailerHistoricalPrices]
-    max_value: float
-    minimal_values: List[RetailerPriceHistoricalItem] = Field(
+class HistoricalPerRetailerResponse(BaseModel):
+    retailers: List[RetailerHistoricalValues]
+    max_value: Optional[float]
+    minimal_values: Optional[List[RetailerHistoricalItem]] = Field(
         description="An array with all the lowest price points"
     )

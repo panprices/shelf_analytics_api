@@ -1,8 +1,6 @@
-import datetime
 import io
 from datetime import timedelta
 from functools import reduce
-from typing import Dict, List, Optional
 
 import pandas
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,11 +9,15 @@ from starlette import status
 from starlette.responses import StreamingResponse
 
 from app import crud
+from app.crud.utils import (
+    add_extra_date_value_to_historical_prices,
+    extract_min_for_date,
+    create_append_to_history_reducer,
+)
 from app.database import get_db
-from app.models import RetailerProductHistory
 from app.schemas.auth import TokenData
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter
-from app.schemas.prices import HistoricalPriceResponse, RetailerPriceHistoricalItem
+from app.schemas.prices import HistoricalPerRetailerResponse, RetailerHistoricalItem
 from app.schemas.product import (
     ProductPage,
     BrandProductScaffold,
@@ -26,55 +28,6 @@ from app.security import get_user_data
 from app.tags import TAG_DATA
 
 router = APIRouter(prefix="/products")
-
-
-def _add_extra_date_value_to_historical_prices(
-    historical_value: List[RetailerPriceHistoricalItem],
-    date: datetime.date,
-    value: Optional[float],
-) -> List[RetailerPriceHistoricalItem]:
-    if not date:
-        return historical_value
-    return [*historical_value, {"x": date, "y": value}]
-
-
-def _append_to_history(
-    result: Dict[str, Dict[str, any]], history_item: RetailerProductHistory
-):
-    retailer_key = f"{history_item.product.retailer.name} - {history_item.product.retailer.country}"
-    result[retailer_key] = result.get(
-        retailer_key,
-        {
-            "id": retailer_key,
-            "data": [],
-        },
-    )
-
-    result[retailer_key]["data"].append(
-        {"x": history_item.time_as_week, "y": history_item.price_standard}
-    )
-
-    return result
-
-
-def _extract_min_for_date(
-    result: Dict[str, Dict[str, any]], history_item: RetailerProductHistory
-):
-    history_date = history_item.time_as_week
-    result[history_date] = result.get(
-        history_date, {"x": history_date, "y": history_item.price_standard}
-    )
-
-    if not history_item.price_standard:
-        return result
-
-    if (
-        not result[history_date]["y"]
-        or result[history_date]["y"] > history_item.price_standard
-    ):
-        result[history_date]["y"] = history_item.price_standard
-
-    return result
 
 
 @router.post("", tags=[TAG_DATA], response_model=ProductPage)
@@ -152,7 +105,7 @@ def get_matched_retailer_products_for_brand_product(
 @router.post(
     "/brand/{brand_product_id}/prices",
     tags=[TAG_DATA],
-    response_model=HistoricalPriceResponse,
+    response_model=HistoricalPerRetailerResponse,
 )
 def get_historical_prices_for_brand_product(
     brand_product_id: str,
@@ -170,15 +123,15 @@ def get_historical_prices_for_brand_product(
     )
 
     minimal_values = [
-        RetailerPriceHistoricalItem(**v)
-        for v in reduce(_extract_min_for_date, history, {}).values()
+        RetailerHistoricalItem(**v)
+        for v in reduce(extract_min_for_date, history, {}).values()
     ]
 
     # Add an extra date to show the step if a change in price occurred on the last date we have data on
     extra_date = minimal_values[-1].x + timedelta(days=1) if minimal_values else None
 
     minimal_values = (
-        _add_extra_date_value_to_historical_prices(
+        add_extra_date_value_to_historical_prices(
             minimal_values, extra_date, minimal_values[-1].y
         )
         if minimal_values
@@ -187,11 +140,19 @@ def get_historical_prices_for_brand_product(
     retailers = [
         {
             **v,
-            "data": _add_extra_date_value_to_historical_prices(
+            "data": add_extra_date_value_to_historical_prices(
                 v["data"], extra_date, v["data"][-1]["y"]
             ),
         }
-        for v in reduce(_append_to_history, history, {}).values()
+        for v in reduce(
+            create_append_to_history_reducer(
+                lambda history_item: f"{history_item.product.retailer.name} - {history_item.product.retailer.country}",
+                lambda history_item: history_item.time_as_week,
+                lambda history_item: history_item.price_standard,
+            ),
+            history,
+            {},
+        ).values()
     ]
 
     max_value = (
