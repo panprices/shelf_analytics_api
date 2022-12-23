@@ -19,6 +19,7 @@ class RetailerHistoricalValues(BaseModel):
 class HistoricalPerRetailerResponse(BaseModel):
     retailers: List[RetailerHistoricalValues]
     max_value: Optional[float]
+    min_value: Optional[float]
     minimal_values: Optional[List[RetailerHistoricalItem]] = Field(
         description="An array with all the lowest price points"
     )

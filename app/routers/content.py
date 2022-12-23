@@ -83,7 +83,10 @@ def _process_score_per_retailer(history):
                 },
             )
 
-    return {"retailers": retailers}
+    max_value = max([i["score"] for i in history]) if history else 0
+    min_value = min([i["score"] for i in history]) if history else 0
+
+    return {"retailers": retailers, "max_value": max_value, "min_value": min_value}
 
 
 @router.post(
