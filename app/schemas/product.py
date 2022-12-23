@@ -57,19 +57,19 @@ class MockRetailerProductGridItem(BaseModel):
     country: str = Field(
         description="The code representation of a country", example="SE"
     )
-    price_standard: float = Field(
+    price_standard: Optional[float] = Field(
         description="The price scraped at the retailer", example=3201
     )
     currency: str = Field(
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
-    review_average: float = Field(
+    review_average: Optional[float] = Field(
         description="The rating of this product, average of the scores from the reviews the product received.",
         example=3.7,
     )
     number_of_reviews: int = Field(description="Count of reviews", example=19)
-    popularity_index: int = Field(
+    popularity_index: Optional[int] = Field(
         description="The ranking of this product inside its leaf category at the retailer",
         example=13,
     )
@@ -139,10 +139,10 @@ class BaseRetailerProductScaffold(BaseModel):
     country: str = Field(
         description="The code representation of a country", example="SE"
     )
-    price_standard: float = Field(
+    price_standard: Optional[float] = Field(
         description="The price scraped at the retailer", example=3201
     )
-    currency: str = Field(
+    currency: Optional[str] = Field(
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
