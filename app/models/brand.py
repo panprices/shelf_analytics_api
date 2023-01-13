@@ -80,7 +80,7 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brand.id"))
     category_id = Column(UUID(as_uuid=True), ForeignKey("brand_category.id"))
 
-    candidate_retailer_products: List[ProductMatching] = relationship(
+    matched_retailer_products: List[ProductMatching] = relationship(
         "ProductMatching", back_populates="brand_product"
     )
     brand = relationship("Brand", back_populates="products")
@@ -90,7 +90,3 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     keywords: List[BrandKeywords] = relationship(
         "BrandKeywords", back_populates="product"
     )
-
-    @hybrid_property
-    def matched_retailer_products(self):
-        return [p for p in self.candidate_retailer_products if p.is_matched]

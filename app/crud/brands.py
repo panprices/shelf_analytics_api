@@ -38,7 +38,7 @@ def get_brand_product_detailed_for_id(db: Session, product_id: str):
         db.query(BrandProduct)
         .filter(BrandProduct.id == product_id)
         .options(
-            selectinload(BrandProduct.candidate_retailer_products).selectinload(
+            selectinload(BrandProduct.matched_retailer_products).selectinload(
                 ProductMatching.retailer_product
             ),
             selectinload(BrandProduct.images),

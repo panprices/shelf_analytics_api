@@ -62,8 +62,8 @@ def get_matched_retailer_products_by_brand_product_id(
             selectinload(RetailerProduct.images).selectinload(
                 RetailerImage.type_predictions
             ),
-            selectinload(RetailerProduct.candidate_brand_products),
-            selectinload(RetailerProduct.candidate_brand_products).selectinload(
+            selectinload(RetailerProduct.matched_brand_products),
+            selectinload(RetailerProduct.matched_brand_products).selectinload(
                 ProductMatching.image_matches
             ),
             selectinload(RetailerProduct.images).selectinload(

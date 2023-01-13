@@ -10,16 +10,12 @@ from sqlalchemy import (
     BigInteger,
     Float,
     Boolean,
-    select,
-    func,
-    and_,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from app.models.brand import BrandProduct, BrandImage
 from app.models.mappings import retailer_brand_association_table
 from app.models.matching import ProductMatching, MatchingCertaintyType
 from app.models.mixins import (
@@ -187,32 +183,14 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
     retailer = relationship("Retailer", back_populates="products", lazy="joined")
 
-    candidate_brand_products: List[ProductMatching] = relationship(
-        "ProductMatching", back_populates="retailer_product"
+    matched_brand_products = relationship(
+        "ProductMatching",
+        back_populates="retailer_product",
     )
     images: List[RetailerImage] = relationship(
         "RetailerImage", back_populates="retailer_product"
     )
     historical_data = relationship("RetailerProductHistory", back_populates="product")
-
-    @hybrid_property
-    def matched_brand_products(self):
-        return [p for p in self.candidate_brand_products if p.matched]
-
-    @matched_brand_products.expression
-    def matched_brand_products(cls):
-        return (
-            select([ProductMatching])
-            .where(ProductMatching.retailer_product_id == cls.id)
-            .where(
-                ProductMatching.certainty.in_(
-                    (
-                        MatchingCertaintyType.auto_high_confidence,
-                        MatchingCertaintyType.manual_input,
-                    )
-                )
-            )
-        )
 
     @hybrid_property
     def retailer_images_count(self):

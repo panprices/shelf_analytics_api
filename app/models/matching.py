@@ -33,10 +33,10 @@ class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     certainty = Column(Enum(MatchingCertaintyType))
 
     brand_product = relationship(
-        "BrandProduct", back_populates="candidate_retailer_products"
+        "BrandProduct", back_populates="matched_retailer_products"
     )
     retailer_product = relationship(
-        "RetailerProduct", back_populates="candidate_brand_products"
+        "RetailerProduct", back_populates="matched_brand_products"
     )
     image_matches = relationship("ImageMatching", back_populates="product_matching")
 
