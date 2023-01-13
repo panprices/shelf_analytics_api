@@ -16,6 +16,7 @@ def _get_scores_root_query(global_filter: GlobalFilter):
             AND pmts.time < date_trunc('week', now())::date
             AND pmts.image_score IS NOT NULL
             AND pmts.text_score IS NOT NULL
+            AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
             {"AND r.id in :retailers" if global_filter.retailers else ""}
             {"AND r.country in :countries" if global_filter.countries else ""}

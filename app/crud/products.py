@@ -196,6 +196,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                         join retailer_product rp on rpts.product_id = rp.id 
                         join retailer r on rp.retailer_id = r.id
                     where bp.brand_id = :brand_id
+                        AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                         {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                         {"AND r.id in :retailers" if global_filter.retailers else ""}
                         {"AND r.country in :countries" if global_filter.countries else ""}
@@ -258,6 +259,7 @@ def count_available_products_by_retailers(
                 join retailer_product rp on rp.id = pm.retailer_product_id
                 join retailer r on r.id = rp.retailer_id 
             where bp.brand_id = :brand_id
+                AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                 {"AND r.country IN :countries" if global_filter.countries else ""}

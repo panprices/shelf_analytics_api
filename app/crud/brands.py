@@ -18,6 +18,10 @@ def get_brand_categories(db: Session, brand_id: str) -> List[brand.BrandCategory
     )
 
 
+def get_brand_name(db: Session, brand_id: str) -> str:
+    return db.query(brand.Brand.name).filter(brand.Brand.id == brand_id).first()[0]
+
+
 def get_brand_products_for_gtins(
     db: Session, gtins: List[str]
 ) -> List[brand.BrandProduct]:
@@ -34,7 +38,7 @@ def get_brand_product_detailed_for_id(db: Session, product_id: str):
         db.query(BrandProduct)
         .filter(BrandProduct.id == product_id)
         .options(
-            selectinload(BrandProduct.matched_retailer_products).selectinload(
+            selectinload(BrandProduct.candidate_retailer_products).selectinload(
                 ProductMatching.retailer_product
             ),
             selectinload(BrandProduct.images),

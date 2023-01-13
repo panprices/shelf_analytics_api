@@ -2,6 +2,7 @@ import enum
 
 from sqlalchemy import ForeignKey, Column, Enum, Float
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -18,6 +19,7 @@ class MatchingCertaintyType(enum.Enum):
     auto_high_confidence = object()
     manual_input = object()
     auto_low_confidence = object()
+    not_match = object()
 
 
 class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
@@ -31,12 +33,19 @@ class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     certainty = Column(Enum(MatchingCertaintyType))
 
     brand_product = relationship(
-        "BrandProduct", back_populates="matched_retailer_products"
+        "BrandProduct", back_populates="candidate_retailer_products"
     )
     retailer_product = relationship(
-        "RetailerProduct", back_populates="matched_brand_products"
+        "RetailerProduct", back_populates="candidate_brand_products"
     )
     image_matches = relationship("ImageMatching", back_populates="product_matching")
+
+    @hybrid_property
+    def is_matched(self):
+        return self.certainty not in [
+            MatchingCertaintyType.auto_low_confidence,
+            MatchingCertaintyType.not_match,
+        ]
 
 
 class ImageMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
