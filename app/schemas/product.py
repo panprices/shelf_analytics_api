@@ -158,9 +158,6 @@ class BaseRetailerProductScaffold(BaseModel):
     retailer_images_count: int = Field(
         description="The number of images the retailer shows", example=6
     )
-    client_images_count: int = Field(
-        description="The number of images recommended by the client", example=9
-    )
     title_matching_score: Optional[float] = Field(
         description="A score showing how similar the retailer's title is to the title from the client",
         example=0.67,

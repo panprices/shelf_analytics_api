@@ -17,6 +17,15 @@ def get_retailers(db: Session, brand_id: str) -> List[retailer.Retailer]:
     )
 
 
+def get_retailer_name_and_country(db: Session, retailer_id: str) -> str:
+    result = (
+        db.query(retailer.Retailer.name, retailer.Retailer.country)
+        .filter(retailer.Retailer.id == retailer_id)
+        .first()
+    )
+    return result["name"] + " " + result["country"]
+
+
 def get_countries(db: Session, brand_id: str) -> List[str]:
     return (
         db.query(retailer.Retailer.country)
@@ -101,6 +110,7 @@ def get_retailer_products_for_brand_product(
                 join retailer_product rp on pm.retailer_product_id = rp.id
                 join retailer r on r.id = rp.retailer_id
             where bp.id = :brand_product_id
+                AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                 {"AND r.country IN :countries" if global_filter.countries else ""}

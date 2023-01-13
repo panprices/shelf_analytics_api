@@ -31,6 +31,7 @@ def get_historical_prices_by_retailer_for_brand_product(
                     join product_matching pm on rp.id = pm.retailer_product_id 
                     join brand_product bp on bp.id = pm.brand_product_id 
                 where bp.id = :brand_product_id and rpts.price <> 0
+                    AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                     {"AND r.country IN :countries" if global_filter.countries else ""}

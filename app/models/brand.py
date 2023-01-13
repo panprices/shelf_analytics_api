@@ -2,9 +2,11 @@ from typing import List
 
 from sqlalchemy import Column, String, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.models.matching import ProductMatching
 from app.models.mixins import (
     GenericCategoryMixin,
     UpdatableMixin,
@@ -13,7 +15,7 @@ from app.models.mixins import (
     ImageMixin,
     ImageTypeMixin,
 )
-from app.models.retailer import retailer_brand_association_table
+from app.models.mappings import retailer_brand_association_table
 
 
 class Brand(Base, UUIDPrimaryKeyMixin):
@@ -78,7 +80,7 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brand.id"))
     category_id = Column(UUID(as_uuid=True), ForeignKey("brand_category.id"))
 
-    matched_retailer_products = relationship(
+    candidate_retailer_products: List[ProductMatching] = relationship(
         "ProductMatching", back_populates="brand_product"
     )
     brand = relationship("Brand", back_populates="products")
@@ -88,3 +90,7 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     keywords: List[BrandKeywords] = relationship(
         "BrandKeywords", back_populates="product"
     )
+
+    @hybrid_property
+    def matched_retailer_products(self):
+        return [p for p in self.candidate_retailer_products if p.is_matched]

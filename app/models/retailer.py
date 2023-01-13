@@ -5,18 +5,23 @@ from sqlalchemy import (
     Column,
     String,
     ForeignKey,
-    Table,
     Integer,
     Enum,
     BigInteger,
     Float,
     Boolean,
+    select,
+    func,
+    and_,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.models.brand import BrandProduct, BrandImage
+from app.models.mappings import retailer_brand_association_table
+from app.models.matching import ProductMatching, MatchingCertaintyType
 from app.models.mixins import (
     GenericProductMixin,
     UpdatableMixin,
@@ -25,13 +30,6 @@ from app.models.mixins import (
     HistoricalMixin,
     ImageMixin,
     ImageTypeMixin,
-)
-
-retailer_brand_association_table = Table(
-    "retailer_to_brand_mapping",
-    Base.metadata,
-    Column("retailer_id", ForeignKey("retailer.id"), primary_key=True),
-    Column("brand_id", ForeignKey("brand.id"), primary_key=True),
 )
 
 
@@ -189,7 +187,7 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
     retailer = relationship("Retailer", back_populates="products", lazy="joined")
 
-    matched_brand_products = relationship(
+    candidate_brand_products: List[ProductMatching] = relationship(
         "ProductMatching", back_populates="retailer_product"
     )
     images: List[RetailerImage] = relationship(
@@ -198,15 +196,27 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     historical_data = relationship("RetailerProductHistory", back_populates="product")
 
     @hybrid_property
-    def retailer_images_count(self):
-        return len(self.images)
+    def matched_brand_products(self):
+        return [p for p in self.candidate_brand_products if p.matched]
+
+    @matched_brand_products.expression
+    def matched_brand_products(cls):
+        return (
+            select([ProductMatching])
+            .where(ProductMatching.retailer_product_id == cls.id)
+            .where(
+                ProductMatching.certainty.in_(
+                    (
+                        MatchingCertaintyType.auto_high_confidence,
+                        MatchingCertaintyType.manual_input,
+                    )
+                )
+            )
+        )
 
     @hybrid_property
-    def client_images_count(self):
-        if not self.matched_brand_products:
-            return 0
-
-        return len(self.matched_brand_products[0].brand_product.images)
+    def retailer_images_count(self):
+        return len(self.images)
 
     @hybrid_property
     def in_stock(self) -> bool:
