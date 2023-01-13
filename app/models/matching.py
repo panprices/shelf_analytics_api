@@ -55,6 +55,7 @@ class ImageMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     brand_image_id = Column(UUID(as_uuid=True), ForeignKey("brand_image.id"))
     retailer_image_id = Column(UUID(as_uuid=True), ForeignKey("retailer_image.id"))
     distance = Column(Float)
+    model_certainty = Column(Float)
 
     product_matching = relationship("ProductMatching", back_populates="image_matches")
     brand_image = relationship("BrandImage", back_populates="matched_retailer_images")

@@ -223,6 +223,9 @@ class RetailerToBrandImageMatchScaffold(BaseModel):
     brand_image_id: Union[uuid.UUID, str] = Field(
         description="The id of the matched brand image"
     )
+    model_certainty: Optional[float] = Field(
+        description="The confidence of the model in the match", example=0.9
+    )
 
     class Config:
         orm_mode = True
