@@ -19,3 +19,8 @@ class MatchingSolutionScaffold(BaseModel):
     retailer_product_id: str = Field(
         description="The retailer product id of the selected match"
     )
+
+
+class MatchingTaskIdentifierScaffold(BaseModel):
+    brand_product_id: str = Field(description="The brand product id")
+    retailer_id: str = Field(description="The retailer id")

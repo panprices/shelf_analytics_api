@@ -40,6 +40,27 @@ def get_next_brand_product_to_match(
     return convert_rows_to_dicts(result)[0]
 
 
+def get_brand_product_to_match_deterministically(db: Session, brand_product_id: str, retailer_id: str):
+    statement = f"""
+        SELECT bp.id, rp.retailer_id 
+        FROM brand_product bp
+            JOIN product_matching pm ON bp.id = pm.brand_product_id
+            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+        WHERE bp.id = :brand_product_id AND rp.retailer_id = :retailer_id
+        GROUP BY bp.id, rp.retailer_id
+    """
+
+    result = db.execute(
+        text(statement),
+        params={
+            "brand_product_id": brand_product_id,
+            "retailer_id": retailer_id,
+        },
+    ).all()
+
+    return convert_rows_to_dicts(result)[0]
+
+
 def get_matched_retailer_products_by_brand_product_id(
     db: Session, brand_product_id: str, retailer_id: str
 ):
