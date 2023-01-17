@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 class ScoreArchiveEntry(BaseModel):
     value: float = Field(description="the value of the score at the given date")
-    date: str = Field(description="Data specified in the \"DD/MM/YYYY\" format")
+    date: str = Field(description='Data specified in the "DD/MM/YYYY" format')
 
 
 class HistoricalScore(BaseModel):
@@ -18,16 +18,29 @@ class HistoricalScore(BaseModel):
         description="The historical values for the score",
         example=[
             ScoreArchiveEntry(date="13/10/2022", value=0.69),
-            ScoreArchiveEntry(date="14/10/2022", value=0.73)
-        ]
+            ScoreArchiveEntry(date="14/10/2022", value=0.73),
+        ],
     )
 
 
-class AvailableProductsCount(BaseModel): 
+class AvailableProductsCount(BaseModel):
     retailer: str
     available_products_count: int
     not_available_products_count: int
-    
+
+
 class AvailableProductsPerRetailer(BaseModel):
     """Used for Overview -> Available products per retailer"""
+
     data: List[AvailableProductsCount]
+
+
+class ContentScoreItem(BaseModel):
+    retailer: str
+    score: float
+
+
+class ContentScorePerRetailer(BaseModel):
+    """Used for Overview -> Content score per retailer"""
+
+    data: List[ContentScoreItem]
