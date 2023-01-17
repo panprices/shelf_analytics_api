@@ -3,14 +3,14 @@ import uuid
 from datetime import timedelta
 from typing import List
 
-from sqlalchemy import String, Column, DateTime, Enum, Integer, Float
+from sqlalchemy import String, Column, DateTime, Enum, Integer, Float, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class UpdatableMixin:
-    created_at = Column(DateTime)
-    updated_at = Column(DateTime)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now())
 
 
 class ImageType(str, enum.Enum):

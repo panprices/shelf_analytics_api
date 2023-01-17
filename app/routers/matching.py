@@ -41,6 +41,7 @@ def fill_matching_task(
             "retailer_candidates": retailer_products,
             "brand_name": brand_name,
             "retailer_name": retailer_name,
+            "retailer_id": brand_product_retailer_pair["retailer_id"],
         }
     )
 
@@ -80,9 +81,21 @@ def submit_matching(
             detail="Must be authenticated",
         )
 
-    crud.submit_product_matching_selection(
-        db, matching.brand_product_id, matching.retailer_product_id
-    )
+    if matching.retailer_product_id:
+        crud.submit_product_matching_selection(
+            db,
+            brand_product_id=matching.brand_product_id,
+            retailer_id=matching.retailer_id,
+            retailer_product_id=matching.retailer_product_id,
+        )
+    else:
+        crud.submit_product_matching_url(
+            db,
+            user_id=user.uid,
+            brand_product_id=matching.brand_product_id,
+            retailer_id=matching.retailer_id,
+            url=matching.url,
+        )
 
     return {"status": "success"}
 

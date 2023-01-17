@@ -2,7 +2,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
 from app.crud import convert_rows_to_dicts
-from app.models import RetailerProduct, ProductMatching
+from app.models import RetailerProduct, ProductMatching, ManualUrlMatching
 from app.models.retailer import RetailerImage
 from app.schemas.filters import GlobalFilter
 
@@ -15,7 +15,10 @@ def get_next_brand_product_to_match(
         FROM brand_product bp
             JOIN product_matching pm ON bp.id = pm.brand_product_id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+            LEFT JOIN manual_matching_urls mmu ON mmu.brand_product_id = bp.id 
+                AND rp.retailer_id = mmu.retailer_id 
         WHERE bp.brand_id = :brand_id
+            AND mmu.id IS NULL
             {"AND rp.retailer_id IN :retailers" if global_filters.retailers else ""}
             {"AND rp.country IN :countries" if global_filters.countries else ""}
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
@@ -40,7 +43,9 @@ def get_next_brand_product_to_match(
     return convert_rows_to_dicts(result)[0]
 
 
-def get_brand_product_to_match_deterministically(db: Session, brand_product_id: str, retailer_id: str):
+def get_brand_product_to_match_deterministically(
+    db: Session, brand_product_id: str, retailer_id: str
+):
     statement = f"""
         SELECT bp.id, rp.retailer_id 
         FROM brand_product bp
@@ -96,7 +101,7 @@ def get_matched_retailer_products_by_brand_product_id(
 
 
 def submit_product_matching_selection(
-    db: Session, brand_product_id: str, retailer_product_id: str
+    db: Session, brand_product_id: str, retailer_product_id: str, retailer_id: str
 ):
     db.query(ProductMatching).filter(
         ProductMatching.brand_product_id == brand_product_id,
@@ -105,7 +110,32 @@ def submit_product_matching_selection(
 
     db.query(ProductMatching).filter(
         ProductMatching.brand_product_id == brand_product_id,
+        ProductMatching.retailer_product_id == RetailerProduct.id,
+        RetailerProduct.retailer_id != retailer_id,
         ProductMatching.retailer_product_id != retailer_product_id,
-    ).update({"certainty": "not_match"})
+    ).update({"certainty": "not_match"}, synchronize_session="fetch")
+
+    db.commit()
+
+
+def submit_product_matching_url(
+    db: Session, user_id: str, brand_product_id: str, retailer_id: str, url: str
+):
+    # Insert a new ManualUrlMatching object
+    manual_url_matching = ManualUrlMatching(
+        user_id=user_id,
+        brand_product_id=brand_product_id,
+        url=url,
+        status="pending",
+        retailer_id=retailer_id,
+    )
+    db.add(manual_url_matching)
+
+    # Invalidate all other potential matches
+    db.query(ProductMatching).filter(
+        ProductMatching.brand_product_id == brand_product_id,
+        ProductMatching.retailer_product_id == RetailerProduct.id,
+        RetailerProduct.retailer_id == retailer_id,
+    ).update({"certainty": "not_match"}, synchronize_session="fetch")
 
     db.commit()
