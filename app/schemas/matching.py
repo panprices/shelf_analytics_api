@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
+from app.schemas.filters import GlobalFilter
 from app.schemas.product import BrandProductScaffold, MatchedRetailerProductScaffold
 
 
@@ -14,6 +15,7 @@ class MatchingTaskScaffold(BaseModel):
     )
     brand_name: str = Field(description="The brand name")
     retailer_name: str = Field(description="The retailer name")
+    tasks_count: int = Field(description="The total number of tasks")
 
 
 class MatchingSolutionScaffold(BaseModel):
@@ -33,3 +35,10 @@ class MatchingSolutionScaffold(BaseModel):
 class MatchingTaskIdentifierScaffold(BaseModel):
     brand_product_id: str = Field(description="The brand product id")
     retailer_id: str = Field(description="The retailer id")
+
+
+class MatchingTaskDeterministicRequest(BaseModel):
+    identifier: MatchingTaskIdentifierScaffold = Field(
+        description="The identifier of the task"
+    )
+    global_filter: GlobalFilter = Field(description="The global filter")

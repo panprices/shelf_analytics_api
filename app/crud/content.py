@@ -114,7 +114,7 @@ def get_current_score_per_retailer(
 ):
     statement = f"""
         SELECT r.name || ' ' || r.country as retailer,
-            (AVG(pm.image_score) + AVG(pm.text_score)) / 2 as score
+            (AVG(COALESCE(pm.image_score, 0)) + AVG(COALESCE(pm.text_score, 0))) / 2 as score
         FROM brand_product bp
             JOIN product_matching pm ON bp.id = pm.brand_product_id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
