@@ -142,6 +142,19 @@ def submit_product_matching_selection(
     db.commit()
 
 
+def invalidate_product_matching_selection(
+    db: Session, brand_product_id: str, retailer_id: str
+):
+    # Invalidate all other potential matches
+    db.query(ProductMatching).filter(
+        ProductMatching.brand_product_id == brand_product_id,
+        ProductMatching.retailer_product_id == RetailerProduct.id,
+        RetailerProduct.retailer_id == retailer_id,
+    ).update({"certainty": "not_match"}, synchronize_session="fetch")
+
+    db.commit()
+
+
 def submit_product_matching_url(
     db: Session, user_id: str, brand_product_id: str, retailer_id: str, url: str
 ):
@@ -154,12 +167,6 @@ def submit_product_matching_url(
         retailer_id=retailer_id,
     )
     db.add(manual_url_matching)
-
-    # Invalidate all other potential matches
-    db.query(ProductMatching).filter(
-        ProductMatching.brand_product_id == brand_product_id,
-        ProductMatching.retailer_product_id == RetailerProduct.id,
-        RetailerProduct.retailer_id == retailer_id,
-    ).update({"certainty": "not_match"}, synchronize_session="fetch")
-
     db.commit()
+
+    invalidate_product_matching_selection(db, brand_product_id, retailer_id)

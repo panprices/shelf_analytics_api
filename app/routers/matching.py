@@ -97,13 +97,19 @@ def submit_matching(
             retailer_id=matching.retailer_id,
             retailer_product_id=matching.retailer_product_id,
         )
-    else:
+    elif matching.url:
         crud.submit_product_matching_url(
             db,
             user_id=user.uid,
             brand_product_id=matching.brand_product_id,
             retailer_id=matching.retailer_id,
             url=matching.url,
+        )
+    else:
+        crud.invalidate_product_matching_selection(
+            db,
+            brand_product_id=matching.brand_product_id,
+            retailer_id=matching.retailer_id,
         )
 
     return {"status": "success"}
