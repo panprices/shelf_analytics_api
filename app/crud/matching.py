@@ -7,10 +7,8 @@ from app.models.retailer import RetailerImage
 from app.schemas.filters import GlobalFilter
 
 
-def get_next_brand_product_to_match(
-    db: Session, brand_id: str, global_filters: GlobalFilter, index: int
-):
-    statement = f"""
+def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
+    return f"""
         SELECT bp.id, rp.retailer_id 
         FROM brand_product bp
             JOIN product_matching pm ON bp.id = pm.brand_product_id
@@ -24,9 +22,16 @@ def get_next_brand_product_to_match(
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
         GROUP BY bp.id, rp.retailer_id
         HAVING COUNT(bp.id) > 1 AND SUM(CASE WHEN pm.certainty = 'manual_input' THEN 1 ELSE 0 END) = 0
-        ORDER BY bp.name ASC
-        OFFSET :index        
-        LIMIT 1
+    """
+
+
+def get_next_brand_product_to_match(
+    db: Session, brand_id: str, global_filters: GlobalFilter, index: int
+):
+    statement = f"""
+        {_compose_product_matching_tasks_query(global_filters)}
+        ORDER BY RANDOM()
+        LIMIT 1 
     """
 
     result = db.execute(
@@ -41,6 +46,25 @@ def get_next_brand_product_to_match(
     ).all()
 
     return convert_rows_to_dicts(result)[0]
+
+
+def count_product_matching_tasks(
+    db: Session, brand_id: str, global_filters: GlobalFilter
+):
+    statement = f"""
+        SELECT COUNT(*) 
+        FROM ({_compose_product_matching_tasks_query(global_filters)}) AS subquery
+    """
+
+    return db.execute(
+        text(statement),
+        params={
+            "brand_id": brand_id,
+            "retailers": tuple(global_filters.retailers),
+            "countries": tuple(global_filters.countries),
+            "categories": tuple(global_filters.categories),
+        },
+    ).scalar()
 
 
 def get_brand_product_to_match_deterministically(

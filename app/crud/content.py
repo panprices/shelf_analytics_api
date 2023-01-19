@@ -107,3 +107,35 @@ def get_historical_content_score(
         global_filter,
         "(AVG(pmts.image_score) + AVG(pmts.text_score)) / 2",
     )
+
+
+def get_current_score_per_retailer(
+    db: Session, brand_id: str, global_filter: GlobalFilter
+):
+    statement = f"""
+        SELECT r.name || ' ' || r.country as retailer,
+            (AVG(COALESCE(pm.image_score, 0)) + AVG(COALESCE(pm.text_score, 0))) / 2 as score
+        FROM brand_product bp
+            JOIN product_matching pm ON bp.id = pm.brand_product_id
+            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+            JOIN retailer r ON r.id = rp.retailer_id
+        where bp.brand_id = :brand_id
+            AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
+            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+            {"AND r.id in :retailers" if global_filter.retailers else ""}
+            {"AND r.country in :countries" if global_filter.countries else ""}
+        group by r.name, r.country
+        order by score desc
+    """
+
+    result = db.execute(
+        text(statement),
+        params={
+            "brand_id": brand_id,
+            "countries": tuple(global_filter.countries),
+            "retailers": tuple(global_filter.retailers),
+            "categories": tuple(global_filter.categories),
+        },
+    ).all()
+
+    return convert_rows_to_dicts(result)

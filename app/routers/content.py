@@ -11,6 +11,7 @@ from app.schemas.auth import TokenData
 from app.schemas.availability import HistoricalScore
 from app.schemas.filters import GlobalFilter
 from app.schemas.prices import HistoricalPerRetailerResponse
+from app.schemas.scores import ContentScorePerRetailer
 from app.security import get_user_data
 from app.tags import TAG_CONTENT
 
@@ -119,3 +120,17 @@ def get_text_score_per_retailer(
         db, user.client, global_filter
     )
     return _process_score_per_retailer(history)
+
+
+@router.post(
+    "/per_retailer",
+    tags=[TAG_CONTENT],
+    response_model=ContentScorePerRetailer,
+)
+def get_content_score_per_retailer(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    history = crud.get_current_score_per_retailer(db, user.client, global_filter)
+    return {"data": history}
