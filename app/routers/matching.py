@@ -11,6 +11,7 @@ from app.schemas.matching import (
     MatchingTaskScaffold,
     MatchingSolutionScaffold,
     MatchingTaskDeterministicRequest,
+    MatchingTaskIdentifierScaffold,
 )
 from app.security import get_user_data
 from app.tags import TAG_MATCHING
@@ -55,7 +56,9 @@ def fill_matching_task(
     )
 
 
-@router.post("/", tags=[TAG_MATCHING], response_model=MatchingTaskScaffold)
+@router.post(
+    "/next", tags=[TAG_MATCHING], response_model=MatchingTaskIdentifierScaffold
+)
 def get_next(
     global_filter: GlobalFilter,
     index: Union[int, None] = None,
@@ -71,11 +74,9 @@ def get_next(
     if not index:
         index = 0
 
-    brand_product_retailer_pair = crud.get_next_brand_product_to_match(
-        db, user.client, global_filter, index
-    )
+    result = crud.get_next_brand_product_to_match(db, user.client, global_filter, index)
 
-    return fill_matching_task(db, user, brand_product_retailer_pair, global_filter)
+    return result
 
 
 @router.post("/submit", tags=[TAG_MATCHING])
