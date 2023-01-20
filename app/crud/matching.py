@@ -9,7 +9,7 @@ from app.schemas.filters import GlobalFilter
 
 def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
     return f"""
-        SELECT bp.id, rp.retailer_id 
+        SELECT bp.id as brand_product_id, rp.retailer_id as retailer_id
         FROM brand_product bp
             JOIN product_matching pm ON bp.id = pm.brand_product_id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id

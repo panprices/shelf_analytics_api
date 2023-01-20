@@ -33,8 +33,8 @@ class MatchingSolutionScaffold(BaseModel):
 
 
 class MatchingTaskIdentifierScaffold(BaseModel):
-    brand_product_id: str = Field(description="The brand product id")
-    retailer_id: str = Field(description="The retailer id")
+    brand_product_id: Union[uuid.UUID, str] = Field(description="The brand product id")
+    retailer_id: Union[uuid.UUID, str] = Field(description="The retailer id")
 
 
 class MatchingTaskDeterministicRequest(BaseModel):
