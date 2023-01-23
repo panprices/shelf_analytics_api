@@ -76,7 +76,7 @@ def get_next(
 
     result = crud.get_next_brand_product_to_match(db, user.client, global_filter, index)
 
-    return result
+    return result if result else {"finished": True}
 
 
 @router.post("/submit", tags=[TAG_MATCHING])
@@ -91,6 +91,17 @@ def submit_matching(
             detail="Must be authenticated",
         )
 
+    if matching.action == "skip":
+        # On case of skip
+        crud.invalidate_product_matching_selection(
+            db,
+            brand_product_id=matching.brand_product_id,
+            retailer_id=matching.retailer_id,
+            certainty="auto_low_confidence_skipped",
+        )
+        return {"status": "success"}
+
+    # On case of submission
     if matching.retailer_product_id:
         crud.submit_product_matching_selection(
             db,

@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Literal
 
 from pydantic import BaseModel, Field
 
@@ -30,11 +30,24 @@ class MatchingSolutionScaffold(BaseModel):
         description="The retailer product id of the selected match"
     )
     url: Optional[str] = Field(description="The url of the retailer product")
+    action: Literal["submit", "skip"] = Field(description="The action")
 
 
 class MatchingTaskIdentifierScaffold(BaseModel):
-    brand_product_id: Union[uuid.UUID, str] = Field(description="The brand product id")
-    retailer_id: Union[uuid.UUID, str] = Field(description="The retailer id")
+    """
+    The matching task identifier which consists of the brand product id and the retailer id.
+
+    If there are no more tasks the brand product id and the retailer id are None and the finished flag is set to True.
+    """
+
+    brand_product_id: Optional[Union[uuid.UUID, str]] = Field(
+        description="The brand product id"
+    )
+    retailer_id: Optional[Union[uuid.UUID, str]] = Field(description="The retailer id")
+
+    finished: Optional[bool] = Field(
+        description="Whether the matching task is finished"
+    )
 
 
 class MatchingTaskDeterministicRequest(BaseModel):
