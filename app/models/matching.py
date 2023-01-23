@@ -16,9 +16,10 @@ class MatchingType(enum.Enum):
 
 
 class MatchingCertaintyType(enum.Enum):
-    auto_high_confidence = object()
     manual_input = object()
+    auto_high_confidence = object()
     auto_low_confidence = object()
+    auto_low_confidence_skipped = object()
     not_match = object()
 
 

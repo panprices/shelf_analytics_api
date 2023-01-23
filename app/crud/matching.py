@@ -9,19 +9,24 @@ from app.schemas.filters import GlobalFilter
 
 def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
     return f"""
-        SELECT bp.id as brand_product_id, rp.retailer_id as retailer_id
+        SELECT bp.id as brand_product_id, rp.retailer_id as retailer_id, MAX(pm.certainty) as max_certainty
         FROM brand_product bp
             JOIN product_matching pm ON bp.id = pm.brand_product_id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+            JOIN retailer r ON r.id = rp.retailer_id
+            JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = r.id
             LEFT JOIN manual_matching_urls mmu ON mmu.brand_product_id = bp.id 
                 AND rp.retailer_id = mmu.retailer_id 
         WHERE bp.brand_id = :brand_id
             AND mmu.id IS NULL
+            AND r.requires_manual_matching
+            AND (rbm.known_brand_labels IS NULL OR rp.brand = ANY(rbm.known_brand_labels))
             {"AND rp.retailer_id IN :retailers" if global_filters.retailers else ""}
             {"AND rp.country IN :countries" if global_filters.countries else ""}
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
         GROUP BY bp.id, rp.retailer_id
-        HAVING COUNT(bp.id) > 1 AND SUM(CASE WHEN pm.certainty = 'manual_input' THEN 1 ELSE 0 END) = 0
+        HAVING SUM(CASE WHEN pm.certainty = 'manual_input' THEN 1 ELSE 0 END) = 0
+            AND SUM(CASE WHEN pm.certainty > 'not_match' THEN 1 ELSE 0 END) > 0
     """
 
 
@@ -30,7 +35,7 @@ def get_next_brand_product_to_match(
 ):
     statement = f"""
         {_compose_product_matching_tasks_query(global_filters)}
-        ORDER BY RANDOM()
+        ORDER BY max_certainty DESC, RANDOM()
         LIMIT 1 
     """
 
@@ -45,7 +50,7 @@ def get_next_brand_product_to_match(
         },
     ).all()
 
-    return convert_rows_to_dicts(result)[0]
+    return convert_rows_to_dicts(result)[0] if len(result) > 0 else None
 
 
 def count_product_matching_tasks(
@@ -97,8 +102,11 @@ def get_matched_retailer_products_by_brand_product_id(
         SELECT rp.* 
         FROM retailer_product rp
             JOIN product_matching pm ON rp.id = pm.retailer_product_id
+            JOIN retailer r ON r.id = rp.retailer_id
+            JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = r.id
         WHERE pm.brand_product_id = :brand_product_id
             AND rp.retailer_id = :retailer_id
+            AND (rbm.known_brand_labels IS NULL OR rp.brand = ANY(rbm.known_brand_labels))
     """
 
     return (
@@ -135,22 +143,22 @@ def submit_product_matching_selection(
     db.query(ProductMatching).filter(
         ProductMatching.brand_product_id == brand_product_id,
         ProductMatching.retailer_product_id == RetailerProduct.id,
-        RetailerProduct.retailer_id != retailer_id,
+        RetailerProduct.retailer_id == retailer_id,
         ProductMatching.retailer_product_id != retailer_product_id,
-    ).update({"certainty": "not_match"}, synchronize_session="fetch")
+    ).update({"certainty": "not_match"})
 
     db.commit()
 
 
 def invalidate_product_matching_selection(
-    db: Session, brand_product_id: str, retailer_id: str
+    db: Session, brand_product_id: str, retailer_id: str, certainty: str = "no_match"
 ):
     # Invalidate all other potential matches
     db.query(ProductMatching).filter(
         ProductMatching.brand_product_id == brand_product_id,
         ProductMatching.retailer_product_id == RetailerProduct.id,
         RetailerProduct.retailer_id == retailer_id,
-    ).update({"certainty": "not_match"}, synchronize_session="fetch")
+    ).update({"certainty": certainty}, synchronize_session="fetch")
 
     db.commit()
 
