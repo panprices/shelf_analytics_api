@@ -145,7 +145,7 @@ def submit_product_matching_selection(
         ProductMatching.retailer_product_id == RetailerProduct.id,
         RetailerProduct.retailer_id == retailer_id,
         ProductMatching.retailer_product_id != retailer_product_id,
-    ).update({"certainty": "not_match"})
+    ).update({"certainty": "not_match"}, synchronize_session="fetch")
 
     db.commit()
 
