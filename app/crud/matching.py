@@ -151,7 +151,7 @@ def submit_product_matching_selection(
 
 
 def invalidate_product_matching_selection(
-    db: Session, brand_product_id: str, retailer_id: str, certainty: str = "no_match"
+    db: Session, brand_product_id: str, retailer_id: str, certainty: str = "not_match"
 ):
     # Invalidate all other potential matches
     db.query(ProductMatching).filter(
