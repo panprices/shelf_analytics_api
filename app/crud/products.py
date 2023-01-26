@@ -102,7 +102,7 @@ def get_products(
         ) products_datapool
         {
             "ORDER BY " + global_filter.sorting.column + " " + global_filter.sorting.direction 
-            if global_filter.sorting else ""
+            if global_filter.sorting else "ORDER BY name ASC"
         }
         OFFSET :offset
         LIMIT :limit

@@ -5,9 +5,8 @@ from requests import Session
 
 from app import crud
 from app.database import get_db
-from app.preprocess import preprocess_global_filters
 from app.schemas.auth import TokenData
-from app.schemas.availability import HistoricalStockStatus, HistoricalVisibility
+from app.schemas.availability import HistoricalVisibility
 from app.schemas.filters import GlobalFilter
 from app.schemas.scores import AvailableProductsPerRetailer, HistoricalScore
 from app.security import get_user_data
