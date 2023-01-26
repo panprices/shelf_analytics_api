@@ -155,7 +155,9 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     number_of_reviews = Column(Integer)
     retailer_images_count = Column(Integer)
     client_images_count = Column(Integer)
-    title_matching_score = Column(Float)
+    text_score = Column(Float)
+    image_score = Column(Float)
+    content_score = Column(Float)
     transparent_images_count = Column(Integer)
     environmental_images_count = Column(Integer)
     wholesale_price = Column(Float)
@@ -163,6 +165,10 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     is_discounted = Column(Boolean)
     original_price = Column(BigInteger)
     matched_brand_product_id = Column(String)
+    brand_in_stock = Column(Boolean)
+    available_at_retailer = Column(Boolean)
+    retailer_category_name = Column(String)
+    original_price_standard = Column(Float)
 
 
 class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):

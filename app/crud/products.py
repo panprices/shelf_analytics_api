@@ -102,7 +102,7 @@ def get_products(
         ) products_datapool
         {
             "ORDER BY " + global_filter.sorting.column + " " + global_filter.sorting.direction 
-            if global_filter.sorting else ""
+            if global_filter.sorting else "ORDER BY name ASC"
         }
         OFFSET :offset
         LIMIT :limit
@@ -195,21 +195,22 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                         join retailer_product_time_series rpts on pm.retailer_product_id = rpts.product_id
                         join retailer_product rp on rpts.product_id = rp.id 
                         join retailer r on rp.retailer_id = r.id
+                        join brand_product_time_series bpts on bpts.product_id = bp.id
                     where bp.brand_id = :brand_id
                         AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
+                        AND bpts.availability = 'in_stock'
                         {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                         {"AND r.id in :retailers" if global_filter.retailers else ""}
                         {"AND r.country in :countries" if global_filter.countries else ""}
                     group by date_trunc('week', rpts.time)::date
                 ) visible_products join (
-                    select rpts.time as date, COUNT(distinct bp.id) as full_count
+                    select date_trunc('week', bpts.time)::date as date, COUNT(distinct bp.id) as full_count
                     from brand_product bp 
-                    CROSS join (
-                        select distinct date_trunc('week', time)::date as time from retailer_product_time_series 
-                    ) rpts
-                    where date_trunc('week', bp.created_at) <= rpts.time::date and bp.brand_id = :brand_id
+                        join brand_product_time_series bpts on bpts.product_id = bp.id
+                    where bp.brand_id = :brand_id
+                        AND bpts.availability = 'in_stock'
                         {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-                    group by rpts.time
+                    group by date_trunc('week', bpts.time)::date
                 ) full_products on visible_products.date = full_products.date 
                 -- Only present data up to last week:
                 where full_products.date < date_trunc('week', now())::date
@@ -252,6 +253,7 @@ def count_available_products_by_retailers(
               (
                 select COUNT(*) from brand_product
                 WHERE brand_id = :brand_id
+                    AND availability = 'in_stock'
                     {"AND category_id IN :categories" if global_filter.categories else ""}
               ) as total_count
             from product_matching pm 
@@ -259,12 +261,12 @@ def count_available_products_by_retailers(
                 join retailer_product rp on rp.id = pm.retailer_product_id
                 join retailer r on r.id = rp.retailer_id 
             where bp.brand_id = :brand_id
+                AND bp.availability = 'in_stock'
                 AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                 {"AND r.country IN :countries" if global_filter.countries else ""}
-            GROUP BY
-              r.id
+            GROUP BY r.id
         ) product_availability
     """
 

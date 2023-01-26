@@ -57,23 +57,23 @@ class MockRetailerProductGridItem(BaseModel):
     country: str = Field(
         description="The code representation of a country", example="SE"
     )
-    price_standard: float = Field(
+    price_standard: Optional[float] = Field(
         description="The price scraped at the retailer", example=3201
     )
     currency: str = Field(
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
-    review_average: float = Field(
+    review_average: Optional[float] = Field(
         description="The rating of this product, average of the scores from the reviews the product received.",
         example=3.7,
     )
-    number_of_reviews: int = Field(description="Count of reviews", example=19)
-    popularity_index: int = Field(
+    number_of_reviews: Optional[int] = Field(description="Count of reviews", example=19)
+    popularity_index: Optional[int] = Field(
         description="The ranking of this product inside its leaf category at the retailer",
         example=13,
     )
-    retailer_images_count: int = Field(
+    retailer_images_count: Optional[int] = Field(
         description="The number of images the retailer shows", example=6
     )
     client_images_count: int = Field(
@@ -104,6 +104,38 @@ class MockRetailerProductGridItem(BaseModel):
     )
     matched_brand_product_id: Union[uuid.UUID, str] = Field(
         description="The id of the matched brand product"
+    )
+    brand_in_stock: bool = Field(
+        description="Whether the product is in stock at the retailer",
+        example=True,
+    )
+    available_at_retailer: bool = Field(
+        description="Whether the product is available at the retailer",
+        example=True,
+    )
+    retailer_category_name: Optional[str] = Field(
+        description="The name of the category at the retailer",
+        example="Möbler > Matgrupper",
+    )
+    text_score: Optional[float] = Field(
+        description="A score showing how similar the retailer's title is to the title from the client",
+        example=0.67,
+    )
+    image_score: Optional[float] = Field(
+        description="A score showing how similar the retailer's images are to the images from the client",
+        example=0.67,
+    )
+    content_score: Optional[float] = Field(
+        description="A score showing how similar the retailer's content is to the content from the client",
+        example=0.67,
+    )
+    is_discounted: Optional[bool] = Field(
+        description="Whether the product is discounted at the retailer",
+        example=True,
+    )
+    original_price_standard: Optional[float] = Field(
+        description="The original price of the product at the retailer",
+        example=3201,
     )
 
     class Config:
@@ -157,10 +189,6 @@ class BaseRetailerProductScaffold(BaseModel):
     )
     retailer_images_count: int = Field(
         description="The number of images the retailer shows", example=6
-    )
-    title_matching_score: Optional[float] = Field(
-        description="A score showing how similar the retailer's title is to the title from the client",
-        example=0.67,
     )
     environmental_images_count: int = Field(
         description="The number of environmental images shown for the product",
