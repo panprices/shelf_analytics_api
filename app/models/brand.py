@@ -86,6 +86,7 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     brand = relationship("Brand", back_populates="products")
     images: List[BrandImage] = relationship("BrandImage", back_populates="product")
     category = relationship("BrandCategory", back_populates="products")
+    groups = relationship("ProductGroup", back_populates="products")
 
     keywords: List[BrandKeywords] = relationship(
         "BrandKeywords", back_populates="product"

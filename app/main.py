@@ -4,6 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
+
 from app.routers import (
     auth,
     performance,
@@ -12,6 +13,7 @@ from app.routers import (
     overview,
     content,
     matching,
+    groups,
 )
 
 app = FastAPI(
@@ -43,6 +45,7 @@ app.include_router(data.router)
 app.include_router(overview.router)
 app.include_router(content.router)
 app.include_router(matching.router)
+app.include_router(groups.router)
 
 
 if __name__ == "__main__":

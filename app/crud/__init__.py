@@ -4,3 +4,4 @@ from app.crud.products import *
 from app.crud.prices import *
 from app.crud.content import *
 from app.crud.matching import *
+from app.crud.groups import *
