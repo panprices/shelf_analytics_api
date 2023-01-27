@@ -27,6 +27,7 @@ def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
         GROUP BY bp.id, rp.retailer_id
         HAVING SUM(CASE WHEN pm.certainty = 'manual_input' THEN 1 ELSE 0 END) = 0
             AND SUM(CASE WHEN pm.certainty > 'not_match' THEN 1 ELSE 0 END) > 0
+            AND COUNT(*) > 1
     """
 
 
