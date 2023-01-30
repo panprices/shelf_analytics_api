@@ -2,10 +2,13 @@ from typing import List
 
 from sqlalchemy import Column, String, ForeignKey, Boolean
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.database import Base
+from app.models.mappings import (
+    retailer_brand_association_table,
+    product_group_assignation_table,
+)
 from app.models.matching import ProductMatching
 from app.models.mixins import (
     GenericCategoryMixin,
@@ -15,7 +18,6 @@ from app.models.mixins import (
     ImageMixin,
     ImageTypeMixin,
 )
-from app.models.mappings import retailer_brand_association_table
 
 
 class Brand(Base, UUIDPrimaryKeyMixin):
@@ -86,7 +88,11 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     brand = relationship("Brand", back_populates="products")
     images: List[BrandImage] = relationship("BrandImage", back_populates="product")
     category = relationship("BrandCategory", back_populates="products")
-    groups = relationship("ProductGroup", back_populates="products")
+    groups = relationship(
+        "ProductGroup",
+        secondary=product_group_assignation_table,
+        back_populates="products",
+    )
 
     keywords: List[BrandKeywords] = relationship(
         "BrandKeywords", back_populates="product"

@@ -16,7 +16,7 @@ from app.crud.utils import (
 )
 from app.database import get_db
 from app.schemas.auth import TokenData
-from app.schemas.filters import PagedGlobalFilter, GlobalFilter
+from app.schemas.filters import PagedGlobalFilter, GlobalFilter, DataPageFilter
 from app.schemas.prices import HistoricalPerRetailerResponse, RetailerHistoricalItem
 from app.schemas.product import (
     ProductPage,
@@ -44,6 +44,15 @@ def get_products(
         "offset": page_global_filter.get_products_offset(),
         "total_count": crud.count_products(db, user.client, page_global_filter),
     }
+
+
+@router.post("/brand/count", tags=[TAG_DATA], response_model=int)
+def get_brand_products_count(
+    paged_global_filter: DataPageFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    return crud.count_brand_products(db, user.client, paged_global_filter)
 
 
 @router.post("/export", tags=[TAG_DATA])

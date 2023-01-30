@@ -78,3 +78,9 @@ class ProductCategorisation(BaseModel):
         """,
         example=[{"name": "Utemobler", "id": "ab7b09e7-18b4-49c8-8cc6-57132eb8b820"}],
     )
+
+
+class ProductGrouping(BaseModel):
+    groups: List[NamedProductCategory] = Field(
+        description="The list of groups defined by the client to be used for filtering",
+    )

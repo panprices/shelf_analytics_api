@@ -4,14 +4,7 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.models import UpdatableMixin, UUIDPrimaryKeyMixin
-
-
-product_group_assignation_table = Table(
-    "product_group_assignation",
-    Base.metadata,
-    Column("product_id", ForeignKey("brand_product.id"), primary_key=True),
-    Column("brand_id", ForeignKey("brand.id"), primary_key=True),
-)
+from app.models.mappings import product_group_assignation_table
 
 
 class ProductGroup(Base, UUIDPrimaryKeyMixin, UpdatableMixin):

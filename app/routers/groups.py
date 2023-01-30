@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from requests import Session
+from starlette import status
 
 from app import crud
 from app.database import get_db
@@ -17,6 +18,21 @@ def create_group(
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
+    if not group.products:
+        if group.retailer_products:
+            group.products = crud.get_unique_brand_product_ids_by_retailer_matches(
+                db, group.retailer_products
+            )
+        elif group.filter:
+            group.products = crud.get_unique_brand_product_ids(
+                db, user.client, group.filter
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either products, retailer_products or filter must be provided",
+            )
+
     # Create the group
     crud.create_brand_product_group(db, group, user)
 

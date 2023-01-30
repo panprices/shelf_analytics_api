@@ -8,12 +8,22 @@ from app.models import (
     ProductMatching,
     BrandImage,
 )
+from app.models.groups import ProductGroup
 
 
 def get_brand_categories(db: Session, brand_id: str) -> List[brand.BrandCategory]:
     return (
         db.query(brand.BrandCategory)
         .filter(brand.BrandCategory.brand_id == brand_id)
+        .all()
+    )
+
+
+def get_groups(db: Session, brand_id: str) -> List[ProductGroup]:
+    return (
+        db.query(ProductGroup)
+        .filter(ProductGroup.brand_id == brand_id)
+        .options(selectinload(ProductGroup.products))
         .all()
     )
 

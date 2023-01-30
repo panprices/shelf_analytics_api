@@ -12,6 +12,7 @@ def _get_scores_root_query(global_filter: GlobalFilter):
             JOIN product_matching_time_series pmts ON pm.id = pmts.product_matching_id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
             JOIN retailer r ON r.id = rp.retailer_id
+            LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
         where bp.brand_id = :brand_id 
             AND pmts.time < date_trunc('week', now())::date
             AND pmts.image_score IS NOT NULL
@@ -20,6 +21,7 @@ def _get_scores_root_query(global_filter: GlobalFilter):
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
             {"AND r.id in :retailers" if global_filter.retailers else ""}
             {"AND r.country in :countries" if global_filter.countries else ""}
+            {"AND pga.product_group_id in :groups" if global_filter.groups else ""}
     """
 
 
@@ -34,6 +36,7 @@ def _get_historical_results(
             "countries": tuple(global_filter.countries),
             "retailers": tuple(global_filter.retailers),
             "categories": tuple(global_filter.categories),
+            "groups": tuple(global_filter.groups),
         },
     ).all()
 
@@ -119,11 +122,13 @@ def get_current_score_per_retailer(
             JOIN product_matching pm ON bp.id = pm.brand_product_id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
             JOIN retailer r ON r.id = rp.retailer_id
+            LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
         where bp.brand_id = :brand_id
             AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
             {"AND r.id in :retailers" if global_filter.retailers else ""}
             {"AND r.country in :countries" if global_filter.countries else ""}
+            {"AND pga.product_group_id in :groups" if global_filter.groups else ""}
         group by r.name, r.country
         order by score desc
     """
@@ -135,6 +140,7 @@ def get_current_score_per_retailer(
             "countries": tuple(global_filter.countries),
             "retailers": tuple(global_filter.retailers),
             "categories": tuple(global_filter.categories),
+            "groups": tuple(global_filter.groups),
         },
     ).all()
 

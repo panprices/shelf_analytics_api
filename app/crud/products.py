@@ -1,33 +1,32 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
-from sqlalchemy import func, text, case
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.crud.utils import convert_rows_to_dicts
 from app.models import (
     RetailerProduct,
-    BrandProduct,
-    ProductMatching,
-    RetailerProductHistory,
-    AvailabilityStatus,
-    Retailer,
 )
 from app.models.retailer import MockRetailerProductGridItem
-from app.schemas.filters import PagedGlobalFilter, GlobalFilter
+from app.schemas.filters import PagedGlobalFilter, GlobalFilter, DataPageFilter
 
 
-def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str:
+def _create_query_for_products_datapool(
+    brand_id, global_filter: DataPageFilter
+) -> Tuple[str, Dict]:
     well_defined_grid_filters = [
         i for i in global_filter.data_grid_filter.items if i.is_well_defined()
     ]
-    return f"""
+    statement = f"""
         SELECT * 
-        FROM retailer_product_including_unavailable_matview
+        FROM retailer_product_including_unavailable_matview rp
+            LEFT JOIN product_group_assignation pga ON pga.product_id = rp.matched_brand_product_id
         WHERE created_at > :start_date 
             AND brand_id = :brand_id
             {"AND category_id IN :categories" if global_filter.categories else ""}
             {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
             {"AND country IN :countries" if global_filter.countries else ""}
+            {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
             {"AND (sku LIKE :search_text OR gtin LIKE :search_text)" if global_filter.search_text else ""}
         {
             (
@@ -41,6 +40,21 @@ def _create_query_for_products_datapool(global_filter: PagedGlobalFilter) -> str
         }
         ORDER BY id ASC
     """
+    params = {
+        "start_date": global_filter.start_date,
+        "brand_id": brand_id,
+        "categories": tuple(global_filter.categories),
+        "retailers": tuple(global_filter.retailers),
+        "countries": tuple(global_filter.countries),
+        "groups": tuple(global_filter.groups),
+        "search_text": f"%{global_filter.search_text}%",
+        **{
+            f"fv_{index}": i.get_safe_postgres_value()
+            for index, i in enumerate(global_filter.data_grid_filter.items)
+            if i.is_well_defined()
+        },
+    }
+    return statement, params
 
 
 def _get_full_product_list(
@@ -55,6 +69,7 @@ def _get_full_product_list(
             categories=tuple(global_filter.categories),
             retailers=tuple(global_filter.retailers),
             countries=tuple(global_filter.countries),
+            groups=tuple(global_filter.groups),
             offset=global_filter.get_products_offset(),
             limit=global_filter.page_size,
             search_text=f"%{global_filter.search_text}%",
@@ -95,10 +110,10 @@ def get_products(
     :param global_filter:
     :return:
     """
-
+    query, params = _create_query_for_products_datapool(brand_id, global_filter)
     statement = f"""
         SELECT * FROM (
-            {_create_query_for_products_datapool(global_filter)}
+            {query}
         ) products_datapool
         {
             "ORDER BY " + global_filter.sorting.column + " " + global_filter.sorting.direction 
@@ -111,76 +126,67 @@ def get_products(
     return _get_full_product_list(db, brand_id, statement, global_filter)
 
 
-def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter) -> int:
+def _count_products_datapool(
+    db: Session,
+    brand_id: str,
+    global_filter: DataPageFilter,
+    count_target: str = "*",
+) -> int:
+    query, params = _create_query_for_products_datapool(brand_id, global_filter)
     statement = f"""
-        SELECT COUNT(*) FROM (
-            {_create_query_for_products_datapool(global_filter)}
-        ) products_datapool
+        SELECT COUNT({count_target}) FROM (
+            {query}
+        ) brand_products
     """
 
     return db.execute(
         text(statement),
-        params={
-            "start_date": global_filter.start_date,
-            "brand_id": brand_id,
-            "categories": tuple(global_filter.categories),
-            "retailers": tuple(global_filter.retailers),
-            "countries": tuple(global_filter.countries),
-            "search_text": f"%{global_filter.search_text}%",
-            **{
-                f"fv_{index}": i.get_safe_postgres_value()
-                for index, i in enumerate(global_filter.data_grid_filter.items)
-                if i.is_well_defined()
-            },
-        },
+        params=params,
     ).scalar()
 
 
-def get_historical_stock_status(
-    db: Session, brand_id: str, global_filter: GlobalFilter
-):
-    result = (
-        db.query(
-            RetailerProductHistory.time,
-            func.sum(
-                case(
-                    [
-                        (
-                            RetailerProductHistory.availability.in_(
-                                AvailabilityStatus.available_status_list()
-                            ),
-                            1,
-                        )
-                    ]
-                )
-            ).label("available_count"),
-            func.sum(
-                case(
-                    [
-                        (
-                            ~RetailerProductHistory.availability.in_(
-                                AvailabilityStatus.available_status_list()
-                            ),
-                            1,
-                        )
-                    ]
-                )
-            ).label("unavailable_count"),
-        )
-        .join(RetailerProductHistory.product)
-        .join(RetailerProduct.matched_brand_products)
-        .join(ProductMatching.brand_product)
-        .join(RetailerProduct.retailer)
-        .filter(RetailerProduct.retailer_id.in_(global_filter.retailers))
-        .filter(BrandProduct.category_id.in_(global_filter.categories))
-        .filter(Retailer.country.in_(global_filter.countries))
-        .filter(RetailerProductHistory.time >= global_filter.start_date)
-        .filter(BrandProduct.brand_id == brand_id)
-        .group_by(RetailerProductHistory.time)
-        .all()
+def count_brand_products(
+    db: Session, brand_id: str, global_filter: DataPageFilter
+) -> int:
+    return _count_products_datapool(
+        db, brand_id, global_filter, count_target="DISTINCT product_id"
     )
 
-    return convert_rows_to_dicts(result)
+
+def count_products(db: Session, brand_id: str, global_filter: PagedGlobalFilter) -> int:
+    return _count_products_datapool(db, brand_id, global_filter, count_target="*")
+
+
+def get_unique_brand_product_ids(
+    db: Session, brand_id: str, global_filter: DataPageFilter
+) -> List[str]:
+    query, params = _create_query_for_products_datapool(brand_id, global_filter)
+    statement = f"""
+        SELECT DISTINCT matched_brand_product_id FROM (
+            {query}
+        ) products_datapool
+    """
+    return [
+        r["matched_brand_product_id"]
+        for r in convert_rows_to_dicts(db.execute(statement, params).fetchall())
+    ]
+
+
+def get_unique_brand_product_ids_by_retailer_matches(
+    db: Session, retailer_product_ids: List[str]
+) -> List[str]:
+    statement = """
+        SELECT DISTINCT matched_brand_product_id 
+        FROM retailer_product_including_unavailable_matview
+        WHERE id IN :retailer_product_ids
+    """
+    result = db.execute(
+        text(statement),
+        params={
+            "retailer_product_ids": tuple(retailer_product_ids),
+        },
+    ).fetchall()
+    return [r["matched_brand_product_id"] for r in convert_rows_to_dicts(result)]
 
 
 def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalFilter):
@@ -196,20 +202,24 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                         join retailer_product rp on rpts.product_id = rp.id 
                         join retailer r on rp.retailer_id = r.id
                         join brand_product_time_series bpts on bpts.product_id = bp.id
+                        LEFT JOIN product_group_assignation pga on pga.product_id = bp.id
                     where bp.brand_id = :brand_id
                         AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                         AND bpts.availability = 'in_stock'
                         {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                         {"AND r.id in :retailers" if global_filter.retailers else ""}
                         {"AND r.country in :countries" if global_filter.countries else ""}
+                        {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
                     group by date_trunc('week', rpts.time)::date
                 ) visible_products join (
                     select date_trunc('week', bpts.time)::date as date, COUNT(distinct bp.id) as full_count
                     from brand_product bp 
                         join brand_product_time_series bpts on bpts.product_id = bp.id
+                        LEFT JOIN product_group_assignation pga on pga.product_id = bp.id
                     where bp.brand_id = :brand_id
                         AND bpts.availability = 'in_stock'
                         {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                        {"AND pga.product_group_id in :groups" if global_filter.groups else ""}          
                     group by date_trunc('week', bpts.time)::date
                 ) full_products on visible_products.date = full_products.date 
                 -- Only present data up to last week:
@@ -223,6 +233,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
             "countries": tuple(global_filter.countries),
             "retailers": tuple(global_filter.retailers),
             "categories": tuple(global_filter.categories),
+            "groups": tuple(global_filter.groups),
         },
     ).all()
 
@@ -232,10 +243,11 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
 def export_full_brand_products_result(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
 ):
+    statement, params = _create_query_for_products_datapool(brand_id, global_filter)
     return _get_full_product_list(
         db,
         brand_id,
-        statement=_create_query_for_products_datapool(global_filter),
+        statement=statement,
         global_filter=global_filter,
     )
 
@@ -252,20 +264,24 @@ def count_available_products_by_retailers(
               COUNT(DISTINCT bp.id) AS available_products_count,
               (
                 select COUNT(*) from brand_product
+                    LEFT JOIN product_group_assignation pga ON brand_product.id = pga.product_id
                 WHERE brand_id = :brand_id
                     AND availability = 'in_stock'
                     {"AND category_id IN :categories" if global_filter.categories else ""}
+                    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
               ) as total_count
             from product_matching pm 
                 join brand_product bp on bp.id = pm.brand_product_id 
                 join retailer_product rp on rp.id = pm.retailer_product_id
                 join retailer r on r.id = rp.retailer_id 
+                LEFT JOIN product_group_assignation pga ON bp.id = pga.product_id
             where bp.brand_id = :brand_id
                 AND bp.availability = 'in_stock'
                 AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                 {"AND r.country IN :countries" if global_filter.countries else ""}
+                {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
             GROUP BY r.id
         ) product_availability
     """
@@ -278,6 +294,7 @@ def count_available_products_by_retailers(
             "countries": tuple(global_filter.countries),
             "retailers": tuple(global_filter.retailers),
             "categories": tuple(global_filter.categories),
+            "groups": tuple(global_filter.groups),
         },
     ).fetchall()
 

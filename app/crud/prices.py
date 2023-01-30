@@ -30,11 +30,13 @@ def get_historical_prices_by_retailer_for_brand_product(
                     join retailer_product rp on rp.id = rpts.product_id 
                     join product_matching pm on rp.id = pm.retailer_product_id 
                     join brand_product bp on bp.id = pm.brand_product_id 
+                    LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 where bp.id = :brand_product_id and rpts.price <> 0
                     AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                     {"AND r.country IN :countries" if global_filter.countries else ""}
+                    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
                 order by time asc
             ) per_retailer_time_series
             where rank = 1
@@ -65,6 +67,7 @@ def get_historical_prices_by_retailer_for_brand_product(
             categories=tuple(global_filter.categories),
             retailers=tuple(global_filter.retailers),
             countries=tuple(global_filter.countries),
+            groups=tuple(global_filter.groups),
         )
         .options(
             selectinload(RetailerProductHistory.product).selectinload(

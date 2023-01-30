@@ -17,6 +17,7 @@ def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
             JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = r.id
             LEFT JOIN manual_matching_urls mmu ON mmu.brand_product_id = bp.id 
                 AND rp.retailer_id = mmu.retailer_id 
+            LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
         WHERE bp.brand_id = :brand_id
             AND mmu.id IS NULL
             AND r.requires_manual_matching
@@ -24,6 +25,7 @@ def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
             {"AND rp.retailer_id IN :retailers" if global_filters.retailers else ""}
             {"AND rp.country IN :countries" if global_filters.countries else ""}
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
+            {"AND pga.product_group_id in :groups" if global_filters.groups else ""}
         GROUP BY bp.id, rp.retailer_id
         HAVING SUM(CASE WHEN pm.certainty = 'manual_input' THEN 1 ELSE 0 END) = 0
             AND SUM(CASE WHEN pm.certainty > 'not_match' THEN 1 ELSE 0 END) > 0
@@ -47,6 +49,7 @@ def get_next_brand_product_to_match(
             "retailers": tuple(global_filters.retailers),
             "countries": tuple(global_filters.countries),
             "categories": tuple(global_filters.categories),
+            "groups": tuple(global_filters.groups),
         },
     ).all()
 
@@ -68,6 +71,7 @@ def count_product_matching_tasks(
             "retailers": tuple(global_filters.retailers),
             "countries": tuple(global_filters.countries),
             "categories": tuple(global_filters.categories),
+            "groups": tuple(global_filters.groups),
         },
     ).scalar()
 
