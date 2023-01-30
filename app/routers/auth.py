@@ -16,7 +16,9 @@ from magic_admin.error import (
 )
 from starlette import status
 
+from app import crud
 from app.config.settings import get_settings, Settings
+from app.database import get_db
 from app.schemas.auth import (
     AuthenticationRequest,
     AuthenticationResponse,
@@ -153,10 +155,31 @@ def invite_user_by_mail(
     invitation: UserInvitation,
     response: Response,
     inviting_user: TokenData = Depends(get_user_data),
+    postgres_db=Depends(get_db),
 ):
     if SHELF_ANALYTICS_ROLE_ADMIN not in inviting_user.roles:
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {"success": False}
+
+    brand_name = crud.get_brand_name(postgres_db, inviting_user.client)
+    settings = get_settings()
+
+    mailgun_variables = {
+        "inviter_name": inviting_user.first_name + " " + inviting_user.last_name,
+        "brand_name": brand_name,
+        "invite_link": f"{invitation.domain}/login?email={invitation.email}",
+    }
+    requests.post(
+        "https://api.eu.mailgun.net/v3/mailgun.panprices.com/messages",
+        auth=("api", settings.mailgun_api_key),
+        data={
+            "from": "Panprices <postmaster@mailgun.panprices.com>",
+            "to": f"{invitation.first_name} {invitation.last_name} <{invitation.email}>",
+            "subject": f"{inviting_user.first_name} {inviting_user.last_name} invited you to join the {brand_name} team",
+            "template": "shelf_analytics_invite",
+            "h:X-Mailgun-Variables": json.dumps(mailgun_variables),
+        },
+    )
 
     alphabet = string.ascii_letters + string.digits
     password = "".join(secrets.choice(alphabet) for _ in range(20))
@@ -180,7 +203,7 @@ def authenticate_with_magic_link(magic_request: MagicAuthRequest):
     try:
         magic.Token.validate(magic_request.did_token)
         metadata = magic.User.get_metadata_by_token(magic_request.did_token)
-        email = metadata.data['email']
+        email = metadata.data["email"]
         user = auth.get_user_by_email(email)
         authentication_response = authenticate_verified_user(user.uid)
         firebase_token = auth.create_custom_token(user.uid, app=firebase_app)

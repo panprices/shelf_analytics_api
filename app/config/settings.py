@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     magic_api_secret_key: str = Field()
     jwt_secret: str = Field()
+    mailgun_api_key: str = Field()
 
     class Config:
         env_file = ".env"

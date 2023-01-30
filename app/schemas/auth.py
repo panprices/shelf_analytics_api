@@ -35,6 +35,7 @@ class UserInvitation(BaseModel):
     first_name: str
     last_name: str
     email: str
+    domain: str
 
 
 class InvitationResponse(BaseModel):
