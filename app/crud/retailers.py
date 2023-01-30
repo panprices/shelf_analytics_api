@@ -39,16 +39,18 @@ def get_categories_split(
     db: Session, brand_id: str, global_filter: GlobalFilter
 ) -> List[Dict]:
     brand_category_filter = (
-        """
+        f"""
         where rc.id in (
             select rp.category_id 
             from retailer_product rp 
                 join product_matching pm on rp.id = pm.retailer_product_id 
-                join brand_product bp on bp.id = pm.brand_product_id 
-                where bp.category_id in :brand_categories
+                join brand_product bp on bp.id = pm.brand_product_id
+                LEFT JOIN product_group_assignation pga on pga.product_id = bp.id 
+            where {"bp.category_id in :brand_categories" if global_filter.categories else "1=1"}
+                {"AND pga.product_group_id in :groups" if global_filter.groups else ""}
         )
         """
-        if global_filter.categories
+        if global_filter.categories or global_filter.groups
         else ""
     )
 
@@ -90,6 +92,7 @@ def get_categories_split(
             "brand_id": brand_id,
             "retailer_id": global_filter.retailers[0],
             "brand_categories": tuple(global_filter.categories),
+            "groups": tuple(global_filter.groups),
         },
     ).fetchall()
 
@@ -109,11 +112,13 @@ def get_retailer_products_for_brand_product(
                 join brand_product bp on bp.id = pm.brand_product_id
                 join retailer_product rp on pm.retailer_product_id = rp.id
                 join retailer r on r.id = rp.retailer_id
+                LEFT JOIN product_group_assignation pga on pga.product_id = bp.id
             where bp.id = :brand_product_id
                 AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                 {"AND r.country IN :countries" if global_filter.countries else ""}
+                {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
         ) ranked_matches
         where ranked_matches.rank = 1
     """
@@ -126,6 +131,7 @@ def get_retailer_products_for_brand_product(
             categories=tuple(global_filter.categories),
             retailers=tuple(global_filter.retailers),
             countries=tuple(global_filter.countries),
+            groups=tuple(global_filter.groups),
         )
         .options(
             selectinload(ProductMatching.retailer_product).selectinload(

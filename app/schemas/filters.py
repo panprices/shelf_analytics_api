@@ -43,6 +43,10 @@ class GlobalFilter(BaseModel):
         """,
         example=[],
     )
+    groups: List[str] = Field(
+        description="The list of desired groups (identified by database id)",
+        example=[],
+    )
 
     @validator("start_date", pre=True)
     def parse_start_date(cls, value):
@@ -105,7 +109,16 @@ class DataGridSorting(BaseModel):
     direction: Literal["asc", "desc"]
 
 
-class PagedGlobalFilter(GlobalFilter):
+class DataPageFilter(GlobalFilter):
+    data_grid_filter: DataGridFilters = Field(
+        description="The filters defined in the data grid component"
+    )
+    search_text: Optional[str] = Field(
+        description="The text used to search the data", example="7350133230816"
+    )
+
+
+class PagedGlobalFilter(DataPageFilter):
     page_number: int = Field(
         description="The number of the currently requested page in the pagination system. Index is 1 based.",
         example=1,
@@ -113,11 +126,6 @@ class PagedGlobalFilter(GlobalFilter):
     page_size: int = Field(
         default=10, description="The number of results displayed per page.", example=10
     )
-    search_text: Optional[str] = Field(
-        description="The text used to search the data", example="7350133230816"
-    )
-
-    data_grid_filter: DataGridFilters
     sorting: Optional[DataGridSorting]
 
     def get_products_offset(self):
