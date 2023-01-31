@@ -290,35 +290,34 @@ def count_available_products_by_retailers(
                 JOIN retailer_product_time_series rpts ON pm.retailer_product_id = rpts.product_id
                 JOIN retailer_product rp ON rpts.product_id = rp.id
                 JOIN retailer r ON rp.retailer_id = r.id
-        -- 	    LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+         	    LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
             WHERE
-                bp.brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e' -- :brand_id
+                bp.brand_id = :brand_id
                 AND pm.certainty NOT IN('auto_low_confidence', 'not_match')
                 AND rpts.time BETWEEN date_trunc('week', now() - '7 days'::interval)::date AND date_trunc('week', now())::date
-        -- 	    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-        -- 	    {"AND r.id in :retailers" if global_filter.retailers else ""}
-        -- 	    {"AND r.country in :countries" if global_filter.countries else ""}
-        -- 	    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
+         	    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+         	    {"AND r.id in :retailers" if global_filter.retailers else ""}
+         	    {"AND r.country in :countries" if global_filter.countries else ""}
+         	    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
         ),
         brand_product_in_stock_last_week AS (
             SELECT DISTINCT
                 bp.id
             FROM brand_product bp
                 JOIN brand_product_time_series bpts ON bpts.product_id = bp.id
-        -- 	    LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+         	    LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
             WHERE
-                bp.brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e' -- :brand_id
+                bp.brand_id = :brand_id
                 AND bpts.availability = 'in_stock'
                 AND bpts.time BETWEEN date_trunc('week', now() - '7 days'::interval)::date AND date_trunc('week', now())::date
-        -- 	    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-        -- 	    {"AND pga.product_group_id in :groups" if global_filter.groups else ""}  
+         	    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+         	    {"AND pga.product_group_id in :groups" if global_filter.groups else ""}  
                 
         ),
         brand_product_count_per_retailer AS (
             SELECT 
                 retailer_id,
-                COUNT(DISTINCT scraped_brand_product_last_week.id) AS available_products_count,
-                (SELECT COUNT(DISTINCT id) FROM brand_product_in_stock_last_week) AS total_count
+                COUNT(DISTINCT scraped_brand_product_last_week.id) AS available_products_count
             FROM scraped_brand_product_last_week
                 JOIN brand_product_in_stock_last_week USING (id)
             GROUP BY retailer_id
@@ -327,20 +326,22 @@ def count_available_products_by_retailers(
 
             SELECT 
                 r.id AS retailer_id,
-                0 AS available_products_count, 
-                (SELECT COUNT(DISTINCT id) FROM brand_product_in_stock_last_week) AS total_count
+                0 AS available_products_count
             FROM retailer r
                 JOIN retailer_to_brand_mapping ON r.id = retailer_to_brand_mapping.retailer_id
-            WHERE retailer_to_brand_mapping.brand_id =  '3ff2ee2f-ee59-480b-a372-ddff32e1011e' -- :brand_id
+            WHERE retailer_to_brand_mapping.brand_id = :brand_id
                 AND r.id NOT IN (SELECT retailer_id FROM scraped_brand_product_last_week)
         )
 
         SELECT
             r.name AS retailer,
             available_products_count,
-            total_count - available_products_count AS not_available_products_count
+            (SELECT COUNT(DISTINCT id) FROM brand_product_in_stock_last_week) - available_products_count AS not_available_products_count
         FROM brand_product_count_per_retailer
             JOIN retailer r ON brand_product_count_per_retailer.retailer_id = r.id
+        WHERE TRUE
+         	{"AND r.id in :retailers" if global_filter.retailers else ""}
+            {"AND r.country in :countries" if global_filter.countries else ""}
     """
 
     rows = db.execute(
