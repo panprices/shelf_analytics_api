@@ -105,7 +105,7 @@ class MockRetailerProductGridItem(BaseModel):
     matched_brand_product_id: Union[uuid.UUID, str] = Field(
         description="The id of the matched brand product"
     )
-    brand_in_stock: bool = Field(
+    brand_in_stock: Optional[bool] = Field(
         description="Whether the product is in stock at the retailer",
         example=True,
     )
