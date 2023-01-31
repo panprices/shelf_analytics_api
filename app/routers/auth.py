@@ -9,6 +9,7 @@ import requests
 from fastapi import Depends, Response, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth, firestore
+from firebase_admin.auth import EmailAlreadyExistsError
 from jose import jwt
 from magic_admin import Magic
 from magic_admin.error import (
@@ -184,15 +185,20 @@ def invite_user_by_mail(
     alphabet = string.ascii_letters + string.digits
     password = "".join(secrets.choice(alphabet) for _ in range(20))
 
-    new_user = auth.create_user(email=invitation.email, password=password)
-    db = firestore.client()
-    db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION).document(new_user.uid).set(
-        {
-            **invitation.dict(),
-            "roles": [SHELF_ANALYTICS_ROLE_READER],
-            "client": inviting_user.client,
-        }
-    )
+    try:
+        new_user = auth.create_user(email=invitation.email, password=password)
+        db = firestore.client()
+        db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION).document(
+            new_user.uid
+        ).set(
+            {
+                **invitation.dict(),
+                "roles": [SHELF_ANALYTICS_ROLE_READER],
+                "client": inviting_user.client,
+            }
+        )
+    except EmailAlreadyExistsError:
+        pass
 
     return {"success": True}
 
