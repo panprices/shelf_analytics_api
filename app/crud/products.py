@@ -17,16 +17,23 @@ def _create_query_for_products_datapool(
     well_defined_grid_filters = [
         i for i in global_filter.data_grid_filter.items if i.is_well_defined()
     ]
+    filter_on_product_group_statement = """
+        AND rp.matched_brand_product_id IN (
+            SELECT product_id 
+            FROM product_group_assignation pga 
+            WHERE pga.product_group_id IN :groups
+        )
+    """
+
     statement = f"""
         SELECT * 
         FROM retailer_product_including_unavailable_matview rp
-            LEFT JOIN product_group_assignation pga ON pga.product_id = rp.matched_brand_product_id
         WHERE created_at > :start_date 
             AND brand_id = :brand_id
             {"AND category_id IN :categories" if global_filter.categories else ""}
             {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
             {"AND country IN :countries" if global_filter.countries else ""}
-            {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
+            {filter_on_product_group_statement if global_filter.groups else ""}
             {"AND (sku LIKE :search_text OR gtin LIKE :search_text)" if global_filter.search_text else ""}
         {
             (
