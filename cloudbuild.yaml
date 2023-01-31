@@ -10,7 +10,7 @@ steps:
       - --min-instances=1
       - --max-instances=20
       - --add-cloudsql-instances=panprices:europe-west1:panprices-core
-    secretEnv: ['FIREBASE_API_KEY', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_HOST', 'MAGIC_API_SECRET_KEY', 'JWT_SECRET']
+    secretEnv: ['FIREBASE_API_KEY', 'DB_NAME', 'DB_USER', 'DB_PASS', 'DB_HOST', 'MAGIC_API_SECRET_KEY', 'JWT_SECRET', 'MAILGUN_API_KEY']
 
 availableSecrets:
   secretManager:
@@ -28,3 +28,5 @@ availableSecrets:
       env: 'MAGIC_API_SECRET_KEY'
     - versionName: projects/panprices/secrets/SHELF_ANALYTICS_JWT_SECRET/versions/latest
       env: 'JWT_SECRET'
+    - versionName: projects/panprices/secrets/MAILGUN_API_KEY/versions/latest
+      env: 'MAILGUN_API_KEY'
