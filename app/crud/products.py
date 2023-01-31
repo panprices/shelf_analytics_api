@@ -331,6 +331,8 @@ def count_available_products_by_retailers(
                 JOIN retailer_to_brand_mapping ON r.id = retailer_to_brand_mapping.retailer_id
             WHERE retailer_to_brand_mapping.brand_id = :brand_id
                 AND r.id NOT IN (SELECT retailer_id FROM scraped_brand_product_last_week)
+                {"AND r.id in :retailers" if global_filter.retailers else ""}
+                {"AND r.country in :countries" if global_filter.countries else ""}
         )
 
         SELECT
@@ -339,9 +341,6 @@ def count_available_products_by_retailers(
             (SELECT COUNT(DISTINCT id) FROM brand_product_in_stock_last_week) - available_products_count AS not_available_products_count
         FROM brand_product_count_per_retailer
             JOIN retailer r ON brand_product_count_per_retailer.retailer_id = r.id
-        WHERE TRUE
-         	{"AND r.id in :retailers" if global_filter.retailers else ""}
-            {"AND r.country in :countries" if global_filter.countries else ""}
     """
 
     rows = db.execute(
