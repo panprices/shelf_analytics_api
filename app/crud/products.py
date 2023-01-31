@@ -219,12 +219,10 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                     bp.id
                 FROM brand_product bp
                     JOIN brand_product_time_series bpts ON bpts.product_id = bp.id
-                    --  The LEFT JOIN here doesn't seem to serve any purpose?
                     LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 WHERE
                     bp.brand_id = :brand_id
                     AND bpts.availability = 'in_stock'
-                    -- AND other filters
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     {"AND pga.product_group_id in :groups" if global_filter.groups else ""}   
             ),
@@ -282,34 +280,67 @@ def count_available_products_by_retailers(
     db: Session, brand_id: str, global_filter: GlobalFilter
 ) -> List[Dict]:
     statement = f"""
-        select retailer, available_products_count, 
-            total_count - available_products_count as not_available_products_count
-        from (
-            SELECT
-              r.name AS retailer,
-              COUNT(DISTINCT bp.id) AS available_products_count,
-              (
-                select COUNT(*) from brand_product
-                    LEFT JOIN product_group_assignation pga ON brand_product.id = pga.product_id
-                WHERE brand_id = :brand_id
-                    AND availability = 'in_stock'
-                    {"AND category_id IN :categories" if global_filter.categories else ""}
-                    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
-              ) as total_count
-            from product_matching pm 
-                join brand_product bp on bp.id = pm.brand_product_id 
-                join retailer_product rp on rp.id = pm.retailer_product_id
-                join retailer r on r.id = rp.retailer_id 
-                LEFT JOIN product_group_assignation pga ON bp.id = pga.product_id
-            where bp.brand_id = :brand_id
-                AND bp.availability = 'in_stock'
-                AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
-                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-                {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
-                {"AND r.country IN :countries" if global_filter.countries else ""}
-                {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
-            GROUP BY r.id
-        ) product_availability
+        WITH 
+        scraped_brand_product_last_week AS (
+            SELECT DISTINCT
+                bp.id,
+                rp.retailer_id
+            FROM brand_product bp
+                JOIN product_matching pm ON bp.id = pm.brand_product_id
+                JOIN retailer_product_time_series rpts ON pm.retailer_product_id = rpts.product_id
+                JOIN retailer_product rp ON rpts.product_id = rp.id
+                JOIN retailer r ON rp.retailer_id = r.id
+         	    LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+            WHERE
+                bp.brand_id = :brand_id
+                AND pm.certainty NOT IN('auto_low_confidence', 'not_match')
+                AND rpts.time BETWEEN date_trunc('week', now() - '7 days'::interval)::date AND date_trunc('week', now())::date
+         	    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+         	    {"AND r.id in :retailers" if global_filter.retailers else ""}
+         	    {"AND r.country in :countries" if global_filter.countries else ""}
+         	    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
+        ),
+        brand_product_in_stock_last_week AS (
+            SELECT DISTINCT
+                bp.id
+            FROM brand_product bp
+                JOIN brand_product_time_series bpts ON bpts.product_id = bp.id
+         	    LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+            WHERE
+                bp.brand_id = :brand_id
+                AND bpts.availability = 'in_stock'
+                AND bpts.time BETWEEN date_trunc('week', now() - '7 days'::interval)::date AND date_trunc('week', now())::date
+         	    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+         	    {"AND pga.product_group_id in :groups" if global_filter.groups else ""}  
+                
+        ),
+        brand_product_count_per_retailer AS (
+            SELECT 
+                retailer_id,
+                COUNT(DISTINCT scraped_brand_product_last_week.id) AS available_products_count
+            FROM scraped_brand_product_last_week
+                JOIN brand_product_in_stock_last_week USING (id)
+            GROUP BY retailer_id
+
+            UNION -- retailers that does not have any products last week
+
+            SELECT 
+                r.id AS retailer_id,
+                0 AS available_products_count
+            FROM retailer r
+                JOIN retailer_to_brand_mapping ON r.id = retailer_to_brand_mapping.retailer_id
+            WHERE retailer_to_brand_mapping.brand_id = :brand_id
+                AND r.id NOT IN (SELECT retailer_id FROM scraped_brand_product_last_week)
+                {"AND r.id in :retailers" if global_filter.retailers else ""}
+                {"AND r.country in :countries" if global_filter.countries else ""}
+        )
+
+        SELECT
+            r.name AS retailer,
+            available_products_count,
+            (SELECT COUNT(DISTINCT id) FROM brand_product_in_stock_last_week) - available_products_count AS not_available_products_count
+        FROM brand_product_count_per_retailer
+            JOIN retailer r ON brand_product_count_per_retailer.retailer_id = r.id
     """
 
     rows = db.execute(
