@@ -336,7 +336,7 @@ def count_available_products_by_retailers(
         )
 
         SELECT
-            r.name AS retailer,
+            r.name || ' ' || r.country AS retailer,
             available_products_count,
             (SELECT COUNT(DISTINCT id) FROM brand_product_in_stock_last_week) - available_products_count AS not_available_products_count
         FROM brand_product_count_per_retailer
