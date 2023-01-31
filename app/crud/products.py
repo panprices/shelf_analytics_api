@@ -205,7 +205,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                     JOIN retailer r ON rp.retailer_id = r.id
                     LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 WHERE
-                    bp.brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e'  -- :brand_id
+                    bp.brand_id = :brand_id
                     AND pm.certainty NOT IN('auto_low_confidence',
                         'not_match')
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
@@ -222,7 +222,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                     --  The LEFT JOIN here doesn't seem to serve any purpose?
                     LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 WHERE
-                    bp.brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e' -- :brand_id
+                    bp.brand_id = :brand_id
                     AND bpts.availability = 'in_stock'
                     -- AND other filters
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
