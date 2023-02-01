@@ -4,6 +4,7 @@ from functools import reduce
 
 import pandas
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import StreamingResponse
@@ -65,11 +66,12 @@ async def export_products_to_csv(
         db, user.client, page_global_filter
     )
     products = [MockRetailerProductGridItem.from_orm(p) for p in products]
-
     products_df = pandas.DataFrame([p.dict() for p in products])
-    response = StreamingResponse(io.StringIO(products_df.to_csv(index=False)))
-    response.headers["Content-Disposition"] = "attachment; filename=export.csv"
-    return response
+
+    buffer = io.BytesIO()
+    products_df.to_excel(buffer, index=False, engine="xlsxwriter")
+
+    return Response(buffer.getvalue())
 
 
 @router.get(

@@ -7,16 +7,17 @@ name = "pypi"
 fastapi = "*"
 uvicorn = {extras = ["standard"], version = "*"}
 pydantic = "*"
-firebase-admin = "*"
+firebase-admin = "~=6.0"
 python-dotenv = "*"
-requests = "*"
+requests = "~=2.28"
 python-jose = {extras = ["cryptography"], version = "*"}
-sqlalchemy = "*"
+sqlalchemy = "~=1.4"
 psycopg2-binary = "*"
 structlog = "*"
 starlette = "*"
-magic-admin = "*"
-pandas = "*"
+magic-admin = ">=0.0.5"
+pandas = "~=1.5"
+xlsxwriter = "*"
 
 [dev-packages]
 
