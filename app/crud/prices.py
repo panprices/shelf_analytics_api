@@ -17,7 +17,7 @@ def get_historical_prices_by_retailer_for_brand_product(
         with available_prices as (
             select * 
             from (	
-                select product_id, 
+                select rpts.product_id, 
                     rp.retailer_id,
                     rpts.price, 
                     rpts.currency, 
