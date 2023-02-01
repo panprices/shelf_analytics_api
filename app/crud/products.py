@@ -30,7 +30,7 @@ def _create_query_for_products_datapool(
         FROM retailer_product_including_unavailable_matview rp
         WHERE created_at > :start_date 
             AND brand_id = :brand_id
-            {"AND category_id IN :categories" if global_filter.categories else ""}
+            {"AND brand_category_id IN :categories" if global_filter.categories else ""}
             {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
             {"AND country IN :countries" if global_filter.countries else ""}
             {filter_on_product_group_statement if global_filter.groups else ""}
