@@ -269,6 +269,98 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
     return convert_rows_to_dicts(result)
 
 
+def get_historical_visibility_average(
+    db: Session, brand_id: str, global_filter: GlobalFilter
+):
+    statement = f"""
+    -- Note: When filter on a retailer that has no data for a few weeks, those week 
+    -- will be missing from the result instead of being 0.
+    -- This might be the desired behavior when filter on individual retailer, 
+    -- but can be semi-weird for the "availability over time line chart" on all retailers.
+
+    WITH 
+    scraped_brand_product AS (
+        SELECT DISTINCT
+            date_trunc('week', rpts.time)::date AS date,
+            retailer_id,
+            bp.id
+        FROM brand_product bp
+            JOIN product_matching pm ON bp.id = pm.brand_product_id
+            JOIN retailer_product_time_series rpts ON pm.retailer_product_id = rpts.product_id
+            JOIN retailer_product rp ON rpts.product_id = rp.id
+            JOIN retailer r ON rp.retailer_id = r.id
+            LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+        WHERE
+            bp.brand_id = :brand_id
+            AND pm.certainty NOT IN('auto_low_confidence',
+                'not_match')
+           {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+           {"AND r.id in :retailers" if global_filter.retailers else ""}
+           {"AND r.country in :countries" if global_filter.countries else ""}
+           {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
+    ),
+    brand_product_in_stock AS (
+        SELECT DISTINCT
+            date_trunc('week', bpts.time)::date AS date,
+            bp.id
+        FROM brand_product bp
+            JOIN brand_product_time_series bpts ON bpts.product_id = bp.id
+            LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+        WHERE
+            bp.brand_id = :brand_id
+            AND bpts.availability = 'in_stock'
+            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+            {"AND pga.product_group_id in :groups" if global_filter.groups else ""}   
+    ),
+    scraped_brand_product_in_stock_per_retailer AS (
+        SELECT * 
+        FROM scraped_brand_product
+        JOIN brand_product_in_stock USING (date, id)
+    ),
+    scraped_brand_product_in_stock_per_retailer_count AS (
+        SELECT
+            date,
+            full_count - visible_count AS not_visible_count,
+            visible_count,
+            retailer_id
+        FROM (
+            SELECT date, COUNT(DISTINCT id) AS visible_count, retailer_id
+            FROM scraped_brand_product_in_stock_per_retailer
+            GROUP BY date, retailer_id
+        ) scraped_brand_product_in_stock_per_retailer_grouped
+        JOIN (
+            SELECT date, COUNT(DISTINCT id) AS full_count
+            FROM brand_product_in_stock
+            GROUP BY date
+        ) brand_product_in_stock_grouped USING (date) 
+        -- Only present data up to last week:
+        WHERE date < date_trunc('week', now())::date
+        ORDER BY date ASC
+    )
+
+    SELECT 
+        ROUND(AVG(visible_count)) AS visible_count, 
+        ROUND(AVG(not_visible_count)) AS not_visible_count, 
+        date AS time
+    FROM scraped_brand_product_in_stock_per_retailer_count
+    GROUP BY time
+    ORDER BY time ASC
+    """
+
+    result = db.execute(
+        statement,
+        params={
+            "brand_id": brand_id,
+            "start_date": global_filter.start_date,
+            "countries": tuple(global_filter.countries),
+            "retailers": tuple(global_filter.retailers),
+            "categories": tuple(global_filter.categories),
+            "groups": tuple(global_filter.groups),
+        },
+    ).all()
+    return convert_rows_to_dicts(result)
+
+
 def export_full_brand_products_result(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
 ):
