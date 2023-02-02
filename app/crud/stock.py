@@ -39,8 +39,6 @@ def get_historical_out_of_stock(
             LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
         where bp.brand_id = :brand_id 
             AND pmts.time < date_trunc('week', now())::date
-            AND pmts.image_score IS NOT NULL
-            AND pmts.text_score IS NOT NULL
             AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
             AND bpts.availability = 'in_stock'
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
