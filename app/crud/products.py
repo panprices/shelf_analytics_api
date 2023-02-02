@@ -269,7 +269,6 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
     return convert_rows_to_dicts(result)
 
 
-# New query
 def get_historical_visibility_average(
     db: Session, brand_id: str, global_filter: GlobalFilter
 ):
@@ -277,7 +276,7 @@ def get_historical_visibility_average(
     -- Note: When filter on a retailer that has no data for a few weeks, those week 
     -- will be missing from the result instead of being 0.
     -- This might be the desired behavior when filter on individual retailer, 
-    -- but can be slightly for the "availability over time line chart" on all retailers.
+    -- but can be semi-weird for the "availability over time line chart" on all retailers.
 
     WITH 
     scraped_brand_product AS (
@@ -292,7 +291,7 @@ def get_historical_visibility_average(
             JOIN retailer r ON rp.retailer_id = r.id
             LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
         WHERE
-            bp.brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e'  -- :brand_id
+            bp.brand_id = :brand_id
             AND pm.certainty NOT IN('auto_low_confidence',
                 'not_match')
            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
@@ -308,7 +307,7 @@ def get_historical_visibility_average(
             JOIN brand_product_time_series bpts ON bpts.product_id = bp.id
             LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
         WHERE
-            bp.brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e'  -- :brand_id
+            bp.brand_id = :brand_id
             AND bpts.availability = 'in_stock'
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
             {"AND pga.product_group_id in :groups" if global_filter.groups else ""}   
@@ -340,8 +339,8 @@ def get_historical_visibility_average(
     )
 
     SELECT 
-        AVG(visible_count) AS visible_count, 
-        AVG(not_visible_count) AS not_visible_count, 
+        ROUND(AVG(visible_count)) AS visible_count, 
+        ROUND(AVG(not_visible_count)) AS not_visible_count, 
         date AS time
     FROM scraped_brand_product_in_stock_per_retailer_count
     GROUP BY time
