@@ -30,6 +30,22 @@ def get_visible_history(
 
 
 @router.post(
+    "/visible/average", tags=[TAG_AVAILABILITY], response_model=HistoricalVisibility
+)
+def get_visible_history_average(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    history = crud.get_historical_visibility_average(db, user.client, global_filter)
+    if len(history) == 1:
+        history.insert(
+            0, {**history[0], "time": history[0]["time"] - timedelta(days=7)}
+        )
+    return {"history": history}
+
+
+@router.post(
     "/per_retailer",
     tags=[TAG_OVERVIEW],
     response_model=AvailableProductsPerRetailer,
