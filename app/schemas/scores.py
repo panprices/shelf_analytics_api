@@ -1,26 +1,22 @@
+from datetime import date
 from typing import List
 
 from pydantic import BaseModel, Field
 
 
-class ScoreArchiveEntry(BaseModel):
-    value: float = Field(description="the value of the score at the given date")
-    date: str = Field(description='Data specified in the "DD/MM/YYYY" format')
+class HistoricalItem(BaseModel):
+    time: date = Field(
+        description="The time at which the state was created",
+        example="2022-10-24T12:39:21.993787+00:00",
+    )
+
+
+class HistoricalScoreItem(HistoricalItem):
+    score: float = Field(description="The score")
 
 
 class HistoricalScore(BaseModel):
-    """
-    Holds a score and its historical values. Used for the "Big Number Cards" in the UI
-    """
-
-    value: float = Field(description="The current value", example=0.77)
-    history: List[ScoreArchiveEntry] = Field(
-        description="The historical values for the score",
-        example=[
-            ScoreArchiveEntry(date="13/10/2022", value=0.69),
-            ScoreArchiveEntry(date="14/10/2022", value=0.73),
-        ],
-    )
+    history: List[HistoricalScoreItem] = Field(description="The historical values")
 
 
 class AvailableProductsCount(BaseModel):

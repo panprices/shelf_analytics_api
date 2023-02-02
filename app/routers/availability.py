@@ -8,22 +8,11 @@ from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.availability import HistoricalVisibility
 from app.schemas.filters import GlobalFilter
-from app.schemas.scores import AvailableProductsPerRetailer, HistoricalScore
+from app.schemas.scores import AvailableProductsPerRetailer
 from app.security import get_user_data
 from app.tags import TAG_AVAILABILITY, TAG_OVERVIEW
 
 router = APIRouter(prefix="/availability")
-
-
-@router.post(
-    "/score", tags=[TAG_AVAILABILITY, TAG_OVERVIEW], response_model=HistoricalScore
-)
-def get_overall_availability_score(client_id: str, global_filter: GlobalFilter):
-    """
-    Returns the overall availability score corresponding to the applied filters. This is the same as the score that
-    is visible when looking at the overview page in the FE.
-    """
-    pass
 
 
 @router.post("/visible", tags=[TAG_AVAILABILITY], response_model=HistoricalVisibility)

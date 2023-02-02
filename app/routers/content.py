@@ -8,7 +8,7 @@ from app import crud
 from app.crud.utils import create_append_to_history_reducer
 from app.database import get_db
 from app.schemas.auth import TokenData
-from app.schemas.availability import HistoricalScore
+from app.schemas.scores import HistoricalScore
 from app.schemas.filters import GlobalFilter
 from app.schemas.prices import HistoricalPerRetailerResponse
 from app.schemas.scores import ContentScorePerRetailer
