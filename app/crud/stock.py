@@ -6,7 +6,7 @@ from app.crud import convert_rows_to_dicts
 from app.schemas.filters import GlobalFilter
 
 
-def get_historical_out_of_stock(
+def get_historical_in_stock(
     db: Session,
     brand_id: str,
     global_filter: GlobalFilter,
@@ -28,7 +28,7 @@ def get_historical_out_of_stock(
             FROM retailer_product_time_series
         )
         SELECT date_trunc('week', pmts.time)::date as time, 
-            100 * SUM(CASE WHEN rpts.availability = 'out_of_stock' THEN 1.0 ELSE 0 END) / COUNT(*) as score
+            100 * SUM(CASE WHEN rpts.availability = 'out_of_stock' THEN 0 ELSE 1.0 END) / COUNT(*) as score
         FROM brand_product bp 
             JOIN product_matching pm ON bp.id = pm.brand_product_id 
             JOIN product_matching_time_series pmts ON pm.id = pmts.product_matching_id
