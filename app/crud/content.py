@@ -1,7 +1,7 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.crud import convert_rows_to_dicts
+from app.crud import convert_rows_to_dicts, get_results_from_statement_with_filters
 from app.schemas.filters import GlobalFilter
 
 
@@ -25,28 +25,10 @@ def _get_scores_root_query(global_filter: GlobalFilter):
     """
 
 
-def _get_historical_results(
-    db: Session, brand_id: str, global_filter: GlobalFilter, statement: str
-):
-    result = db.execute(
-        text(statement),
-        params={
-            "brand_id": brand_id,
-            "start_date": global_filter.start_date,
-            "countries": tuple(global_filter.countries),
-            "retailers": tuple(global_filter.retailers),
-            "categories": tuple(global_filter.categories),
-            "groups": tuple(global_filter.groups),
-        },
-    ).all()
-
-    return convert_rows_to_dicts(result)
-
-
 def _get_historical_score(
     db: Session, brand_id: str, global_filter: GlobalFilter, score_field: str
 ):
-    return _get_historical_results(
+    return get_results_from_statement_with_filters(
         db,
         brand_id,
         global_filter,
@@ -63,7 +45,7 @@ def _get_historical_score(
 def _get_historical_score_per_retailer(
     db: Session, brand_id: str, global_filter: GlobalFilter, score_field: str
 ):
-    return _get_historical_results(
+    return get_results_from_statement_with_filters(
         db,
         brand_id,
         global_filter,
@@ -132,16 +114,6 @@ def get_current_score_per_retailer(
         group by r.name, r.country
         order by score desc
     """
-
-    result = db.execute(
-        text(statement),
-        params={
-            "brand_id": brand_id,
-            "countries": tuple(global_filter.countries),
-            "retailers": tuple(global_filter.retailers),
-            "categories": tuple(global_filter.categories),
-            "groups": tuple(global_filter.groups),
-        },
-    ).all()
-
-    return convert_rows_to_dicts(result)
+    return get_results_from_statement_with_filters(
+        db, brand_id, global_filter, statement
+    )

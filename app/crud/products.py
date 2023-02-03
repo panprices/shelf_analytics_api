@@ -3,7 +3,10 @@ from typing import Dict, List, Tuple
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.crud.utils import convert_rows_to_dicts
+from app.crud.utils import (
+    convert_rows_to_dicts,
+    get_results_from_statement_with_filters,
+)
 from app.models import (
     RetailerProduct,
 )
@@ -346,19 +349,9 @@ def get_historical_visibility_average(
     GROUP BY time
     ORDER BY time ASC
     """
-
-    result = db.execute(
-        statement,
-        params={
-            "brand_id": brand_id,
-            "start_date": global_filter.start_date,
-            "countries": tuple(global_filter.countries),
-            "retailers": tuple(global_filter.retailers),
-            "categories": tuple(global_filter.categories),
-            "groups": tuple(global_filter.groups),
-        },
-    ).all()
-    return convert_rows_to_dicts(result)
+    return get_results_from_statement_with_filters(
+        db, brand_id, global_filter, statement
+    )
 
 
 def export_full_brand_products_result(
@@ -444,16 +437,6 @@ def count_available_products_by_retailers(
             JOIN retailer r ON brand_product_count_per_retailer.retailer_id = r.id
     """
 
-    rows = db.execute(
-        text(statement),
-        params={
-            "brand_id": brand_id,
-            "start_date": global_filter.start_date,
-            "countries": tuple(global_filter.countries),
-            "retailers": tuple(global_filter.retailers),
-            "categories": tuple(global_filter.categories),
-            "groups": tuple(global_filter.groups),
-        },
-    ).fetchall()
-
-    return convert_rows_to_dicts(rows)
+    return get_results_from_statement_with_filters(
+        db, brand_id, global_filter, statement
+    )
