@@ -82,7 +82,16 @@ class DataGridFilterItem(BaseModel):
             return f"{self.column} {self.operator} :fv_{index}"
         elif self.operator == "is":
             return f"{self.column} = :fv_{index}"
-
+        elif self.operator == "after":
+            return f"{self.column} > :fv_{index}"
+        elif self.operator == "before":
+            return f"{self.column} < :fv_{index}"
+        elif self.operator == "onOrAfter":
+            return f"{self.column} >= :fv_{index}"
+        elif self.operator == "onOrBefore":
+            return f"{self.column} <= :fv_{index}"
+        elif self.operator == "not":
+            return f"{self.column} <> :fv_{index}"
         return ""
 
     def get_safe_postgres_value(self):
