@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from typing import List, Optional, Union
 
@@ -91,7 +92,7 @@ class MockRetailerProductGridItem(BaseModel):
         description="The number of transparent images shown for the product", example=3
     )
     sku: Optional[str] = Field(
-        description="The SKU assigned by the client", example="16052-101"
+        description="The SKU from the retailer", example="16052-101"
     )
     wholesale_price: Optional[float] = Field(
         description="The price at which the client sells the item to the retailer (the value captured by the brand)",
@@ -136,6 +137,13 @@ class MockRetailerProductGridItem(BaseModel):
     original_price_standard: Optional[float] = Field(
         description="The original price of the product at the retailer",
         example=3201,
+    )
+    fetched_at: Optional[datetime.date] = Field(
+        description="The date at which the product was fetched from the retailer",
+        example="2023-01-17",
+    )
+    brand_sku: Optional[str] = Field(
+        description="The SKU assigned by the client", example="16052-101"
     )
 
     class Config:

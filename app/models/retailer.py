@@ -10,6 +10,7 @@ from sqlalchemy import (
     BigInteger,
     Float,
     Boolean,
+    DateTime,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -169,6 +170,8 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     available_at_retailer = Column(Boolean)
     retailer_category_name = Column(String)
     original_price_standard = Column(Float)
+    fetched_at = Column(DateTime)
+    brand_sku = Column(String)
 
 
 class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):
@@ -182,6 +185,7 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     review_average = Column(Float)
     is_discounted = Column(Boolean)
     original_price = Column(BigInteger)
+    fetched_at = Column(DateTime)
 
     category_id = Column(UUID(as_uuid=True), ForeignKey("retailer_category.id"))
     category = relationship("RetailerCategory", back_populates="products")
