@@ -22,6 +22,7 @@ def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
             AND mmu.id IS NULL
             AND r.requires_manual_matching
             AND (rbm.known_brand_labels IS NULL OR rp.brand = ANY(rbm.known_brand_labels))
+            AND pm.type = 'image'
             {"AND rp.retailer_id IN :retailers" if global_filters.retailers else ""}
             {"AND rp.country IN :countries" if global_filters.countries else ""}
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
