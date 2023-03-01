@@ -105,8 +105,8 @@ def get_retailer_products_for_brand_product(
     statement = f"""
         select * from (
             select pm.*, 
-                row_number() over (
-                    partition by retailer_id
+                rank() over (
+                    partition by retailer_id ORDER BY date_trunc('week', rp.fetched_at) DESC
                 ) as "rank"
             from product_matching pm 
                 join brand_product bp on bp.id = pm.brand_product_id
