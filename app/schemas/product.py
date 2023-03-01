@@ -277,6 +277,14 @@ class RetailerProductImageScaffold(GenericProductImageScaffold):
     )
 
 
+class SpecificationScaffold(BaseModel):
+    key: str
+    value: str
+
+    class Config:
+        orm_mode = True
+
+
 class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
     """
     This is the information of the retailer product sent together with a brand product, and not on its own.
@@ -285,6 +293,9 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
     category: MatchedRetailerProductCategoryScaffold
     processed_images: List[RetailerProductImageScaffold] = Field(
         description="The images set by the retailer"
+    )
+    specifications: List[SpecificationScaffold] = Field(
+        description="The specifications of the product"
     )
 
     class Config:
@@ -312,6 +323,7 @@ class BrandKeywordsScaffold(BaseModel):
     description_keywords: List[List[str]] = Field(
         description="The actual list of keywords"
     )
+    specs_keywords: List[List[str]] = Field(description="The actual list of keywords")
     language: str = Field(description="The language for the keywords")
 
     class Config:

@@ -72,6 +72,7 @@ class BrandKeywords(Base):
     language = Column(String, primary_key=True)
     title_keywords = Column(JSONB)
     description_keywords = Column(JSONB)
+    specs_keywords = Column(JSONB)
 
     product = relationship("BrandProduct", back_populates="keywords")
 
