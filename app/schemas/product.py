@@ -323,7 +323,9 @@ class BrandKeywordsScaffold(BaseModel):
     description_keywords: List[List[str]] = Field(
         description="The actual list of keywords"
     )
-    specs_keywords: List[List[str]] = Field(description="The actual list of keywords")
+    specs_keywords: Optional[List[List[str]]] = Field(
+        description="The actual list of keywords"
+    )
     language: str = Field(description="The language for the keywords")
 
     class Config:
