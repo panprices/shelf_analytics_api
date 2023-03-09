@@ -118,6 +118,18 @@ class MockRetailerProductGridItem(BaseModel):
         description="The name of the category at the retailer",
         example="Möbler > Matgrupper",
     )
+    title_score: Optional[float] = Field(
+        description="A score showing how similar the retailer's title is to the title from the client",
+        example=0.67,
+    )
+    description_score: Optional[float] = Field(
+        description="A score showing how similar the retailer's description is to the description from the client",
+        example=0.67,
+    )
+    specs_score: Optional[float] = Field(
+        description="A score showing how similar the retailer's specs are to the specs from the client",
+        example=0.67,
+    )
     text_score: Optional[float] = Field(
         description="A score showing how similar the retailer's title is to the title from the client",
         example=0.67,
@@ -305,6 +317,11 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
 class BrandToRetailerProductMatchingScaffold(BaseModel):
     retailer_product: MatchedRetailerProductScaffold
     image_score: Optional[float] = Field(description="Image score up to 100", default=0)
+    title_score: Optional[float] = Field(description="Title score up to 100", default=0)
+    description_score: Optional[float] = Field(
+        description="Description score up to 100", default=0
+    )
+    specs_score: Optional[float] = Field(description="Specs score up to 100", default=0)
     text_score: Optional[float] = Field(description="Text score up to 100", default=0)
 
     class Config:

@@ -30,6 +30,9 @@ class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     retailer_product_id = Column(UUID(as_uuid=True), ForeignKey("retailer_product.id"))
     type = Column(Enum(MatchingType))
     image_score = Column(Float)
+    title_score = Column(Float)
+    description_score = Column(Float)
+    specs_score = Column(Float)
     text_score = Column(Float)
     certainty = Column(Enum(MatchingCertaintyType))
 
