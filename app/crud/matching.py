@@ -25,7 +25,7 @@ def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
             AND pm.type = 'image'
             AND bp.active
             {"AND rp.retailer_id IN :retailers" if global_filters.retailers else ""}
-            {"AND rp.country IN :countries" if global_filters.countries else ""}
+            {"AND r.country IN :countries" if global_filters.countries else ""}
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
             {"AND pga.product_group_id in :groups" if global_filters.groups else ""}
         GROUP BY bp.id, rp.retailer_id

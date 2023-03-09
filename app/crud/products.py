@@ -209,9 +209,9 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                     INNER JOIN scraped_brand_product USING (id, date)
                     LEFT JOIN product_group_assignation pga ON pga.product_id = scraped_brand_product.id
                 WHERE brand_product_in_stock.brand_id = :brand_id
-                    {"AND category_id IN :categories" if global_filter.categories else ""}
-                    {"AND retailer_id in :retailers" if global_filter.retailers else ""}
-                    {"AND country in :countries" if global_filter.countries else ""}
+                    {"AND scraped_brand_product.category_id IN :categories" if global_filter.categories else ""}
+                    {"AND scraped_brand_product.retailer_id in :retailers" if global_filter.retailers else ""}
+                    {"AND scraped_brand_product.country in :countries" if global_filter.countries else ""}
                     {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
             )
             SELECT
