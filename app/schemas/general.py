@@ -34,6 +34,14 @@ class RetailerBrandAssociationScaffold(BaseModel):
         orm_mode = True
 
 
+class NamedBrand(BaseModel):
+    name: str = Field(description="The name of the brand")
+    id: uuid.UUID = Field(description="The id of the brand in the database")
+
+    class Config:
+        orm_mode = True
+
+
 class NamedRetailer(BaseModel):
     name: str = Field(description="The name of the retailer")
     country: str = Field(description="The country in which this retailer activates")

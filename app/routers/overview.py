@@ -1,15 +1,23 @@
-from fastapi import APIRouter, Depends
+from typing import List, Dict
+
+from fastapi import APIRouter, Depends, HTTPException
+from firebase_admin import firestore
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.database import get_db
-from app.schemas.auth import TokenData
+from app.routers.auth import (
+    SHELF_ANALYTICS_USER_METADATA_COLLECTION,
+    authenticate_verified_user,
+)
+from app.schemas.auth import TokenData, AuthenticationResponse
 from app.schemas.filters import GlobalFilter
 from app.schemas.general import (
     TrackedRetailerPool,
     ProductCategorisation,
     ActiveMarket,
     ProductGrouping,
+    NamedBrand,
 )
 from app.schemas.scores import HistoricalScore, AvailableProductsPerRetailer
 from app.security import get_user_data
@@ -56,3 +64,33 @@ def get_categories(
 ):
     categories = crud.get_brand_categories(db, user.client)
     return {"categories": [{"id": c.id, "name": c.full_name} for c in categories]}
+
+
+@router.get("/brands", tags=[TAG_OVERVIEW], response_model=List[NamedBrand])
+def get_brands(user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)):
+    if "developer" not in user.roles:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to access this resource",
+        )
+
+    return crud.get_brands(db)
+
+
+@router.post("/brand", tags=[TAG_OVERVIEW], response_model=AuthenticationResponse)
+def switch_brand(
+    brand_change_request: Dict[str, str],
+    user: TokenData = Depends(get_user_data),
+):
+    if "developer" not in user.roles:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to access this resource",
+        )
+
+    db = firestore.client()
+    db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION).document(user.uid).update(
+        {"client": brand_change_request["brand_id"]}
+    )
+
+    return authenticate_verified_user(user.uid)

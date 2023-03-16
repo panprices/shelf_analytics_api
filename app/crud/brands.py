@@ -11,6 +11,10 @@ from app.models import (
 from app.models.groups import ProductGroup
 
 
+def get_brands(db: Session) -> List[brand.Brand]:
+    return db.query(brand.Brand).all()
+
+
 def get_brand_categories(db: Session, brand_id: str) -> List[brand.BrandCategory]:
     return (
         db.query(brand.BrandCategory)
