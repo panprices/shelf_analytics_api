@@ -4,17 +4,34 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
 from app.crud.utils import convert_rows_to_dicts
-from app.models import retailer, brand, RetailerProduct, ProductMatching, BrandProduct
-from app.models.retailer import RetailerImage
+from app.models import (
+    retailer,
+    brand,
+    RetailerProduct,
+    ProductMatching,
+    BrandProduct,
+)
+from app.models.mappings import RetailerBrandAssociation
+from app.models.retailer import RetailerImage, CountryToLanguage
 from app.schemas.filters import GlobalFilter
+from app.schemas.general import FilterRetailer
 
 
-def get_retailers(db: Session, brand_id: str) -> List[retailer.Retailer]:
-    return (
-        db.query(retailer.Retailer)
-        .filter(retailer.Retailer.brands.any(brand.Brand.id == brand_id))
+def get_retailers(db: Session, brand_id: str) -> List[FilterRetailer]:
+    result = (
+        db.query(
+            retailer.Retailer.id,
+            retailer.Retailer.name,
+            retailer.Retailer.country,
+            CountryToLanguage.language,
+            RetailerBrandAssociation.shallow,
+        )
+        .join(RetailerBrandAssociation)
+        .join(CountryToLanguage)
+        .filter(RetailerBrandAssociation.brand_id == brand_id)
         .all()
     )
+    return [FilterRetailer.from_orm(r) for r in result]
 
 
 def get_retailer_name_and_country(db: Session, retailer_id: str) -> str:

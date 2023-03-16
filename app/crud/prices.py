@@ -19,8 +19,8 @@ def get_historical_prices_by_retailer_for_brand_product(
             from (	
                 select rpts.product_id, 
                     rp.retailer_id,
-                    rpts.price, 
-                    rpts.currency, 
+                    rpts.price * c.to_sek as price, 
+                    'SEK' as currency, 
                     rpts.availability, 
                     date_trunc('week', time)::timestamp as time, 
                     row_number() over (
@@ -31,6 +31,7 @@ def get_historical_prices_by_retailer_for_brand_product(
                     join retailer r on r.id = rp.retailer_id
                     join product_matching pm on rp.id = pm.retailer_product_id 
                     join brand_product bp on bp.id = pm.brand_product_id 
+                    join currency c on c.name = rpts.currency
                     LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 where bp.id = :brand_product_id and rpts.price <> 0
                     AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')

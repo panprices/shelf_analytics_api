@@ -17,8 +17,6 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.database import Base
-from app.models.mappings import retailer_brand_association_table
-from app.models.matching import ProductMatching, MatchingCertaintyType
 from app.models.mixins import (
     GenericProductMixin,
     UpdatableMixin,
@@ -44,9 +42,7 @@ class Retailer(Base, UUIDPrimaryKeyMixin):
     url = Column(String)
     country = Column(String, ForeignKey("country_to_language.country"))
 
-    brands = relationship(
-        "Brand", secondary=retailer_brand_association_table, back_populates="retailers"
-    )
+    brands = relationship("RetailerBrandAssociation", back_populates="retailer")
     categories = relationship("RetailerCategory", back_populates="retailer")
     products = relationship("RetailerProduct", back_populates="retailer")
 

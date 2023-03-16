@@ -27,17 +27,31 @@ class CountryToLanguageScaffold(BaseModel):
         orm_mode = True
 
 
+class RetailerBrandAssociationScaffold(BaseModel):
+    shallow: bool = Field(description="Whether the brand is shallow or not")
+
+    class Config:
+        orm_mode = True
+
+
 class NamedRetailer(BaseModel):
     name: str = Field(description="The name of the retailer")
     country: str = Field(description="The country in which this retailer activates")
     id: uuid.UUID = Field(description="The id of the retailer in the database")
 
-    country_to_language: CountryToLanguageScaffold = Field(
-        description="The country and mapping to language"
-    )
-
     class Config:
         orm_mode = True
+
+
+class FilterRetailer(NamedRetailer):
+    language: str = Field(description="The language to use with the retailer")
+    shallow: bool = Field(description="Whether the retailer is shallow or not")
+
+
+class RetailerForProduct(NamedRetailer):
+    country_to_language: CountryToLanguageScaffold = Field(
+        description="The language available for the retailer's country"
+    )
 
 
 class TrackedRetailerPool(BaseModel):
@@ -45,7 +59,7 @@ class TrackedRetailerPool(BaseModel):
     The list of retailers to be used for filtering
     """
 
-    retailers: List[NamedRetailer] = Field(
+    retailers: List[FilterRetailer] = Field(
         description=""""
         The list of retailers we are tracking for this client. 
         """,

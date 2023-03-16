@@ -1,13 +1,18 @@
-from sqlalchemy import Column, ForeignKey, Table
+from sqlalchemy import Column, ForeignKey, Table, Boolean
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
-retailer_brand_association_table = Table(
-    "retailer_to_brand_mapping",
-    Base.metadata,
-    Column("retailer_id", ForeignKey("retailer.id"), primary_key=True),
-    Column("brand_id", ForeignKey("brand.id"), primary_key=True),
-)
+
+class RetailerBrandAssociation(Base):
+    __tablename__ = "retailer_to_brand_mapping"
+
+    retailer_id = Column(ForeignKey("retailer.id"), primary_key=True)
+    brand_id = Column(ForeignKey("brand.id"), primary_key=True)
+    shallow = Column(Boolean, default=False)
+
+    retailer = relationship("Retailer", back_populates="brands")
+    brand = relationship("Brand", back_populates="retailers")
 
 
 product_group_assignation_table = Table(

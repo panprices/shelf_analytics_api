@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from app.schemas.general import NamedRetailer
+from app.schemas.general import NamedRetailer, RetailerForProduct
 
 
 class BrandCategoryScaffold(BaseModel):
@@ -185,7 +185,7 @@ class BaseRetailerProductScaffold(BaseModel):
         description="The GTIN associated by the customer to the product",
         example="7350133230816",
     )
-    retailer: NamedRetailer = Field(
+    retailer: RetailerForProduct = Field(
         description="The retailer selling this product", example="Trademax"
     )
     country: str = Field(
@@ -198,12 +198,12 @@ class BaseRetailerProductScaffold(BaseModel):
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
-    review_average: float = Field(
+    review_average: Optional[float] = Field(
         description="The rating of this product, average of the scores from the reviews the product received.",
         example=3.7,
     )
-    number_of_reviews: int = Field(description="Count of reviews", example=19)
-    popularity_index: int = Field(
+    number_of_reviews: Optional[int] = Field(description="Count of reviews", example=19)
+    popularity_index: Optional[int] = Field(
         description="The ranking of this product inside its leaf category at the retailer",
         example=13,
     )
@@ -302,11 +302,11 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
     This is the information of the retailer product sent together with a brand product, and not on its own.
     """
 
-    category: MatchedRetailerProductCategoryScaffold
+    category: Optional[MatchedRetailerProductCategoryScaffold]
     processed_images: List[RetailerProductImageScaffold] = Field(
         description="The images set by the retailer"
     )
-    specifications: List[SpecificationScaffold] = Field(
+    specifications: Optional[List[SpecificationScaffold]] = Field(
         description="The specifications of the product"
     )
 

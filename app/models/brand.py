@@ -6,7 +6,6 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 from app.models.mappings import (
-    retailer_brand_association_table,
     product_group_assignation_table,
 )
 from app.models.matching import ProductMatching
@@ -27,9 +26,7 @@ class Brand(Base, UUIDPrimaryKeyMixin):
     url = Column(String)
 
     categories = relationship("BrandCategory", back_populates="brand")
-    retailers = relationship(
-        "Retailer", secondary=retailer_brand_association_table, back_populates="brands"
-    )
+    retailers = relationship("RetailerBrandAssociation", back_populates="brand")
     products = relationship("BrandProduct", back_populates="brand")
 
 
