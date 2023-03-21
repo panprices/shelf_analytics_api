@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.schemas.product import PagedResponse
+
 
 class RetailerHistoricalItem(BaseModel):
     x: datetime.date
@@ -54,8 +56,8 @@ class PriceTableRowScaffold(BaseModel):
         orm_mode = True
 
 
-class PriceTableData(BaseModel):
-    brand_products: List[PriceTableRowScaffold]
+class PriceTableData(PagedResponse):
+    rows: List[PriceTableRowScaffold]
 
     class Config:
         orm_mode = True
