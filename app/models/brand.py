@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy import Column, String, ForeignKey, Boolean
+from sqlalchemy import Column, String, ForeignKey, Boolean, Float
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 
@@ -74,6 +74,37 @@ class BrandKeywords(Base):
     product = relationship("BrandProduct", back_populates="keywords")
 
 
+class MSRP(Base):
+    __tablename__ = "msrp"
+
+    brand_product_id = Column(
+        UUID(as_uuid=True), ForeignKey("brand_product.id"), primary_key=True
+    )
+    currency = Column(String, primary_key=True)
+    price = Column(Float)
+    country = Column(String, primary_key=True)
+
+    brand_product = relationship("BrandProduct", back_populates="msrp")
+
+
+class MockBrandProductWithMarketPrices(Base):
+    __tablename__ = "mock_brand_product_with_market_prices"
+
+    brand_product_id = Column(
+        UUID(as_uuid=True), ForeignKey("brand_product.id"), primary_key=True
+    )
+    name = Column(String)
+    gtin = Column(String)
+    sku = Column(String)
+    msrp_standard = Column(Float)
+    msrp_currency = Column(String)
+    msrp_country = Column(String, primary_key=True)
+    msrp_client_currency = Column(Float)
+    image_id = Column(UUID(as_uuid=True))
+    image_url = Column(String)
+    offers = Column(JSONB)
+
+
 class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):
     __tablename__ = "brand_product"
 
@@ -91,6 +122,7 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
         secondary=product_group_assignation_table,
         back_populates="products",
     )
+    msrp: List[MSRP] = relationship("MSRP", back_populates="brand_product")
 
     keywords: List[BrandKeywords] = relationship(
         "BrandKeywords", back_populates="product"

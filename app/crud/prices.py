@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import (
     RetailerProductHistory,
     RetailerProduct,
+    MockBrandProductWithMarketPrices,
 )
-from app.schemas.filters import GlobalFilter
+from app.schemas.filters import GlobalFilter, PagedGlobalFilter
 
 
 def get_historical_prices_by_retailer_for_brand_product(
@@ -78,3 +79,98 @@ def get_historical_prices_by_retailer_for_brand_product(
         )
         .all()
     )
+
+
+def _create_price_table_data_query(
+    global_filter: PagedGlobalFilter, brand_id: str
+) -> Tuple[str, dict]:
+    well_defined_grid_filters = [
+        i for i in global_filter.data_grid_filter.items if i.is_well_defined()
+    ]
+    query = f"""
+        SELECT * FROM brand_product_msrp_view
+        WHERE brand_id = :brand_id
+            AND array_length(offers, 1) > 0
+            {"AND category_id IN :categories" if global_filter.categories else ""}
+            {"AND msrp_country IN :countries" if global_filter.countries else ""}
+            {"AND id IN (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)" 
+                if global_filter.groups else ""}
+            {
+                (
+                    "AND " + (" " + global_filter.data_grid_filter.operator + " ")
+                        .join([
+                            i.to_postgres_condition(index) 
+                            for index, i in enumerate(well_defined_grid_filters)
+                        ])
+                )
+                if well_defined_grid_filters else ""
+            }
+    """
+
+    params = {
+        "brand_id": brand_id,
+        "categories": tuple(global_filter.categories),
+        "countries": tuple(global_filter.countries),
+        "groups": tuple(global_filter.groups),
+        "retailers": tuple(global_filter.retailers),
+        **{
+            f"fv_{index}": i.get_safe_postgres_value()
+            for index, i in enumerate(global_filter.data_grid_filter.items)
+            if i.is_well_defined()
+        },
+    }
+
+    return query, params
+
+
+def get_price_table_data(db: Session, global_filter: PagedGlobalFilter, brand_id: str):
+    price_data_query, price_data_params = _create_price_table_data_query(
+        global_filter, brand_id
+    )
+
+    query = f"""
+        SELECT * 
+        FROM (
+            {price_data_query}
+        ) price_data
+        {
+            "ORDER BY " + global_filter.sorting.column + " " + global_filter.sorting.direction 
+            if global_filter.sorting else "ORDER BY name, msrp_country ASC"
+        }
+        OFFSET :offset
+        LIMIT :limit;
+    """
+
+    results = (
+        db.query(MockBrandProductWithMarketPrices)
+        .from_statement(statement=text(query))
+        .params(
+            offset=global_filter.get_products_offset(),
+            limit=global_filter.page_size,
+            sorting=global_filter.sorting,
+            **price_data_params,
+        )
+        .all()
+    )
+
+    return results
+
+
+def count_price_table_data(
+    db: Session, global_filter: PagedGlobalFilter, brand_id: str
+):
+    price_data_query, price_data_params = _create_price_table_data_query(
+        global_filter, brand_id
+    )
+
+    query = f"""
+        SELECT COUNT(*)
+        FROM (
+            {price_data_query}
+        ) price_data;
+    """
+
+    return db.execute(
+        text(query),
+        params=price_data_params,
+    ).scalar()

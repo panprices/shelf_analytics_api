@@ -219,19 +219,21 @@ class BaseRetailerProductScaffold(BaseModel):
     )
 
 
-class ProductPage(BaseModel):
-    """
-    Holds the data for a page of products as showed on the data page in FE.
-    """
-
-    products: List[MockRetailerProductGridItem] = Field(
-        description="The list of products",
-    )
-
+class PagedResponse(BaseModel):
     offset: int = Field(description="How many items we skipped", example=100)
     count: int = Field(description="The number of offers returned", example=20)
     total_count: int = Field(
         description="The total number of available offers", example=8121
+    )
+
+
+class ProductPage(PagedResponse):
+    """
+    Holds the data for a page of products as showed on the data page in FE.
+    """
+
+    rows: List[MockRetailerProductGridItem] = Field(
+        description="The list of products",
     )
 
 

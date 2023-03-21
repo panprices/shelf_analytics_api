@@ -40,7 +40,7 @@ def get_products(
     products = crud.get_products(db, user.client, page_global_filter)
 
     return {
-        "products": products,
+        "rows": products,
         "count": len(products),
         "offset": page_global_filter.get_products_offset(),
         "total_count": crud.count_products(db, user.client, page_global_filter),

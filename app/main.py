@@ -15,6 +15,7 @@ from app.routers import (
     matching,
     groups,
     stock,
+    price,
 )
 
 app = FastAPI(
@@ -48,6 +49,7 @@ app.include_router(content.router)
 app.include_router(matching.router)
 app.include_router(groups.router)
 app.include_router(stock.router)
+app.include_router(price.router)
 
 
 if __name__ == "__main__":
