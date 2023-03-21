@@ -1,11 +1,16 @@
 from typing import List
 
-from sqlalchemy import text
+from sqlalchemy import text, func, literal_column
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import (
     RetailerProductHistory,
     RetailerProduct,
+    BrandProduct,
+    Retailer,
+    MSRP,
+    ProductMatching,
+    MockBrandProductWithMarketPrices,
 )
 from app.schemas.filters import GlobalFilter
 
@@ -78,3 +83,25 @@ def get_historical_prices_by_retailer_for_brand_product(
         )
         .all()
     )
+
+
+def get_price_table_data(db: Session, global_filter: GlobalFilter, brand_id: str):
+    query = f"""
+        SELECT * FROM brand_product_msrp_view
+        WHERE brand_id = :brand_id
+            {"AND category_id IN :categories" if global_filter.categories else ""}
+            {"AND msrp_country IN :countries" if global_filter.countries else ""}
+            {"AND id IN (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)" 
+                if global_filter.groups else ""}
+        OFFSET :offset
+        LIMIT :limit;
+    """
+
+    results = (
+        db.query(MockBrandProductWithMarketPrices)
+        .from_statement(statement=text(query))
+        .params(brand_id=brand_id, offset=0, limit=10)
+        .all()
+    )
+
+    return results
