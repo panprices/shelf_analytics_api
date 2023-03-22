@@ -46,7 +46,8 @@ def get_retailer_name_and_country(db: Session, retailer_id: str) -> str:
 def get_countries(db: Session, brand_id: str) -> List[str]:
     return (
         db.query(retailer.Retailer.country)
-        .filter(retailer.Retailer.brands.any(brand.Brand.id == brand_id))
+        .join(RetailerBrandAssociation)
+        .filter(RetailerBrandAssociation.brand_id == brand_id)
         .distinct()
         .all()
     )
