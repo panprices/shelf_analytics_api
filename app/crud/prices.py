@@ -95,6 +95,8 @@ def _create_price_table_data_query(
             {"AND msrp_country IN :countries" if global_filter.countries else ""}
             {"AND id IN (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)" 
                 if global_filter.groups else ""}
+            {"AND EXISTS (SELECT 1 FROM unnest(offers) AS offer WHERE offer->>'retailer_id' IN :retailers)" 
+                if global_filter.retailers else ""}
             {
                 (
                     "AND " + (" " + global_filter.data_grid_filter.operator + " ")
