@@ -171,6 +171,9 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     original_price_standard = Column(Float)
     fetched_at = Column(DateTime)
     brand_sku = Column(String)
+    msrp_standard = Column(Float)
+    msrp_currency = Column(String)
+    price_deviation = Column(Float)
 
 
 class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):

@@ -157,6 +157,16 @@ class MockRetailerProductGridItem(BaseModel):
     brand_sku: Optional[str] = Field(
         description="The SKU assigned by the client", example="16052-101"
     )
+    msrp_standard: Optional[float] = Field(
+        description="The MSRP of the product at the retailer", example=320.15
+    )
+    msrp_currency: Optional[str] = Field(
+        description="The currency of the MSRP of the product at the retailer",
+        example="EUR",
+    )
+    price_deviation: Optional[float] = Field(
+        description="The deviation of the price from the MSRP", example=0.1
+    )
 
     class Config:
         orm_mode = True
