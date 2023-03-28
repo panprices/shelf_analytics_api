@@ -5,7 +5,6 @@ from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.orm import Session
 
-from app.models import RetailerProductHistory
 from app.schemas.filters import GlobalFilter
 from app.schemas.prices import RetailerHistoricalItem
 
@@ -40,7 +39,7 @@ def add_extra_date_value_to_historical_prices(
 ) -> List[RetailerHistoricalItem]:
     if not date:
         return historical_value
-    return [*historical_value, {"x": date, "y": value}]
+    return [*historical_value, RetailerHistoricalItem(x=date, y=value)]
 
 
 T = TypeVar("T")
@@ -70,21 +69,74 @@ def create_append_to_history_reducer(
     return append_to_history
 
 
-def extract_min_for_date(
-    result: Dict[str, Dict[str, any]], history_item: RetailerProductHistory
-):
-    history_date = history_item.time_as_week
-    result[history_date] = result.get(
-        history_date, {"x": history_date, "y": history_item.price_standard}
+def extract_minimal_values(retailers: List[Dict[str, any]]):
+    """
+    Extract the minimal values for the area shown on the individual product price chart
+
+    The idea of the algorithm is to iterate over all the dates available for all the retailers. For each date,
+    we take into account the value at the respective data, plus all the date prior to that if no null value was
+    encountered.
+
+    This is meant to work similarly to nivo. A missing date means that the lines continues without any point at that
+    date, but an existing date with a null value signifies an interruption of the line.
+
+    :param retailers:
+    :return:
+    """
+    indexes_for_retailers = [0] * len(retailers)
+    minimal_values = []
+
+    next_max_date = min([r["data"][0]["x"] for r in retailers])
+    while not all(
+        [i == len(r["data"]) - 1 for i, r in zip(indexes_for_retailers, retailers)]
+    ):
+        # Get min for all the current indexes
+        min_value = min(
+            [
+                r["data"][indexes_for_retailers[i]]["y"]
+                for i, r in enumerate(retailers)
+                if (
+                    indexes_for_retailers[i] < len(r["data"])
+                    and r["data"][indexes_for_retailers[i]]["x"] <= next_max_date
+                    and r["data"][indexes_for_retailers[i]]["y"] is not None
+                )
+            ]
+        )
+
+        # Update min if different than the previous, we are only interested in steps
+        if (
+            not minimal_values
+            or minimal_values[len(minimal_values) - 1]["y"] != min_value
+        ):
+            minimal_values.append(
+                {
+                    "x": next_max_date,
+                    "y": min_value,
+                }
+            )
+
+        next_max_date = min(
+            [
+                r["data"][indexes_for_retailers[i] + 1]["x"]
+                for i, r in enumerate(retailers)
+                if indexes_for_retailers[i] + 1 < len(r["data"])
+            ]
+        )
+
+        # Increase indexes for retailers that do not go over next max date
+        for i, r in enumerate(retailers):
+            if (
+                indexes_for_retailers[i] + 1 < len(r["data"])
+                and r["data"][indexes_for_retailers[i] + 1]["x"] == next_max_date
+            ):
+                indexes_for_retailers[i] += 1
+
+    # Add last date with the last known value
+    minimal_values.append(
+        {
+            "x": next_max_date,
+            "y": minimal_values[len(minimal_values) - 1]["y"],
+        }
     )
 
-    if not history_item.price_standard:
-        return result
-
-    if (
-        not result[history_date]["y"]
-        or result[history_date]["y"] > history_item.price_standard
-    ):
-        result[history_date]["y"] = history_item.price_standard
-
-    return result
+    return minimal_values

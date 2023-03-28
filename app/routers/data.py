@@ -4,16 +4,14 @@ from functools import reduce
 
 import pandas
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from starlette import status
-from starlette.responses import StreamingResponse
 
 from app import crud
 from app.crud.utils import (
-    add_extra_date_value_to_historical_prices,
-    extract_min_for_date,
     create_append_to_history_reducer,
+    extract_minimal_values,
 )
 from app.database import get_db
 from app.schemas.auth import TokenData
@@ -133,38 +131,19 @@ def get_historical_prices_for_brand_product(
         db, global_filter, brand_product_id
     )
 
-    minimal_values = [
-        RetailerHistoricalItem(**v)
-        for v in reduce(extract_min_for_date, history, {}).values()
-    ]
-
-    # Add an extra date to show the step if a change in price occurred on the last date we have data on
-    extra_date = minimal_values[-1].x + timedelta(days=1) if minimal_values else None
-
-    minimal_values = (
-        add_extra_date_value_to_historical_prices(
-            minimal_values, extra_date, minimal_values[-1].y
-        )
-        if minimal_values
-        else []
-    )
     retailers = [
-        {
-            **v,
-            "data": add_extra_date_value_to_historical_prices(
-                v["data"], extra_date, v["data"][-1]["y"]
-            ),
-        }
+        v
         for v in reduce(
             create_append_to_history_reducer(
                 lambda history_item: f"{history_item.product.retailer.name} - {history_item.product.retailer.country}",
-                lambda history_item: history_item.time_as_week,
+                lambda history_item: history_item.time_as_date,
                 lambda history_item: history_item.price_standard,
             ),
             history,
             {},
         ).values()
     ]
+    minimal_values = extract_minimal_values(retailers)
 
     max_value = (
         max([i.price_standard for i in history if i.price_standard is not None])

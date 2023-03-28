@@ -16,22 +16,22 @@ def get_historical_prices_by_retailer_for_brand_product(
 ) -> List[RetailerProductHistory]:
     statement = f"""
         with available_prices as (
-            select * 
-            from (	
-                select rpts.product_id, 
+            select *
+            from (
+                select rpts.product_id,
                     rp.retailer_id,
-                    rpts.price * c.to_sek as price, 
-                    'SEK' as currency, 
-                    rpts.availability, 
-                    date_trunc('week', time)::timestamp as time, 
+                    rpts.price * c.to_sek as price,
+                    'SEK' as currency,
+                    rpts.availability,
+                    date_trunc('day', time)::timestamp as time,
                     row_number() over (
-                        partition by rp.retailer_id, date_trunc('week', time)
+                        partition by rp.retailer_id, date_trunc('day', time)
                     ) as "rank"
-                from retailer_product_time_series rpts 
-                    join retailer_product rp on rp.id = rpts.product_id 
+                from retailer_product_time_series rpts
+                    join retailer_product rp on rp.id = rpts.product_id
                     join retailer r on r.id = rp.retailer_id
-                    join product_matching pm on rp.id = pm.retailer_product_id 
-                    join brand_product bp on bp.id = pm.brand_product_id 
+                    join product_matching pm on rp.id = pm.retailer_product_id
+                    join brand_product bp on bp.id = pm.brand_product_id
                     join currency c on c.name = rpts.currency
                     LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 where bp.id = :brand_product_id and rpts.price <> 0
@@ -44,22 +44,30 @@ def get_historical_prices_by_retailer_for_brand_product(
             ) per_retailer_time_series
             where rank = 1
         )
-        select dates.product_id, 
-            ap.price, 
-            ap.currency, 
-            ap.availability, 
+        select ap.product_id,
+            ap.price,
+            ap.currency,
+            ap.availability,
+            ap.time
+        from available_prices ap
+        UNION
+        select dates.product_id,
+            ap.price,
+            ap.currency,
+            ap.availability,
             dates.time
         from (
             select retailer_id, product_id,
-                generate_series(
-                    (select min(time) from available_prices), 
-                    (select max(time) from available_prices), 
+                date_trunc('week', generate_series(
+                    (select min(time) from available_prices),
+                    (select max(time) from available_prices),
                     '1w'
-                )::timestamp as time
+                )::timestamp) as time
             from available_prices
             group by retailer_id, product_id
-        ) dates left join available_prices ap using (retailer_id, time)
-        order by dates.time asc
+        ) dates LEFT JOIN available_prices ap ON dates.retailer_id = ap.retailer_id 
+                                                AND dates.time = date_trunc('week', ap.time)
+        order by time asc
     """
 
     return (
