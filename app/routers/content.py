@@ -92,7 +92,7 @@ def get_text_score_per_retailer(
     history = crud.get_historical_text_score_per_retailer(
         db, user.client, global_filter
     )
-    return _process_score_per_retailer(history)
+    return process_historical_value_per_retailer(history, "score")
 
 
 @router.post(
