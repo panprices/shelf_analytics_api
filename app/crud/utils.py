@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from functools import reduce
 from typing import List, Dict, Optional, TypeVar, Callable
 
 from sqlalchemy import text
@@ -140,3 +141,33 @@ def extract_minimal_values(retailers: List[Dict[str, any]]):
     )
 
     return minimal_values
+
+
+def process_historical_value_per_retailer(history, value_label: str = "score"):
+    retailers = [
+        v
+        for v in reduce(
+            create_append_to_history_reducer(
+                lambda history_item: history_item["retailer"],
+                lambda history_item: history_item["time"],
+                lambda history_item: history_item[value_label],
+            ),
+            history,
+            {},
+        ).values()
+    ]
+
+    for retailer in retailers:
+        if len(retailer["data"]) == 1:
+            retailer["data"].insert(
+                0,
+                {
+                    **retailer["data"][0],
+                    "x": retailer["data"][0]["x"] - timedelta(days=7),
+                },
+            )
+
+    max_value = max([i[value_label] for i in history]) if history else 0
+    min_value = min([i[value_label] for i in history]) if history else 0
+
+    return {"retailers": retailers, "max_value": max_value, "min_value": min_value}

@@ -44,8 +44,8 @@ class PriceTableRowScaffold(BaseModel):
     name: str
     gtin: Optional[str]
     sku: Optional[str]
-    image_id: typing.Union[UUID, str]
-    image_url: str
+    image_id: Optional[typing.Union[UUID, str]]
+    image_url: Optional[str]
     msrp_standard: Optional[float]
     msrp_client_currency: Optional[float]
     msrp_currency: Optional[str]

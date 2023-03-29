@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
@@ -17,16 +17,21 @@ from app.schemas.filters import GlobalFilter
 from app.schemas.general import FilterRetailer
 
 
-def get_retailers(db: Session, brand_id: str) -> List[FilterRetailer]:
+def get_retailers(
+    db: Session, brand_id: str, countries: Optional[List[str]]
+) -> List[FilterRetailer]:
+    query = db.query(
+        retailer.Retailer.id,
+        retailer.Retailer.name,
+        retailer.Retailer.country,
+        CountryToLanguage.language,
+        RetailerBrandAssociation.shallow,
+    )
+    if countries:
+        query = query.filter(retailer.Retailer.country.in_(countries))
+
     result = (
-        db.query(
-            retailer.Retailer.id,
-            retailer.Retailer.name,
-            retailer.Retailer.country,
-            CountryToLanguage.language,
-            RetailerBrandAssociation.shallow,
-        )
-        .join(RetailerBrandAssociation)
+        query.join(RetailerBrandAssociation)
         .join(CountryToLanguage)
         .filter(RetailerBrandAssociation.brand_id == brand_id)
         .all()

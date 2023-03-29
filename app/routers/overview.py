@@ -1,6 +1,6 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from firebase_admin import firestore
 from sqlalchemy.orm import Session
 
@@ -40,9 +40,11 @@ def get_countries(
     "/retailers", tags=[TAG_OVERVIEW, TAG_FILTERING], response_model=TrackedRetailerPool
 )
 def get_retailers(
-    user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)
+    countries: Optional[List[str]] = Query(None),
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
 ):
-    retailers = crud.get_retailers(db, user.client)
+    retailers = crud.get_retailers(db, user.client, countries)
     return {"retailers": retailers}
 
 

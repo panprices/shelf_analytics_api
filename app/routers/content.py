@@ -5,7 +5,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app import crud
-from app.crud.utils import create_append_to_history_reducer
+from app.crud.utils import (
+    create_append_to_history_reducer,
+    process_historical_value_per_retailer,
+)
 from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.scores import HistoricalScore
@@ -60,36 +63,6 @@ def get_content_score(
     return {"history": history}
 
 
-def _process_score_per_retailer(history):
-    retailers = [
-        v
-        for v in reduce(
-            create_append_to_history_reducer(
-                lambda history_item: history_item["retailer"],
-                lambda history_item: history_item["time"],
-                lambda history_item: history_item["score"],
-            ),
-            history,
-            {},
-        ).values()
-    ]
-
-    for retailer in retailers:
-        if len(retailer["data"]) == 1:
-            retailer["data"].insert(
-                0,
-                {
-                    **retailer["data"][0],
-                    "x": retailer["data"][0]["x"] - timedelta(days=7),
-                },
-            )
-
-    max_value = max([i["score"] for i in history]) if history else 0
-    min_value = min([i["score"] for i in history]) if history else 0
-
-    return {"retailers": retailers, "max_value": max_value, "min_value": min_value}
-
-
 @router.post(
     "/score/image/per_retailer",
     tags=[TAG_CONTENT],
@@ -103,7 +76,7 @@ def get_image_score_per_retailer(
     history = crud.get_historical_image_score_per_retailer(
         db, user.client, global_filter
     )
-    return _process_score_per_retailer(history)
+    return process_historical_value_per_retailer(history, "score")
 
 
 @router.post(

@@ -3,6 +3,7 @@ from typing import List, Tuple
 from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
+from app.crud import convert_rows_to_dicts, get_results_from_statement_with_filters
 from app.models import (
     RetailerProductHistory,
     RetailerProduct,
@@ -184,3 +185,25 @@ def count_price_table_data(
         text(query),
         params=price_data_params,
     ).scalar()
+
+
+def get_historical_msrp_deviation_per_retailer(
+    db: Session, global_filter: GlobalFilter, brand_id: str
+):
+    query = f"""
+        SELECT retailer, time,
+            AVG(price_deviation) as average_price_deviation
+        FROM msrp_deviation_matview
+        WHERE brand_id = :brand_id
+            {"AND category_id IN :categories" if global_filter.categories else ""}
+            {"AND country IN :countries" if global_filter.countries else ""}
+            {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND brand_product_id IN " +
+                "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)" 
+                if global_filter.groups else ""
+            }
+        GROUP BY retailer_id, retailer, country, time
+        ORDER BY time ASC;
+    """
+
+    return get_results_from_statement_with_filters(db, brand_id, global_filter, query)
