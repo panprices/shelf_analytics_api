@@ -43,4 +43,6 @@ def get_historical_msrp_deviation_per_retailer(
         db, global_filter, user.client
     )
 
-    return process_historical_value_per_retailer(history, "average_price_deviation")
+    return process_historical_value_per_retailer(
+        history, "average_price_deviation", False
+    )

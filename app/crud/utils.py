@@ -143,7 +143,18 @@ def extract_minimal_values(retailers: List[Dict[str, any]]):
     return minimal_values
 
 
-def process_historical_value_per_retailer(history, value_label: str = "score"):
+def process_historical_value_per_retailer(
+    history, value_label: str = "score", force_two_points: bool = True
+):
+    """
+    Process the historical value per retailer
+
+    :param history:
+    :param value_label:
+    :param force_two_points: if we only have one data point, we add a second one with the same value but a week before
+    to make sure the line is visible
+    :return:
+    """
     retailers = [
         v
         for v in reduce(
@@ -157,15 +168,16 @@ def process_historical_value_per_retailer(history, value_label: str = "score"):
         ).values()
     ]
 
-    for retailer in retailers:
-        if len(retailer["data"]) == 1:
-            retailer["data"].insert(
-                0,
-                {
-                    **retailer["data"][0],
-                    "x": retailer["data"][0]["x"] - timedelta(days=7),
-                },
-            )
+    if force_two_points:
+        for retailer in retailers:
+            if len(retailer["data"]) == 1:
+                retailer["data"].insert(
+                    0,
+                    {
+                        **retailer["data"][0],
+                        "x": retailer["data"][0]["x"] - timedelta(days=7),
+                    },
+                )
 
     max_value = max([i[value_label] for i in history]) if history else 0
     min_value = min([i[value_label] for i in history]) if history else 0
