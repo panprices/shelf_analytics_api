@@ -1,20 +1,18 @@
 from datetime import timedelta
-from functools import reduce
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app import crud
 from app.crud.utils import (
-    create_append_to_history_reducer,
     process_historical_value_per_retailer,
 )
 from app.database import get_db
 from app.schemas.auth import TokenData
-from app.schemas.scores import HistoricalScore
 from app.schemas.filters import GlobalFilter
 from app.schemas.prices import HistoricalPerRetailerResponse
 from app.schemas.scores import ContentScorePerRetailer
+from app.schemas.scores import HistoricalScore
 from app.security import get_user_data
 from app.tags import TAG_CONTENT
 

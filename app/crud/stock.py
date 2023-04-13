@@ -17,9 +17,11 @@ def get_historical_in_stock(
             100 * SUM(CASE WHEN availability = 'out_of_stock' THEN 0 ELSE 1.0 END) / COUNT(*) as score
         FROM product_stock_time_series pmts
             {"LEFT JOIN product_group_assignation pga ON pga.product_id = pmts.id" if global_filter.groups else ""}
-        where brand_id = :brand_id 
+            JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = pmts.retailer_id AND rtbm.brand_id = pmts.brand_id
+        where pmts.brand_id = :brand_id 
+            AND NOT rtbm.shallow
             {"AND category_id IN :categories" if global_filter.categories else ""}
-            {"AND retailer_id in :retailers" if global_filter.retailers else ""}
+            {"AND rtbm.retailer_id in :retailers" if global_filter.retailers else ""}
             {"AND country in :countries" if global_filter.countries else ""}
             {"AND pga.product_group_id in :groups" if global_filter.groups else ""}
         group by time

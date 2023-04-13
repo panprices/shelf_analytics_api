@@ -13,7 +13,9 @@ def _get_scores_root_query(global_filter: GlobalFilter):
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
             JOIN retailer r ON r.id = rp.retailer_id
             LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+            JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
         where bp.brand_id = :brand_id 
+            AND NOT rtbm.shallow
             AND pmts.time < date_trunc('week', now())::date
             AND pmts.image_score IS NOT NULL
             AND pmts.text_score IS NOT NULL
@@ -105,7 +107,9 @@ def get_current_score_per_retailer(
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
             JOIN retailer r ON r.id = rp.retailer_id
             LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+            JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
         where bp.brand_id = :brand_id
+            AND NOT rtbm.shallow
             AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
             {"AND r.id in :retailers" if global_filter.retailers else ""}

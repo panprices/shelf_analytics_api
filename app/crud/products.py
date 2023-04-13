@@ -208,7 +208,10 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                 FROM brand_product_in_stock 
                     INNER JOIN scraped_brand_product USING (id, date)
                     LEFT JOIN product_group_assignation pga ON pga.product_id = scraped_brand_product.id
+                    JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = scraped_brand_product.retailer_id
+                        AND rtbm.brand_id = scraped_brand_product.brand_id
                 WHERE brand_product_in_stock.brand_id = :brand_id
+                    AND NOT rtbm.shallow
                     {"AND scraped_brand_product.category_id IN :categories" if global_filter.categories else ""}
                     {"AND scraped_brand_product.retailer_id in :retailers" if global_filter.retailers else ""}
                     {"AND scraped_brand_product.country in :countries" if global_filter.countries else ""}
@@ -262,16 +265,20 @@ def get_historical_visibility_average(
                 visible_count,
                 retailer_id
             FROM (
-                SELECT date, COUNT(DISTINCT id) AS visible_count, retailer_id
+                SELECT date, COUNT(DISTINCT id) AS visible_count, rtbm.retailer_id
                 FROM scraped_brand_product_in_stock_per_retailer
                     LEFT JOIN product_group_assignation pga ON pga.product_id 
                         = scraped_brand_product_in_stock_per_retailer.id
-                WHERE brand_id = :brand_id
+                    JOIN retailer_to_brand_mapping rtbm 
+                        ON rtbm.retailer_id = scraped_brand_product_in_stock_per_retailer.retailer_id 
+                            AND rtbm.brand_id = scraped_brand_product_in_stock_per_retailer.brand_id
+                WHERE rtbm.brand_id = :brand_id
+                    AND NOT rtbm.shallow
                     {"AND category_id IN :categories" if global_filter.categories else ""}
-                    {"AND retailer_id in :retailers" if global_filter.retailers else ""}
+                    {"AND rtbm.retailer_id in :retailers" if global_filter.retailers else ""}
                     {"AND country in :countries" if global_filter.countries else ""}
                     {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
-                GROUP BY date, retailer_id
+                GROUP BY date, rtbm.retailer_id
             ) scraped_brand_product_in_stock_per_retailer_grouped
             JOIN (
                 SELECT date, COUNT(DISTINCT id) AS full_count
@@ -326,8 +333,10 @@ def count_available_products_by_retailers(
                 JOIN retailer_product rp ON rpts.product_id = rp.id
                 JOIN retailer r ON rp.retailer_id = r.id
                 LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
+                JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
             WHERE
                 bp.brand_id = :brand_id
+                AND NOT rtbm.shallow
                 AND pm.certainty NOT IN('auto_low_confidence', 'not_match')
                 AND rpts.time 
                     BETWEEN date_trunc('week', now() - '7 days'::interval)::date AND date_trunc('week', now())::date
@@ -380,6 +389,8 @@ def count_available_products_by_retailers(
             ) - available_products_count AS not_available_products_count
         FROM brand_product_count_per_retailer
             JOIN retailer r ON brand_product_count_per_retailer.retailer_id = r.id
+            JOIN retailer_to_brand_mapping rtbm on r.id = rtbm.retailer_id
+        WHERE NOT rtbm.shallow
     """
 
     return get_results_from_statement_with_filters(
