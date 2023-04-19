@@ -91,17 +91,23 @@ def extract_minimal_values(retailers: List[Dict[str, any]]):
     while not all(
         [i == len(r["data"]) - 1 for i, r in zip(indexes_for_retailers, retailers)]
     ):
-        # Get min for all the current indexes
-        min_value = min(
-            [
-                r["data"][indexes_for_retailers[i]]["y"]
-                for i, r in enumerate(retailers)
-                if (
-                    indexes_for_retailers[i] < len(r["data"])
-                    and r["data"][indexes_for_retailers[i]]["x"] <= next_max_date
-                    and r["data"][indexes_for_retailers[i]]["y"] is not None
-                )
-            ]
+        next_value_by_retailer = [
+            r["data"][indexes_for_retailers[i]]["y"]
+            for i, r in enumerate(retailers)
+            if (
+                indexes_for_retailers[i] < len(r["data"])
+                and r["data"][indexes_for_retailers[i]]["x"] <= next_max_date
+                and r["data"][indexes_for_retailers[i]]["y"] is not None
+            )
+        ]
+
+        # If no value is found for any of the retailers it means we have a gap in the data
+        # for all the retailers at that date. To keep the continuity of the area under the curve
+        # with minimal prices, we duplicate the last datapoint and continue iterating
+        min_value = (
+            min(next_value_by_retailer)
+            if next_value_by_retailer
+            else minimal_values[-1]["y"]
         )
 
         # Update min if different than the previous, we are only interested in steps
