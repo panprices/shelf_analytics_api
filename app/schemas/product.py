@@ -280,6 +280,9 @@ class GenericProductImageScaffold(BaseModel):
 
 
 class RetailerToBrandImageMatchScaffold(BaseModel):
+    retailer_image_id: Union[uuid.UUID, str] = Field(
+        description="The id of the retailer image"
+    )
     brand_image_id: Union[uuid.UUID, str] = Field(
         description="The id of the matched brand image"
     )
@@ -335,6 +338,10 @@ class BrandToRetailerProductMatchingScaffold(BaseModel):
     )
     specs_score: Optional[float] = Field(description="Specs score up to 100", default=0)
     text_score: Optional[float] = Field(description="Text score up to 100", default=0)
+
+    image_matches: Optional[List[RetailerToBrandImageMatchScaffold]] = Field(
+        description="List of matching brand images"
+    )
 
     class Config:
         orm_mode = True

@@ -10,6 +10,7 @@ from app.models import (
     RetailerProduct,
     ProductMatching,
     BrandProduct,
+    BrandImage,
 )
 from app.models.mappings import RetailerBrandAssociation
 from app.models.retailer import RetailerImage, CountryToLanguage
