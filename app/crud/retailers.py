@@ -126,19 +126,30 @@ def get_categories_split(
 def get_retailer_products_for_brand_product(
     db: Session, global_filter: GlobalFilter, brand_product_id: str
 ) -> List[ProductMatching]:
+    """
+    Get retailer products for a brand product
+
+    Returns only products matched on deep indexed retailers
+    :param db:
+    :param global_filter:
+    :param brand_product_id:
+    :return:
+    """
     statement = f"""
         select * from (
             select pm.*, 
                 rank() over (
-                    partition by retailer_id ORDER BY date_trunc('week', rp.fetched_at) DESC
+                    partition by r.id ORDER BY date_trunc('week', rp.fetched_at) DESC
                 ) as "rank"
             from product_matching pm 
                 join brand_product bp on bp.id = pm.brand_product_id
                 join retailer_product rp on pm.retailer_product_id = rp.id
                 join retailer r on r.id = rp.retailer_id
+                JOIN retailer_to_brand_mapping rtbm on rtbm.retailer_id = r.id
                 LEFT JOIN product_group_assignation pga on pga.product_id = bp.id
             where bp.id = :brand_product_id
                 AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
+                AND NOT rtbm.shallow
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                 {"AND r.country IN :countries" if global_filter.countries else ""}

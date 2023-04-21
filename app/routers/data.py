@@ -100,6 +100,16 @@ def get_matched_retailer_products_for_brand_product(
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
+    """
+    Get all the retailer products that match the brand product
+
+    Returns only products matched on deep indexed retailers
+    :param brand_product_id:
+    :param global_filter:
+    :param user:
+    :param db:
+    :return:
+    """
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Must be authenticated"
