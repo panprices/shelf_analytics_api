@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -22,5 +24,9 @@ def get_historical_in_stock(
     Returns the historical "in stock" data for the given filters.
     """
     history = crud.get_historical_in_stock(db, user.client, global_filter)
+    if len(history) == 1:
+        history.insert(
+            0, {**history[0], "time": history[0]["time"] - timedelta(days=7)}
+        )
 
     return {"history": history}
