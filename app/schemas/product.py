@@ -167,6 +167,18 @@ class MockRetailerProductGridItem(BaseModel):
     price_deviation: Optional[float] = Field(
         description="The deviation of the price from the MSRP", example=0.1
     )
+    category_page_number: Optional[int] = Field(
+        description="The page number at which the product was found",
+        example=1,
+    )
+    category_pages_count: Optional[int] = Field(
+        description="The total number of pages at the retailer for this category",
+        example=12,
+    )
+    category_products_count: Optional[int] = Field(
+        description="The total number of products at the retailer for this category",
+        example=288,
+    )
 
     class Config:
         orm_mode = True
