@@ -185,7 +185,15 @@ def process_historical_value_per_retailer(
                     },
                 )
 
-    max_value = max([i[value_label] for i in history]) if history else 0
-    min_value = min([i[value_label] for i in history]) if history else 0
+    max_value = (
+        max([i[value_label] for i in history if i[value_label] is not None])
+        if history
+        else 0
+    )
+    min_value = (
+        min([i[value_label] for i in history if i[value_label] is not None])
+        if history
+        else 0
+    )
 
     return {"retailers": retailers, "max_value": max_value, "min_value": min_value}

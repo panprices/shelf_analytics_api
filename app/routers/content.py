@@ -103,5 +103,18 @@ def get_content_score_per_retailer(
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
-    history = crud.get_current_score_per_retailer(db, user.client, global_filter)
-    return {"data": history}
+    history = crud.get_historical_content_score_per_retailer(
+        db, user.client, global_filter
+    )
+    historical_result = process_historical_value_per_retailer(history, "score")
+    max_date = max([p["x"] for r in historical_result["retailers"] for p in r["data"]])
+    result = [
+        {
+            "retailer": r["id"],
+            "score": r["data"][-1]["y"],
+        }
+        for r in historical_result["retailers"]
+        if r["data"][-1]["x"] == max_date and r["data"][-1]["y"] is not None
+    ]
+
+    return {"data": result}

@@ -3,6 +3,21 @@ from sqlalchemy.orm import Session
 from app.crud import get_results_from_statement_with_filters
 from app.schemas.filters import GlobalFilter
 
+CONTENT_SCORE_FIELD = """
+    CASE 
+        WHEN AVG(text_score) FILTER (WHERE text_score IS NOT NULL) IS NULL 
+            THEN AVG(image_score) FILTER (WHERE image_score IS NOT NULL)
+        ELSE (AVG(image_score) FILTER (WHERE image_score IS NOT NULL) 
+            + AVG(text_score) FILTER (WHERE text_score IS NOT NULL)) / 2
+    END
+"""
+
+TEXT_SCORE_FIELD = "COALESCE(AVG(text_score) FILTER (WHERE text_score IS NOT NULL), 0)"
+
+IMAGE_SCORE_FIELD = (
+    "COALESCE(AVG(image_score) FILTER (WHERE image_score IS NOT NULL), 0)"
+)
+
 
 def _get_scores_root_query(global_filter: GlobalFilter):
     return f"""
@@ -67,7 +82,7 @@ def get_historical_image_score(db: Session, brand_id: str, global_filter: Global
         db,
         brand_id,
         global_filter,
-        "COALESCE(AVG(image_score) FILTER (WHERE image_score IS NOT NULL), 0)",
+        IMAGE_SCORE_FIELD,
     )
 
 
@@ -78,7 +93,7 @@ def get_historical_image_score_per_retailer(
         db,
         brand_id,
         global_filter,
-        "COALESCE(AVG(image_score) FILTER (WHERE image_score IS NOT NULL), 0)",
+        IMAGE_SCORE_FIELD,
     )
 
 
@@ -87,7 +102,7 @@ def get_historical_text_score(db: Session, brand_id: str, global_filter: GlobalF
         db,
         brand_id,
         global_filter,
-        "COALESCE(AVG(text_score) FILTER (WHERE text_score IS NOT NULL), 0)",
+        TEXT_SCORE_FIELD,
     )
 
 
@@ -98,7 +113,7 @@ def get_historical_text_score_per_retailer(
         db,
         brand_id,
         global_filter,
-        "COALESCE(AVG(text_score) FILTER (WHERE text_score IS NOT NULL), 0)",
+        TEXT_SCORE_FIELD,
     )
 
 
@@ -109,44 +124,16 @@ def get_historical_content_score(
         db,
         brand_id,
         global_filter,
-        """
-            CASE 
-                WHEN AVG(text_score) FILTER (WHERE text_score IS NOT NULL) IS NULL 
-                    THEN AVG(image_score) FILTER (WHERE image_score IS NOT NULL)
-                ELSE (AVG(image_score) FILTER (WHERE image_score IS NOT NULL) 
-                    + AVG(text_score) FILTER (WHERE text_score IS NOT NULL)) / 2
-            END
-        """,
+        CONTENT_SCORE_FIELD,
     )
 
 
-def get_current_score_per_retailer(
+def get_historical_content_score_per_retailer(
     db: Session, brand_id: str, global_filter: GlobalFilter
 ):
-    statement = f"""
-        SELECT r.name || ' ' || r.country as retailer,
-            CASE 
-                WHEN AVG(text_score) FILTER (WHERE text_score IS NOT NULL) IS NULL 
-                    THEN AVG(image_score) FILTER (WHERE image_score IS NOT NULL)
-                ELSE (AVG(image_score) FILTER (WHERE image_score IS NOT NULL) 
-                    + AVG(text_score) FILTER (WHERE text_score IS NOT NULL)) / 2
-            END AS score
-        FROM brand_product bp
-            JOIN product_matching pm ON bp.id = pm.brand_product_id
-            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
-            JOIN retailer r ON r.id = rp.retailer_id
-            LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
-            JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
-        where bp.brand_id = :brand_id
-            AND NOT rtbm.shallow
-            AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
-            {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-            {"AND r.id in :retailers" if global_filter.retailers else ""}
-            {"AND r.country in :countries" if global_filter.countries else ""}
-            {"AND pga.product_group_id in :groups" if global_filter.groups else ""}
-        group by r.name, r.country
-        order by score desc
-    """
-    return get_results_from_statement_with_filters(
-        db, brand_id, global_filter, statement
+    return _get_historical_score_per_retailer(
+        db,
+        brand_id,
+        global_filter,
+        CONTENT_SCORE_FIELD,
     )
