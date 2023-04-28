@@ -83,7 +83,10 @@ def get_retailers(
 
 
 @router.get(
-    "/groups", tags=[TAG_OVERVIEW, TAG_FILTERING], response_model=ProductGrouping
+    "/groups",
+    tags=[TAG_OVERVIEW, TAG_FILTERING],
+    response_model=ProductGrouping,
+    response_model_exclude_none=True,
 )
 def get_groups(user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)):
     groups = crud.get_groups(db, user.client)
