@@ -25,10 +25,12 @@ def _get_scores_root_query(global_filter: GlobalFilter):
             JOIN product_matching_time_series pmts ON pm.id = pmts.product_matching_id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
             JOIN retailer r ON r.id = rp.retailer_id
+            JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
             {"LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id" if global_filter.groups else ""}
         where bp.brand_id = :brand_id
             AND pmts.time < date_trunc('week', now())::date
             AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
+            AND NOT rtbm.shallow
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
             {"AND r.id in :retailers" if global_filter.retailers else ""}
             {"AND r.country in :countries" if global_filter.countries else ""}
