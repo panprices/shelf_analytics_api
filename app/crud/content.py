@@ -5,18 +5,15 @@ from app.schemas.filters import GlobalFilter
 
 CONTENT_SCORE_FIELD = """
     CASE 
-        WHEN AVG(text_score) FILTER (WHERE text_score IS NOT NULL) IS NULL 
-            THEN AVG(image_score) FILTER (WHERE image_score IS NOT NULL)
-        ELSE (AVG(image_score) FILTER (WHERE image_score IS NOT NULL) 
-            + AVG(text_score) FILTER (WHERE text_score IS NOT NULL)) / 2
+        WHEN AVG(text_score) IS NULL 
+            THEN AVG(image_score)
+        ELSE (AVG(image_score) + AVG(text_score)) / 2
     END
 """
 
-TEXT_SCORE_FIELD = "COALESCE(AVG(text_score) FILTER (WHERE text_score IS NOT NULL), 0)"
+TEXT_SCORE_FIELD = "COALESCE(AVG(text_score), 0)"
 
-IMAGE_SCORE_FIELD = (
-    "COALESCE(AVG(image_score) FILTER (WHERE image_score IS NOT NULL), 0)"
-)
+IMAGE_SCORE_FIELD = "COALESCE(AVG(image_score), 0)"
 
 
 def _get_scores_root_query(global_filter: GlobalFilter):
@@ -28,10 +25,8 @@ def _get_scores_root_query(global_filter: GlobalFilter):
             JOIN product_matching_time_series pmts ON pm.id = pmts.product_matching_id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
             JOIN retailer r ON r.id = rp.retailer_id
-            LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
-            JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
-        where bp.brand_id = :brand_id 
-            AND NOT rtbm.shallow
+            {"LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id" if global_filter.groups else ""}
+        where bp.brand_id = :brand_id
             AND pmts.time < date_trunc('week', now())::date
             AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
             {"AND bp.category_id IN :categories" if global_filter.categories else ""}
