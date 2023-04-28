@@ -1,5 +1,5 @@
 import uuid
-from typing import List
+from typing import List, Optional, Dict, Any
 
 from pydantic import BaseModel, Field
 
@@ -82,7 +82,12 @@ class NamedProductCategory(BaseModel):
     name: str = Field(
         description="The name of the category. This is the name of the leaf category"
     )
-    id: uuid.UUID = Field(description="The id of the category in the database")
+    id: Optional[uuid.UUID] = Field(
+        description="The id of the category in the database"
+    )
+    children: Optional[List["NamedProductCategory"]] = Field(
+        description="The list of children categories"
+    )
 
     class Config:
         orm_mode = True

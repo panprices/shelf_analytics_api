@@ -35,6 +35,7 @@ class BrandCategory(Base, UUIDPrimaryKeyMixin, GenericCategoryMixin):
     brand_id = Column(UUID(as_uuid=True), ForeignKey("brand.id"))
     brand = relationship("Brand", back_populates="categories")
     products = relationship("BrandProduct", back_populates="category")
+    category_tree = Column(JSONB)
 
 
 class BrandImageType(Base, ImageTypeMixin):

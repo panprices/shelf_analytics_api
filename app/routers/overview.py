@@ -1,3 +1,4 @@
+from functools import reduce
 from typing import List, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -24,6 +25,39 @@ from app.security import get_user_data
 from app.tags import TAG_OVERVIEW, TAG_FILTERING
 
 router = APIRouter(prefix="")
+
+
+def _reduce_category_list_to_tree(result_as_list: List[Dict], level: int) -> List[Dict]:
+    # Group in a nested tree structure by the name in the category tree
+    if level >= max([len(c["category_tree"]) for c in result_as_list]):
+        return result_as_list
+
+    result = reduce(
+        lambda d, c: d.setdefault(c["category_tree"][level]["name"], []).append(c) or d
+        if len(c["category_tree"]) > level
+        else (
+            d.setdefault(c["category_tree"][-1]["name"], []).append(c) or d
+            if len(c["category_tree"]) > 0
+            else d.setdefault(c["name"], []).append(c) or d
+        ),
+        result_as_list,
+        {},
+    )
+
+    # Map back to a list where every key is a category
+    result = [{"name": k, "children": v} for k, v in result.items()]
+
+    result = [
+        {
+            "name": v["name"],
+            "children": _reduce_category_list_to_tree(v["children"], level + 1),
+        }
+        for v in result
+    ]
+
+    # drop unnecessary nesting
+    result = [v["children"][0] if len(v["children"]) == 1 else v for v in result]
+    return result
 
 
 @router.get(
@@ -60,12 +94,19 @@ def get_groups(user: TokenData = Depends(get_user_data), db: Session = Depends(g
     "/categories",
     tags=[TAG_OVERVIEW, TAG_FILTERING],
     response_model=ProductCategorisation,
+    response_model_exclude_none=True,
 )
 def get_categories(
     user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)
 ):
     categories = crud.get_brand_categories(db, user.client)
-    return {"categories": [{"id": c.id, "name": c.full_name} for c in categories]}
+    result_as_list = [
+        {"id": c.id, "name": c.full_name, "category_tree": c.category_tree}
+        for c in categories
+    ]
+    result = _reduce_category_list_to_tree(result_as_list, 0)
+
+    return {"categories": result}
 
 
 @router.get("/brands", tags=[TAG_OVERVIEW], response_model=List[NamedBrand])
