@@ -12,7 +12,6 @@ CONTENT_SCORE_FIELD = """
 """
 
 TEXT_SCORE_FIELD = "COALESCE(AVG(text_score), 0)"
-
 IMAGE_SCORE_FIELD = "COALESCE(AVG(image_score), 0)"
 
 
@@ -46,12 +45,21 @@ def _get_historical_score(
         brand_id,
         global_filter,
         f"""
-            WITH scores_history AS ({_get_scores_root_query(global_filter)})
-            SELECT date_trunc('week', scores_history.time)::date as time, 
+            SELECT 
+                time, 
                 {score_field} as score
-            FROM scores_history
-            group by date_trunc('week', scores_history.time)::date
-            order by time asc
+            FROM product_matching_per_week_matview
+            WHERE brand_id = :brand_id
+                AND time < date_trunc('week', now())
+                {"AND brand_category_id IN :categories" if global_filter.categories else ""}
+                {"AND retailer_id in :retailers" if global_filter.retailers else ""}
+                {"AND retailer_country in :countries" if global_filter.countries else ""}
+                {'''AND brand_product_id IN 
+                    (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)''' 
+                    if global_filter.groups else ""
+                }
+            GROUP BY time
+            ORDER BY time ASC
         """,
     )
 
@@ -64,12 +72,22 @@ def _get_historical_score_per_retailer(
         brand_id,
         global_filter,
         f"""
-            WITH scores_history AS ({_get_scores_root_query(global_filter)})
-            SELECT retailer, date_trunc('week', time)::date as time, 
-               {score_field} as score
-            FROM scores_history
-            group by retailer, date_trunc('week', time)::date
-            order by time ASC, retailer ASC
+            SELECT 
+                retailer_name || ' ' || retailer_country as retailer,
+                time, 
+                {score_field} as score
+            FROM product_matching_per_week_matview
+            WHERE brand_id = :brand_id
+                AND time < date_trunc('week', now())
+                {"AND brand_category_id IN :categories" if global_filter.categories else ""}
+                {"AND retailer_id in :retailers" if global_filter.retailers else ""}
+                {"AND retailer_country in :countries" if global_filter.countries else ""}
+                {'''AND brand_product_id IN 
+                    (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)''' 
+                    if global_filter.groups else ""
+                }
+            GROUP BY time, retailer
+            ORDER BY time ASC, retailer ASC
        """,
     )
 
