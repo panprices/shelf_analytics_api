@@ -4,10 +4,10 @@ from app.crud import get_results_from_statement_with_filters
 from app.schemas.filters import GlobalFilter
 
 CONTENT_SCORE_FIELD = """
-    CASE 
-        WHEN AVG(text_score) IS NULL 
-            THEN AVG(image_score)
-        ELSE (AVG(image_score) + AVG(text_score)) / 2
+    CASE
+        WHEN AVG(text_score) IS NULL
+            THEN COALESCE(AVG(image_score), 0)
+        ELSE COALESCE(AVG(image_score) + AVG(text_score)) / 2
     END
 """
 
