@@ -24,12 +24,7 @@ def get_brand_categories(db: Session, brand_id: str) -> List[brand.BrandCategory
 
 
 def get_groups(db: Session, brand_id: str) -> List[ProductGroup]:
-    return (
-        db.query(ProductGroup)
-        .filter(ProductGroup.brand_id == brand_id)
-        .options(selectinload(ProductGroup.products))
-        .all()
-    )
+    return db.query(ProductGroup).filter(ProductGroup.brand_id == brand_id).all()
 
 
 def get_brand_name(db: Session, brand_id: str) -> str:
