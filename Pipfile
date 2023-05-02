@@ -23,3 +23,7 @@ xlsxwriter = "*"
 
 [requires]
 python_version = "3.9"
+
+[scripts]
+dev = "uvicorn app.main:app --reload --port 8000"
+benchmark = "pytest --benchmark-columns=min,max,mean,median,rounds,iterations"
