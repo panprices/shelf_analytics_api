@@ -330,7 +330,7 @@ def count_available_products_by_retailers(
             FROM
                 retailer_product_per_week_matview
             WHERE
-                brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e' --:brand_id
+                brand_id = :brand_id
                 AND brand_product_availability = 'in_stock'
                 {"AND brand_category_id IN :categories" if global_filter.categories else ""}
                 {"AND retailer_id in :retailers" if global_filter.retailers else ""}
@@ -357,7 +357,7 @@ def count_available_products_by_retailers(
             FROM
                 brand_product_in_stock
             WHERE
-                brand_id = '3ff2ee2f-ee59-480b-a372-ddff32e1011e' --:brand_id
+                brand_id = :brand_id
                     {"AND category_id IN :categories" if global_filter.categories else ""}
                     {'''AND id IN 
                     (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)''' 
