@@ -6,10 +6,10 @@ from .filters import filters
 
 
 @pytest.mark.parametrize("payload", filters.values())
-def test_post_content_score(benchmark, payload):
+def test_post_availability_per_retailer(benchmark, payload):
     response = benchmark(
         requests.post,
-        f"{BASE_URL}/content/score",
+        f"{BASE_URL}/availability/per_retailer",
         headers=AUTH_HEADERS,
         json=payload,
     )
