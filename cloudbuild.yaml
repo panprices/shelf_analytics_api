@@ -10,7 +10,7 @@ steps:
       - --min-instances=1
       - --max-instances=20
       - --add-cloudsql-instances=panprices:europe-west1:panprices-core
-      - --set-env-vars="PANPRICES_ENVIRONMENT=production"
+      - --set-env-vars=PANPRICES_ENVIRONMENT=production
     secretEnv:
       [
         "FIREBASE_API_KEY",
