@@ -3,6 +3,7 @@ import os
 import uvicorn
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
+from app.logging import config_structlog
 
 
 from app.routers import (
@@ -17,6 +18,8 @@ from app.routers import (
     stock,
     price,
 )
+
+config_structlog()
 
 app = FastAPI(
     title="Panprices - Digital Shelf Analytics Solution API",
