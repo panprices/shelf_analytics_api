@@ -1,0 +1,4 @@
+BASE_URL = "http://localhost:8000"
+AUTH_HEADERS = {
+    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7ImNsaWVudCI6IjNmZjJlZTJmLWVlNTktNDgwYi1hMzcyLWRkZmYzMmUxMDExZSIsImZpcnN0X25hbWUiOiJUb2FuIiwibGFzdF9uYW1lIjoiUGhhbiIsInJvbGVzIjpbInJlYWRlciIsImFkbWluIiwiZGV2ZWxvcGVyIl0sInVpZCI6ImlFRTNoRmVjMUJXRUFnQlpHYXZDOThkdFpoNzIifSwiZXhwIjoxNjgzMTMwODk2fQ.n7EBVZnTTnXHf70JF3HonGoxxQ2o2Lus62GlRAznfgI",
+}

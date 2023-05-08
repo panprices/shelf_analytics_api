@@ -6,13 +6,15 @@ from app.config.settings import get_settings
 
 settings = get_settings()
 
-SQLALCHEMY_DATABASE_URL = f"postgresql://{settings.db_user}:{settings.db_pass}@{settings.db_host}/{settings.db_name}"\
-    if not settings.db_host.startswith('/') else \
-    f"postgresql://{settings.db_user}:{settings.db_pass}@/{settings.db_name}?host={settings.db_host}"  # unix socket
+SQLALCHEMY_DATABASE_URL = (
+    f"postgresql://{settings.db_user}:{settings.db_pass}@{settings.db_host}/{settings.db_name}"
+    if not settings.db_host.startswith("/")
+    else f"postgresql://{settings.db_user}:{settings.db_pass}@/{settings.db_name}?host={settings.db_host}"
+)  # unix socket
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    echo=True
+    echo=True if settings.panprices_environment == "local" else False,
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
