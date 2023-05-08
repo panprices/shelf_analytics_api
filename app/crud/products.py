@@ -229,6 +229,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
             JOIN (
                 SELECT date, COUNT(DISTINCT id) AS full_count
                 FROM brand_product_in_stock
+                WHERE brand_product_in_stock.brand_id = :brand_id
                 GROUP BY date
             ) brand_product_in_stock_grouped  USING (date) 
             -- Only present data up to last week:
