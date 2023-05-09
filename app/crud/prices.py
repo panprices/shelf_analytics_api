@@ -3,7 +3,7 @@ from typing import List, Tuple
 from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
-from app.crud import convert_rows_to_dicts, get_results_from_statement_with_filters
+from app.crud import get_results_from_statement_with_filters
 from app.models import (
     RetailerProductHistory,
     RetailerProduct,
@@ -16,7 +16,7 @@ def get_historical_prices_by_retailer_for_brand_product(
     db: Session, global_filter: GlobalFilter, brand_product_id: str
 ) -> List[RetailerProductHistory]:
     statement = f"""
-        with available_prices as (
+        with available_prices as (Ø
             select *
             from (
                 select rpts.product_id,
@@ -224,7 +224,7 @@ def get_historical_wholesale_deviation_per_retailer(
                 "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)" 
                 if global_filter.groups else ""
             }
-        GROUP BY retailer_id, retailer, country, time
+        GROUP BY retailer, time
         ORDER BY time ASC;
     """
 
