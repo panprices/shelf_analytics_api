@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 
 from pydantic import BaseModel, Field
 
-from app.schemas.general import NamedRetailer, RetailerForProduct
+from app.schemas.general import RetailerForProduct
 
 
 class BrandCategoryScaffold(BaseModel):
@@ -166,6 +166,18 @@ class MockRetailerProductGridItem(BaseModel):
     )
     price_deviation: Optional[float] = Field(
         description="The deviation of the price from the MSRP", example=0.1
+    )
+    wholesale_price_standard: Optional[float] = Field(
+        description="The price at which the client sells the item to the retailer (the value captured by the brand)",
+        example=2602,
+    )
+    wholesale_currency: Optional[str] = Field(
+        description="The currency of the wholesale price",
+        example="EUR",
+    )
+    markup_factor: Optional[float] = Field(
+        description="The factor applied to wholesale price to reach the price at the retailer",
+        example=2.3,
     )
     category_page_number: Optional[int] = Field(
         description="The page number at which the product was found",
