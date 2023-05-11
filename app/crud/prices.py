@@ -16,7 +16,7 @@ def get_historical_prices_by_retailer_for_brand_product(
     db: Session, global_filter: GlobalFilter, brand_product_id: str
 ) -> List[RetailerProductHistory]:
     statement = f"""
-        with available_prices as (Ø
+        with available_prices as (
             select *
             from (
                 select rpts.product_id,
