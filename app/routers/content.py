@@ -107,6 +107,9 @@ def get_content_score_per_retailer(
         db, user.client, global_filter
     )
     historical_result = process_historical_value_per_retailer(history, "score")
+    if not historical_result["retailers"]:
+        return {"data": []}
+
     max_date = max([p["x"] for r in historical_result["retailers"] for p in r["data"]])
     result = [
         {
