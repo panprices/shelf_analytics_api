@@ -207,7 +207,6 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                 SELECT DISTINCT brand_product_in_stock.id, brand_product_in_stock.date
                 FROM brand_product_in_stock 
                     INNER JOIN scraped_brand_product USING (id, date)
-                    LEFT JOIN product_group_assignation pga ON pga.product_id = scraped_brand_product.id
                     JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = scraped_brand_product.retailer_id
                         AND rtbm.brand_id = scraped_brand_product.brand_id
                 WHERE brand_product_in_stock.brand_id = :brand_id
@@ -215,7 +214,11 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                     {"AND scraped_brand_product.category_id IN :categories" if global_filter.categories else ""}
                     {"AND scraped_brand_product.retailer_id in :retailers" if global_filter.retailers else ""}
                     {"AND scraped_brand_product.country in :countries" if global_filter.countries else ""}
-                    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
+                    {'''AND scraped_brand_product.id in (
+                        SELECT DISTINCT product_id
+                        FROM product_group_assignation
+                        WHERE product_group_id IN :groups   
+                    )''' if global_filter.groups else ""}   
             )
             SELECT
                 date AS time,
@@ -230,6 +233,12 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                 SELECT date, COUNT(DISTINCT id) AS full_count
                 FROM brand_product_in_stock
                 WHERE brand_product_in_stock.brand_id = :brand_id
+                    {"AND category_id IN :categories" if global_filter.categories else ""}
+                    {'''AND id in (
+                        SELECT DISTINCT product_id
+                        FROM product_group_assignation
+                        WHERE product_group_id IN :groups
+                    )''' if global_filter.groups else ""}
                 GROUP BY date
             ) brand_product_in_stock_grouped  USING (date) 
             -- Only present data up to last week:
@@ -259,37 +268,42 @@ def get_historical_visibility_average(
         -- This might be the desired behavior when filter on individual retailer, 
         -- but can be semi-weird for the "availability over time line chart" on all retailers.
         
-        WITH scraped_brand_product_in_stock_per_retailer_count AS (
+        WITH scraped_brand_product_in_stock_per_retailer_grouped AS (
+            SELECT date, COUNT(DISTINCT id) AS visible_count, rtbm.retailer_id
+            FROM scraped_brand_product_in_stock_per_retailer
+                JOIN retailer_to_brand_mapping rtbm 
+                    ON rtbm.retailer_id = scraped_brand_product_in_stock_per_retailer.retailer_id 
+                        AND rtbm.brand_id = scraped_brand_product_in_stock_per_retailer.brand_id
+            WHERE rtbm.brand_id = :brand_id
+                AND NOT rtbm.shallow
+                {"AND category_id IN :categories" if global_filter.categories else ""}
+                {"AND rtbm.retailer_id in :retailers" if global_filter.retailers else ""}
+                {"AND country in :countries" if global_filter.countries else ""}
+                {'''AND id IN (
+                    SELECT DISTINCT product_id 
+                    FROM product_group_assignation 
+                    WHERE product_group_id IN :groups
+                )''' if global_filter.groups else ""}
+            GROUP BY date, rtbm.retailer_id
+        ), brand_product_in_stock_grouped AS (
+            SELECT date, COUNT(DISTINCT id) AS full_count
+            FROM brand_product_in_stock
+            WHERE brand_id = :brand_id
+                {"AND category_id IN :categories" if global_filter.categories else ""}
+                {'''AND brand_product_in_stock.id in (
+                    SELECT DISTINCT product_id
+                    FROM product_group_assignation
+                    WHERE product_group_id IN :groups   
+                )''' if global_filter.groups else ""}   
+            GROUP BY date
+        ), scraped_brand_product_in_stock_per_retailer_count AS (
             SELECT
                 date,
                 full_count - visible_count AS not_visible_count,
                 visible_count,
                 retailer_id
-            FROM (
-                SELECT date, COUNT(DISTINCT id) AS visible_count, rtbm.retailer_id
-                FROM scraped_brand_product_in_stock_per_retailer
-                    LEFT JOIN product_group_assignation pga ON pga.product_id 
-                        = scraped_brand_product_in_stock_per_retailer.id
-                    JOIN retailer_to_brand_mapping rtbm 
-                        ON rtbm.retailer_id = scraped_brand_product_in_stock_per_retailer.retailer_id 
-                            AND rtbm.brand_id = scraped_brand_product_in_stock_per_retailer.brand_id
-                WHERE rtbm.brand_id = :brand_id
-                    AND NOT rtbm.shallow
-                    {"AND category_id IN :categories" if global_filter.categories else ""}
-                    {"AND rtbm.retailer_id in :retailers" if global_filter.retailers else ""}
-                    {"AND country in :countries" if global_filter.countries else ""}
-                    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
-                GROUP BY date, rtbm.retailer_id
-            ) scraped_brand_product_in_stock_per_retailer_grouped
-            JOIN (
-                SELECT date, COUNT(DISTINCT id) AS full_count
-                FROM brand_product_in_stock
-                    LEFT JOIN product_group_assignation pga ON pga.product_id = brand_product_in_stock.id
-                WHERE brand_id = :brand_id
-                    {"AND category_id IN :categories" if global_filter.categories else ""}
-                    {"AND pga.product_group_id in :groups" if global_filter.groups else ""}   
-                GROUP BY date
-            ) brand_product_in_stock_grouped USING (date)
+            FROM scraped_brand_product_in_stock_per_retailer_grouped
+                JOIN brand_product_in_stock_grouped USING (date)
             -- Only present data up to last week:
             WHERE date < date_trunc('week', now())::date
             ORDER BY date ASC
