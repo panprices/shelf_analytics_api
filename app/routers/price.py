@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends
 from requests import Session
 
@@ -42,10 +44,17 @@ def get_historical_msrp_deviation_per_retailer(
     history = crud.get_historical_msrp_deviation_per_retailer(
         db, global_filter, user.client
     )
-
-    return process_historical_value_per_retailer(
+    grouped_history = process_historical_value_per_retailer(
         history, "average_price_deviation", False
     )
+
+    for r in grouped_history["retailers"]:
+        if len(r["data"]) == 1:
+            r["data"].insert(
+                0, {**r["data"][0], "x": r["data"][0]["x"] - timedelta(days=7)}
+            )
+
+    return grouped_history
 
 
 @router.post(
