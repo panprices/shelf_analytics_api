@@ -55,7 +55,11 @@ class RetailerCategory(Base, UUIDPrimaryKeyMixin, GenericCategoryMixin):
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
 
     retailer = relationship("Retailer", back_populates="categories")
-    products = relationship("RetailerProduct", back_populates="category")
+    products = relationship(
+        "RetailerProduct",
+        foreign_keys="RetailerProduct.popularity_category_id",
+        back_populates="category",
+    )
 
 
 class AvailabilityStatus(enum.Enum):
@@ -195,8 +199,15 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     original_price = Column(BigInteger)
     fetched_at = Column(DateTime)
 
-    category_id = Column(UUID(as_uuid=True), ForeignKey("retailer_category.id"))
-    category = relationship("RetailerCategory", back_populates="products")
+    # category_id = Column(UUID(as_uuid=True), ForeignKey("retailer_category.id"))
+    # category = relationship("RetailerCategory", back_populates="products")
+    popularity_category_id = Column(
+        UUID(as_uuid=True), ForeignKey("retailer_category.id")
+    )
+    category = relationship(
+        "RetailerCategory",
+        back_populates="products",
+    )
 
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
     retailer = relationship("Retailer", back_populates="products", lazy="joined")
