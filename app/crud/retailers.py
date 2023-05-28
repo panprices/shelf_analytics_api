@@ -65,7 +65,7 @@ def get_categories_split(
     brand_category_filter = (
         f"""
         where rc.id in (
-            select rp.category_id 
+            select rp.popularity_category_id 
             from retailer_product rp 
                 join product_matching pm on rp.id = pm.retailer_product_id 
                 join brand_product bp on bp.id = pm.brand_product_id
@@ -212,7 +212,7 @@ def get_individual_category_performance_details(db: Session, categories: List[st
             ) as full_name
         from retailer_category rc 
             join retailer r on rc.retailer_id = r.id
-            join retailer_product rp on rp.category_id = rc.id
+            join retailer_product rp on rp.popularity_category_id = rc.id
         where rc.id in :categories
         group by rc.id, page_size, full_name
     """
