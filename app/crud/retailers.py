@@ -65,7 +65,7 @@ def get_categories_split(
     brand_category_filter = (
         f"""
         where rc.id in (
-            select rp.category_id 
+            select rp.popularity_category_id 
             from retailer_product rp 
                 join product_matching pm on rp.id = pm.retailer_product_id 
                 join brand_product bp on bp.id = pm.brand_product_id
@@ -79,36 +79,43 @@ def get_categories_split(
     )
 
     statement = f"""
-         SELECT COALESCE(
+        WITH rp_brand_fixed AS (
+            SELECT rp.id, 
+                rp.popularity_category_id AS category_id, 
+                (b.id = :brand_id OR rp.brand = (SELECT name from brand WHERE id = :brand_id)) AS is_customer, 
+                CASE 
+                    WHEN b.id = :brand_id then b.name
+                    WHEN rp.brand is NULL then 'No brand'
+                    ELSE rp.brand
+                END AS brand
+            FROM retailer_product rp
+                LEFT JOIN product_matching pm on rp.id = pm.retailer_product_id 
+                LEFT JOIN brand_product bp on pm.brand_product_id = bp.id
+                LEFT JOIN brand b on bp.brand_id = b.id
+            WHERE rp.retailer_id = :retailer_id
+        ), categories_split AS (
+            SELECT 
+                category_id, 
+                brand, COUNT(*) AS product_count, 
+                is_customer 
+            FROM rp_brand_fixed
+            WHERE category_id IN (
+                SELECT distinct category_id 
+                FROM retailer_product rp 
+                    JOIN product_matching pm on rp.id = pm.retailer_product_id 
+                WHERE rp.retailer_id = :retailer_id
+            )
+            GROUP BY brand, category_id, is_customer
+        )
+        SELECT COALESCE(
             (
-                select string_agg(value::json ->> 'name', ' > ') from json_array_elements_text(category_tree)
+                SELECT string_agg(value::json ->> 'name', ' > ') FROM json_array_elements_text(category_tree)
             ),
             'No category'
-        ) as category_name, categories_split.*
-        from (
-            select category_id, brand, COUNT(*) as product_count, is_customer from (
-                select rp.id, rp.category_id as category_id, 
-                    (b.id = :brand_id OR rp.brand = (SELECT name from brand WHERE id = :brand_id)) as is_customer, 
-                    CASE 
-                        WHEN b.id = :brand_id then b.name
-                        WHEN rp.brand is NULL then 'No brand'
-                        ELSE rp.brand
-                    end as brand
-                from retailer_product rp
-                    left join product_matching pm on rp.id = pm.retailer_product_id 
-                    left join brand_product bp on pm.brand_product_id = bp.id
-                    left join brand b on bp.brand_id = b.id
-                where rp.retailer_id = :retailer_id
-            ) rp_brand_fixed
-            where category_id in (
-                select distinct category_id 
-                from retailer_product rp 
-                    join product_matching pm on rp.id = pm.retailer_product_id 
-                where rp.retailer_id = :retailer_id
-            )
-            group by brand, category_id, is_customer
-        ) categories_split
-        join retailer_category rc on categories_split.category_id = rc.id
+        ) AS category_name, 
+            categories_split.*
+        FROM categories_split
+            JOIN retailer_category rc ON categories_split.category_id = rc.id
         {brand_category_filter}
         ORDER BY is_customer ASC
     """
@@ -205,7 +212,7 @@ def get_individual_category_performance_details(db: Session, categories: List[st
             ) as full_name
         from retailer_category rc 
             join retailer r on rc.retailer_id = r.id
-            join retailer_product rp on rp.category_id = rc.id
+            join retailer_product rp on rp.popularity_category_id = rc.id
         where rc.id in :categories
         group by rc.id, page_size, full_name
     """
