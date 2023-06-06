@@ -399,8 +399,10 @@ def count_available_products_by_retailers(
         FROM
             scraped_brand_product_in_stock_per_retailer_count
             JOIN retailer r ON r.id = scraped_brand_product_in_stock_per_retailer_count.retailer_id
-        WHERE
-            date >= date_trunc('week', now() - '7 days'::interval)
+            JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id
+        WHERE rtbm.brand_id = :brand_id
+            AND NOT rtbm.shallow
+            AND date >= date_trunc('week', now() - '7 days'::interval)
             AND date < date_trunc('week', now())
         GROUP BY r.id
         ORDER BY available_products_count DESC;
