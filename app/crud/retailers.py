@@ -100,10 +100,12 @@ def get_categories_split(
                 is_customer 
             FROM rp_brand_fixed
             WHERE category_id IN (
-                SELECT distinct category_id 
+                SELECT distinct rp.popularity_category_id 
                 FROM retailer_product rp 
                     JOIN product_matching pm on rp.id = pm.retailer_product_id 
+                    JOIN brand_product bp on pm.brand_product_id = bp.id
                 WHERE rp.retailer_id = :retailer_id
+                    AND bp.brand_id = :brand_id
             )
             GROUP BY brand, category_id, is_customer
         )
@@ -117,7 +119,7 @@ def get_categories_split(
         FROM categories_split
             JOIN retailer_category rc ON categories_split.category_id = rc.id
         {brand_category_filter}
-        ORDER BY is_customer ASC
+        ORDER BY is_customer DESC NULLS LAST
     """
     rows = db.execute(
         text(statement),
