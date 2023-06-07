@@ -156,7 +156,7 @@ def get_retailer_products_for_brand_product(
                 join brand_product bp on bp.id = pm.brand_product_id
                 join retailer_product rp on pm.retailer_product_id = rp.id
                 join retailer r on r.id = rp.retailer_id
-                JOIN retailer_to_brand_mapping rtbm on rtbm.retailer_id = r.id
+                JOIN retailer_to_brand_mapping rtbm on rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
                 LEFT JOIN product_group_assignation pga on pga.product_id = bp.id
             where bp.id = :brand_product_id
                 AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
