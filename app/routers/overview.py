@@ -127,6 +127,7 @@ def get_brands(user: TokenData = Depends(get_user_data), db: Session = Depends(g
 def switch_brand(
     brand_change_request: Dict[str, str],
     user: TokenData = Depends(get_user_data),
+    postgres_db: Session = Depends(get_db),
 ):
     if "developer" not in user.roles:
         raise HTTPException(
@@ -139,4 +140,4 @@ def switch_brand(
         {"client": brand_change_request["brand_id"]}
     )
 
-    return authenticate_verified_user(user.uid)
+    return authenticate_verified_user(postgres_db, user.uid)

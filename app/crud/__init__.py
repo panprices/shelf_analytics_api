@@ -6,3 +6,4 @@ from app.crud.content import *
 from app.crud.matching import *
 from app.crud.groups import *
 from app.crud.stock import *
+from app.crud.features import *

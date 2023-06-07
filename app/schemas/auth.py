@@ -1,4 +1,3 @@
-import uuid
 from typing import Optional, List
 
 from pydantic import BaseModel, Field
@@ -20,11 +19,20 @@ class AuthenticationResponse(BaseModel):
     )
 
 
+class ExtraFeatureScaffold(BaseModel):
+    feature_name: str
+    enabled: bool
+
+    class Config:
+        orm_mode = True
+
+
 class UserMetadata(BaseModel):
     client: str
     first_name: str
     last_name: str
     roles: List[str]
+    features: List[ExtraFeatureScaffold]
 
 
 class TokenData(UserMetadata):
