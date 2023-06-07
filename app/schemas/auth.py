@@ -32,7 +32,7 @@ class UserMetadata(BaseModel):
     first_name: str
     last_name: str
     roles: List[str]
-    features: List[ExtraFeatureScaffold]
+    features: Optional[List[ExtraFeatureScaffold]]
 
 
 class TokenData(UserMetadata):
