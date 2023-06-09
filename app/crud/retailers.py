@@ -64,7 +64,7 @@ def get_categories_split(
 ) -> List[Dict]:
     brand_category_filter = (
         f"""
-        where rc.id in (
+        where category_id in (
             select rp.popularity_category_id 
             from retailer_product rp 
                 join product_matching pm on rp.id = pm.retailer_product_id 
@@ -79,45 +79,13 @@ def get_categories_split(
     )
 
     statement = f"""
-        WITH rp_brand_fixed AS (
-            SELECT rp.id, 
-                rp.popularity_category_id AS category_id, 
-                (b.id = :brand_id OR rp.brand = (SELECT name from brand WHERE id = :brand_id)) AS is_customer, 
-                CASE 
-                    WHEN b.id = :brand_id then b.name
-                    WHEN rp.brand is NULL then 'No brand'
-                    ELSE rp.brand
-                END AS brand
-            FROM retailer_product rp
-                LEFT JOIN product_matching pm on rp.id = pm.retailer_product_id 
-                LEFT JOIN brand_product bp on pm.brand_product_id = bp.id
-                LEFT JOIN brand b on bp.brand_id = b.id
-            WHERE rp.retailer_id = :retailer_id
-        ), categories_split AS (
-            SELECT 
-                category_id, 
-                brand, COUNT(*) AS product_count, 
-                is_customer 
-            FROM rp_brand_fixed
-            WHERE category_id IN (
-                SELECT distinct rp.popularity_category_id 
-                FROM retailer_product rp 
-                    JOIN product_matching pm on rp.id = pm.retailer_product_id 
-                    JOIN brand_product bp on pm.brand_product_id = bp.id
-                WHERE rp.retailer_id = :retailer_id
-                    AND bp.brand_id = :brand_id
-            )
-            GROUP BY brand, category_id, is_customer
-        )
-        SELECT COALESCE(
-            (
-                SELECT string_agg(value::json ->> 'name', ' > ') FROM json_array_elements_text(category_tree)
-            ),
-            'No category'
-        ) AS category_name, 
-            categories_split.*
+        SELECT *
         FROM categories_split
-            JOIN retailer_category rc ON categories_split.category_id = rc.id
+        WHERE category_id IN (
+            SELECT DISTINCT category_id 
+            FROM categories_split 
+            WHERE brand_id = :brand_id
+          ) AND retailer_id = :retailer_id
         {brand_category_filter}
         ORDER BY is_customer DESC NULLS LAST
     """
