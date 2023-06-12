@@ -13,7 +13,7 @@ def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
         FROM matching_tasks mt
             JOIN brand_product bp ON bp.id = mt.brand_product_id
             JOIN retailer r ON mt.retailer_id = r.id
-        WHERE status = 'pending'
+        WHERE status = 'pending' AND bp.brand_id = :brand_id
             {"AND retailer_id IN :retailers" if global_filters.retailers else ""}
             {"AND r.country IN :countries" if global_filters.countries else ""}
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
