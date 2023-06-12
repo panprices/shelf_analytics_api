@@ -64,7 +64,7 @@ def get_categories_split(
 ) -> List[Dict]:
     brand_category_filter = (
         f"""
-        where category_id in (
+        AND category_id in (
             select rp.popularity_category_id 
             from retailer_product rp 
                 join product_matching pm on rp.id = pm.retailer_product_id 
