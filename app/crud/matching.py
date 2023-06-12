@@ -10,7 +10,7 @@ from app.schemas.filters import GlobalFilter
 def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
     return f"""
         SELECT brand_product_id, retailer_id, skip_count
-        FROM matching_tasks mt
+        FROM matching_task mt
             JOIN brand_product bp ON bp.id = mt.brand_product_id
             JOIN retailer r ON mt.retailer_id = r.id
         WHERE status = 'pending' AND bp.brand_id = :brand_id

@@ -64,7 +64,7 @@ class ManualUrlMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
 
 
 class MatchingTask(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
-    __tablename__ = "matching_tasks"
+    __tablename__ = "matching_task"
 
     brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
