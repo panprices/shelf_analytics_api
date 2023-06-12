@@ -9,29 +9,21 @@ from app.schemas.filters import GlobalFilter
 
 def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
     return f"""
-        SELECT bp.id as brand_product_id, rp.retailer_id as retailer_id, MAX(pm.certainty) as max_certainty
-        FROM brand_product bp
-            JOIN product_matching pm ON bp.id = pm.brand_product_id
-            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
-            JOIN retailer r ON r.id = rp.retailer_id
-            JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = r.id
-            LEFT JOIN manual_matching_urls mmu ON mmu.brand_product_id = bp.id 
-                AND rp.retailer_id = mmu.retailer_id 
-            LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
-        WHERE bp.brand_id = :brand_id
-            AND mmu.id IS NULL
-            AND r.requires_manual_matching
-            AND (rbm.known_brand_labels IS NULL OR rp.brand = ANY(rbm.known_brand_labels))
-            AND pm.type = 'image'
-            AND bp.active
-            {"AND rp.retailer_id IN :retailers" if global_filters.retailers else ""}
+        SELECT brand_product_id, retailer_id, skip_count
+        FROM matching_tasks mt
+            JOIN brand_product bp ON bp.id = mt.brand_product_id
+            JOIN retailer r ON mt.retailer_id = r.id
+        WHERE status = 'pending'
+            {"AND retailer_id IN :retailers" if global_filters.retailers else ""}
             {"AND r.country IN :countries" if global_filters.countries else ""}
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
-            {"AND pga.product_group_id in :groups" if global_filters.groups else ""}
-        GROUP BY bp.id, rp.retailer_id
-        HAVING SUM(CASE WHEN pm.certainty = 'manual_input' THEN 1 ELSE 0 END) = 0
-            AND SUM(CASE WHEN pm.certainty > 'not_match' THEN 1 ELSE 0 END) > 0
---             AND COUNT(*) > 1
+            {'''
+                AND brand_product_id IN (
+                    SELECT product_id 
+                    FROM product_group_assignation pga 
+                    WHERE pga.product_group_id IN :groups
+                )
+            ''' if global_filters.groups else ""}
     """
 
 
@@ -40,7 +32,7 @@ def get_next_brand_product_to_match(
 ):
     statement = f"""
         {_compose_product_matching_tasks_query(global_filters)}
-        ORDER BY max_certainty DESC, RANDOM()
+        ORDER BY skip_count ASC
         LIMIT 1 
     """
 
@@ -106,14 +98,17 @@ def get_matched_retailer_products_by_brand_product_id(
     db: Session, brand_product_id: str, retailer_id: str
 ):
     statement = f"""
-        SELECT rp.* 
-        FROM retailer_product rp
-            JOIN product_matching pm ON rp.id = pm.retailer_product_id
-            JOIN retailer r ON r.id = rp.retailer_id
-            JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = r.id
-        WHERE pm.brand_product_id = :brand_product_id
-            AND rp.retailer_id = :retailer_id
-            AND (rbm.known_brand_labels IS NULL OR rp.brand = ANY(rbm.known_brand_labels))
+        SELECT rp.*
+        FROM (
+            SELECT * FROM retailer_product
+            WHERE retailer_id = :retailer_id
+        ) rp JOIN (
+            SELECT * FROM product_matching
+            WHERE brand_product_id = :brand_product_id
+                AND certainty >= 'auto_low_confidence_skipped'
+                AND certainty < 'auto_high_confidence'
+        ) pm ON rp.id = pm.retailer_product_id
+            JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = rp.retailer_id;
     """
 
     return (

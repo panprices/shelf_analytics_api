@@ -22,22 +22,22 @@ router = APIRouter(prefix="/matching")
 def fill_matching_task(
     db: Session,
     user: TokenData,
-    brand_product_retailer_pair: dict,
+    brand_product_retailer_pair: MatchingTaskIdentifierScaffold,
     global_filter: GlobalFilter,
 ) -> MatchingTaskScaffold:
     brand_product = crud.get_brand_product_detailed_for_id(
-        db, brand_product_retailer_pair["id"]
+        db, brand_product_retailer_pair.brand_product_id
     )
 
     retailer_products = crud.get_matched_retailer_products_by_brand_product_id(
         db,
-        brand_product_retailer_pair["id"],
-        brand_product_retailer_pair["retailer_id"],
+        brand_product_retailer_pair.brand_product_id,
+        brand_product_retailer_pair.retailer_id,
     )
 
     brand_name = crud.get_brand_name(db, user.client)
     retailer_name = crud.get_retailer_name_and_country(
-        db, brand_product_retailer_pair["retailer_id"]
+        db, brand_product_retailer_pair.retailer_id
     )
 
     tasks_count = crud.count_product_matching_tasks(
@@ -50,7 +50,7 @@ def fill_matching_task(
             "retailer_candidates": retailer_products,
             "brand_name": brand_name,
             "retailer_name": retailer_name,
-            "retailer_id": brand_product_retailer_pair["retailer_id"],
+            "retailer_id": brand_product_retailer_pair.retailer_id,
             "tasks_count": tasks_count,
         }
     )
@@ -140,11 +140,5 @@ def get_task_deterministically(
         )
     identifier = request.identifier
 
-    brand_product_retailer_pair = crud.get_brand_product_to_match_deterministically(
-        db, identifier.brand_product_id, identifier.retailer_id
-    )
-
     # By default we don't filter by global filters when getting a task deterministically
-    return fill_matching_task(
-        db, user, brand_product_retailer_pair, global_filter=request.global_filter
-    )
+    return fill_matching_task(db, user, identifier, global_filter=request.global_filter)

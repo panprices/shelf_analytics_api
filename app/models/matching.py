@@ -20,6 +20,7 @@ class MatchingCertaintyType(enum.Enum):
     auto_high_confidence = object()
     auto_low_confidence = object()
     auto_low_confidence_skipped = object()
+    brand_mismatch = object()
     not_match = object()
 
 
