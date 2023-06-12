@@ -2,7 +2,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
 from app.crud import convert_rows_to_dicts
-from app.models import RetailerProduct, ProductMatching, ManualUrlMatching
+from app.models import RetailerProduct, ProductMatching, ManualUrlMatching, MatchingTask
 from app.models.retailer import RetailerImage
 from app.schemas.filters import GlobalFilter
 
@@ -180,3 +180,21 @@ def submit_product_matching_url(
     db.commit()
 
     invalidate_product_matching_selection(db, brand_product_id, retailer_id)
+
+
+def mark_task_skipped(db: Session, brand_product_id: str, retailer_id: str):
+    db.query(MatchingTask).filter(
+        MatchingTask.brand_product_id == brand_product_id,
+        MatchingTask.retailer_id == retailer_id,
+    ).update({"skip_count": MatchingTask.skip_count + 1}, synchronize_session="fetch")
+
+    db.commit()
+
+
+def mark_task_completed(db: Session, brand_product_id: str, retailer_id: str):
+    db.query(MatchingTask).filter(
+        MatchingTask.brand_product_id == brand_product_id,
+        MatchingTask.retailer_id == retailer_id,
+    ).update({"status": "completed"}, synchronize_session="fetch")
+
+    db.commit()

@@ -93,6 +93,12 @@ def submit_matching(
 
     if matching.action == "skip":
         # On case of skip
+        crud.mark_task_skipped(
+            db,
+            brand_product_id=matching.brand_product_id,
+            retailer_id=matching.retailer_id,
+        )
+
         crud.invalidate_product_matching_selection(
             db,
             brand_product_id=matching.brand_product_id,
@@ -100,6 +106,12 @@ def submit_matching(
             certainty="auto_low_confidence_skipped",
         )
         return {"status": "success"}
+
+    crud.mark_task_completed(
+        db,
+        brand_product_id=matching.brand_product_id,
+        retailer_id=matching.retailer_id,
+    )
 
     # On case of submission
     if matching.retailer_product_id:

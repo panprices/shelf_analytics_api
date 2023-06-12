@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import ForeignKey, Column, Enum, Float, String
+from sqlalchemy import ForeignKey, Column, Enum, Float, String, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -61,6 +61,15 @@ class ManualUrlMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
     status = Column(String)
     user_id = Column(String)
+
+
+class MatchingTask(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
+    __tablename__ = "matching_tasks"
+
+    brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
+    retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
+    status = Column(String)
+    skip_count = Column(Integer)
 
 
 class ImageMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
