@@ -30,9 +30,19 @@ def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
 def get_next_brand_product_to_match(
     db: Session, brand_id: str, global_filters: GlobalFilter, index: int
 ):
+    """
+    We order the tasks randomly to allow multiple users to work on the same brand at the same time.
+    This reduces the risk of task collision.
+
+    :param db:
+    :param brand_id:
+    :param global_filters:
+    :param index:
+    :return:
+    """
     statement = f"""
         {_compose_product_matching_tasks_query(global_filters)}
-        ORDER BY skip_count ASC
+        ORDER BY skip_count ASC, RANDOM() DESC
         LIMIT 1 
     """
 
