@@ -225,7 +225,7 @@ class BaseRetailerProductScaffold(BaseModel):
     country: str = Field(
         description="The code representation of a country", example="SE"
     )
-    price_standard: float = Field(
+    price_standard: Optional[float] = Field(
         description="The price scraped at the retailer", example=3201
     )
     currency: str = Field(

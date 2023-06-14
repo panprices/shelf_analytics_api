@@ -239,4 +239,4 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
 
     @hybrid_property
     def price_standard(self):
-        return self.price / 100
+        return self.price / 100 if self.price else None
