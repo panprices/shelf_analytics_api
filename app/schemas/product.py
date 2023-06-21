@@ -61,7 +61,7 @@ class MockRetailerProductGridItem(BaseModel):
     price_standard: Optional[float] = Field(
         description="The price scraped at the retailer", example=3201
     )
-    currency: str = Field(
+    currency: Optional[str] = Field(
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
@@ -228,7 +228,7 @@ class BaseRetailerProductScaffold(BaseModel):
     price_standard: Optional[float] = Field(
         description="The price scraped at the retailer", example=3201
     )
-    currency: str = Field(
+    currency: Optional[str] = Field(
         description="The currency in which the product is being sold",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
