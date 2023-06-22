@@ -23,6 +23,7 @@ class AvailableProductsCount(BaseModel):
     retailer: str
     available_products_count: int
     not_available_products_count: int
+    deactivated_products_count: int
 
 
 class AvailableProductsPerRetailer(BaseModel):
