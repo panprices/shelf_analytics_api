@@ -6,15 +6,8 @@ from pydantic import BaseModel, fields
 from app.schemas.filters import DataPageFilter
 
 
-class BrandProductGroupScaffold(BaseModel):
-    """
-    A brand product group can be defined by a list of ids, or by a filter that will be used to retrieve the products.
-    """
+class BaseBrandProductGroupScaffold(BaseModel):
 
-    name: str = fields.Field(
-        description="The name of the product group",
-        example="Bathroom",
-    )
     products: Optional[List[Union[UUID, str]]] = fields.Field(
         description="The list of products in the group (by id)",
         # UUID examples
@@ -28,4 +21,22 @@ class BrandProductGroupScaffold(BaseModel):
     )
     filter: Optional[DataPageFilter] = fields.Field(
         description="The filters to apply for finding the products in the group",
+    )
+
+
+class BrandProductGroupCreationScaffold(BaseBrandProductGroupScaffold):
+    """
+    A brand product group can be defined by a list of ids, or by a filter that will be used to retrieve the products.
+    """
+
+    name: str = fields.Field(
+        description="The name of the product group",
+        example="Bathroom",
+    )
+
+
+class BrandProductGroupAppendScaffold(BaseBrandProductGroupScaffold):
+    id: Union[UUID, str] = fields.Field(
+        description="The id of the group to append products to",
+        example="14011acc-77c6-4aea-998e-12af3fd9a5d1",
     )
