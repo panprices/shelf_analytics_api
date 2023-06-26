@@ -154,6 +154,10 @@ class MockRetailerProductGridItem(BaseModel):
         description="The date at which the product was fetched from the retailer",
         example="2023-01-17",
     )
+    created_at: Optional[datetime.date] = Field(
+        description="The date at which the product was created in the database",
+        example="2023-01-17",
+    )
     brand_sku: Optional[str] = Field(
         description="The SKU assigned by the client", example="16052-101"
     )

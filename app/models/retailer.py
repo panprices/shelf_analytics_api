@@ -174,6 +174,7 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     retailer_category_name = Column(String)
     original_price_standard = Column(Float)
     fetched_at = Column(DateTime)
+    created_at = Column(DateTime)
     brand_sku = Column(String)
     msrp_standard = Column(Float)
     msrp_currency = Column(String)
@@ -198,6 +199,7 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
     is_discounted = Column(Boolean)
     original_price = Column(BigInteger)
     fetched_at = Column(DateTime)
+    created_at = Column(DateTime)
 
     # category_id = Column(UUID(as_uuid=True), ForeignKey("retailer_category.id"))
     # category = relationship("RetailerCategory", back_populates="products")
