@@ -61,8 +61,8 @@ class MockRetailerProductGridItem(BaseModel):
     price_standard: Optional[float] = Field(
         description="The price scraped at the retailer", example=3201
     )
-    currency: str = Field(
-        description="The currency in which the product is being sold",
+    currency: Optional[str] = Field(
+        description="The currency in which the product is being sold. Can be `None` if the price is not available",
         examples={"sweden": "SEK", "eu": "EUR"},
     )
     review_average: Optional[float] = Field(
