@@ -32,6 +32,8 @@ class UserMetadata(BaseModel):
     first_name: str
     last_name: str
     roles: List[str]
+    email: Optional[str]
+    client_name: str
     features: Optional[List[ExtraFeatureScaffold]]
 
 

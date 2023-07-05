@@ -58,7 +58,9 @@ def get_user_metadata(postgres_db: Session, uid: str) -> Optional[UserMetadata]:
         for feature in crud.get_extra_features(postgres_db, user_metadata.get("client"))
     ]
 
-    return UserMetadata(**user_metadata.to_dict(), features=extra_features)
+    client_name = crud.get_brand_name(postgres_db, user_metadata.get("client"))
+
+    return UserMetadata(**user_metadata.to_dict(), features=extra_features, client_name=client_name)
 
 
 def authenticate_verified_user(
