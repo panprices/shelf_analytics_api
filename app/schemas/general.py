@@ -28,7 +28,7 @@ class CountryToLanguageScaffold(BaseModel):
 
 
 class RetailerBrandAssociationScaffold(BaseModel):
-    shallow: bool = Field(description="Whether the brand is shallow or not")
+    shallow: bool = Field(description="Whether the retailer is shallow or not")
 
     class Config:
         orm_mode = True
@@ -54,6 +54,7 @@ class NamedRetailer(BaseModel):
 class FilterRetailer(NamedRetailer):
     language: str = Field(description="The language to use with the retailer")
     shallow: bool = Field(description="Whether the retailer is shallow or not")
+    status: str = Field(description="The status of the retailer")
 
 
 class RetailerForProduct(NamedRetailer):
