@@ -35,12 +35,23 @@ class CountryToLanguage(Base):
     language = Column(String, primary_key=True)
 
 
+class RetailerStatus(str, enum.Enum):
+    """
+    Shows the status of the retailer in the system.
+    """
+
+    error = "error"
+    warning = "warning"
+    success = "success"
+
+
 class Retailer(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "retailer"
 
     name = Column(String)
     url = Column(String)
     country = Column(String, ForeignKey("country_to_language.country"))
+    status = Column(Enum(RetailerStatus))
 
     brands = relationship("RetailerBrandAssociation", back_populates="retailer")
     categories = relationship("RetailerCategory", back_populates="retailer")

@@ -25,6 +25,7 @@ def get_retailers(
         retailer.Retailer.id,
         retailer.Retailer.name,
         retailer.Retailer.country,
+        retailer.Retailer.status,
         CountryToLanguage.language,
         RetailerBrandAssociation.shallow,
     )

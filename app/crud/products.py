@@ -396,6 +396,7 @@ def count_available_products_by_retailers(
         )
         SELECT
             r.name || ' ' || r.country AS retailer,
+            r.status AS retailer_status,
             ROUND(AVG(visible_count)) AS available_products_count,
             ROUND(AVG(not_visible_count)) AS not_available_products_count,
             ROUND(AVG(deactivated_count)) AS deactivated_products_count
