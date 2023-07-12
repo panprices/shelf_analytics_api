@@ -128,7 +128,7 @@ def get_retailer_products_for_brand_product(
                 JOIN retailer_to_brand_mapping rtbm on rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
                 LEFT JOIN product_group_assignation pga on pga.product_id = bp.id
             where bp.id = :brand_product_id
-                AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
+                AND pm.certainty >= 'auto_high_confidence'
                 AND NOT rtbm.shallow
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
