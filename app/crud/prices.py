@@ -37,7 +37,7 @@ def get_historical_prices_by_retailer_for_brand_product(
                     LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 where bp.id = :brand_product_id and rpts.price <> 0
                     AND rpts.availability <> 'out_of_stock'
-                    AND pm.certainty NOT IN ('auto_low_confidence', 'not_match')
+                    AND pm.certainty >= 'auto_high_confidence'
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                     {"AND r.country IN :countries" if global_filter.countries else ""}
