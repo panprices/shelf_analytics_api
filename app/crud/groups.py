@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 
-from app.models import BrandProduct
+from app.models import BrandProduct, product_group_assignation_table
 from app.models.groups import ProductGroup
 from app.schemas.auth import TokenData
 from app.schemas.groups import (
@@ -43,4 +43,15 @@ def add_products_to_group(db: Session, group: BrandProductGroupAppendScaffold):
     db.add(product_group_model)
 
     # Commit the changes to the database
+    db.commit()
+
+
+def delete_brand_products_group(db: Session, group_id: str, brand_id: str):
+    db.query(product_group_assignation_table).filter(
+        product_group_assignation_table.c.product_group_id == group_id
+    ).delete()
+
+    db.query(ProductGroup).filter(ProductGroup.id == group_id).filter(
+        ProductGroup.brand_id == brand_id
+    ).delete()
     db.commit()

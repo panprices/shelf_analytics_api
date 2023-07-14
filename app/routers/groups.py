@@ -63,3 +63,14 @@ def add_products_to_group(
 
     # Return the group
     return {"message": "Products added to group successfully."}
+
+
+@router.delete("/{group_id}", tags=[TAG_GROUPS])
+def delete_group(
+    group_id: str,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    crud.delete_brand_products_group(db, group_id, user.client)
+
+    return {"message": "Group deleted successfully."}
