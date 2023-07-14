@@ -13,7 +13,7 @@ from app.schemas.filters import GlobalFilter, PagedGlobalFilter
 
 
 def get_historical_prices_by_retailer_for_brand_product(
-    db: Session, global_filter: GlobalFilter, brand_product_id: str
+    db: Session, global_filter: GlobalFilter, brand_product_id: str, brand_id: str
 ) -> List[RetailerProductHistory]:
     statement = f"""
         with available_prices as (
@@ -36,6 +36,7 @@ def get_historical_prices_by_retailer_for_brand_product(
                     join currency c on c.name = rpts.currency
                     LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 where bp.id = :brand_product_id and rpts.price <> 0
+                    AND bp.brand_id = :brand_id
                     AND rpts.availability <> 'out_of_stock'
                     AND pm.certainty >= 'auto_high_confidence'
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
@@ -81,6 +82,7 @@ def get_historical_prices_by_retailer_for_brand_product(
             retailers=tuple(global_filter.retailers),
             countries=tuple(global_filter.countries),
             groups=tuple(global_filter.groups),
+            brand_id=brand_id,
         )
         .options(
             selectinload(RetailerProductHistory.product).selectinload(

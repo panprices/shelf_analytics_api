@@ -104,7 +104,7 @@ def get_categories_split(
 
 
 def get_retailer_products_for_brand_product(
-    db: Session, global_filter: GlobalFilter, brand_product_id: str
+    db: Session, global_filter: GlobalFilter, brand_product_id: str, brand_id: str
 ) -> List[ProductMatching]:
     """
     Get retailer products for a brand product
@@ -113,6 +113,7 @@ def get_retailer_products_for_brand_product(
     :param db:
     :param global_filter:
     :param brand_product_id:
+    :param brand_id:
     :return:
     """
     statement = f"""
@@ -129,6 +130,7 @@ def get_retailer_products_for_brand_product(
                 LEFT JOIN product_group_assignation pga on pga.product_id = bp.id
             where bp.id = :brand_product_id
                 AND pm.certainty >= 'auto_high_confidence'
+                AND bp.brand_id = :brand_id
                 AND NOT rtbm.shallow
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                 {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
@@ -147,6 +149,7 @@ def get_retailer_products_for_brand_product(
             retailers=tuple(global_filter.retailers),
             countries=tuple(global_filter.countries),
             groups=tuple(global_filter.groups),
+            brand_id=brand_id,
         )
         .options(
             selectinload(ProductMatching.retailer_product).selectinload(

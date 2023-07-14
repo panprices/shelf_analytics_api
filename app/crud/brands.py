@@ -42,10 +42,11 @@ def get_brand_products_for_gtins(
     )
 
 
-def get_brand_product_detailed_for_id(db: Session, product_id: str):
+def get_brand_product_detailed_for_id(db: Session, product_id: str, brand_id: str):
     return (
         db.query(BrandProduct)
         .filter(BrandProduct.id == product_id)
+        .filter(BrandProduct.brand_id == brand_id)
         .options(
             selectinload(BrandProduct.matched_retailer_products).selectinload(
                 ProductMatching.retailer_product

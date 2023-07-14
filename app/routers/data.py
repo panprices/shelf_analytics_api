@@ -1,5 +1,4 @@
 import io
-from datetime import timedelta
 from functools import reduce
 
 import pandas
@@ -16,7 +15,7 @@ from app.crud.utils import (
 from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter, DataPageFilter
-from app.schemas.prices import HistoricalPerRetailerResponse, RetailerHistoricalItem
+from app.schemas.prices import HistoricalPerRetailerResponse
 from app.schemas.product import (
     ProductPage,
     BrandProductScaffold,
@@ -85,7 +84,12 @@ def get_brand_product_details(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Must be authenticated"
         )
 
-    result = crud.get_brand_product_detailed_for_id(db, brand_product_id)
+    result = crud.get_brand_product_detailed_for_id(db, brand_product_id, user.client)
+
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Brand product not found"
+        )
     return result
 
 
@@ -116,7 +120,7 @@ def get_matched_retailer_products_for_brand_product(
         )
 
     matches = crud.get_retailer_products_for_brand_product(
-        db, global_filter, brand_product_id
+        db, global_filter, brand_product_id, user.client
     )
     return {"matches": matches}
 
@@ -138,7 +142,7 @@ def get_historical_prices_for_brand_product(
         )
 
     history = crud.get_historical_prices_by_retailer_for_brand_product(
-        db, global_filter, brand_product_id
+        db, global_filter, brand_product_id, user.client
     )
 
     retailers = [
@@ -153,6 +157,9 @@ def get_historical_prices_for_brand_product(
             {},
         ).values()
     ]
+    if not retailers:
+        return {"retailers": [], "max_value": 0, "minimal_values": []}
+
     minimal_values = extract_minimal_values(retailers)
 
     max_value = (

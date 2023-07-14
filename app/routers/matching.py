@@ -26,7 +26,7 @@ def fill_matching_task(
     global_filter: GlobalFilter,
 ) -> MatchingTaskScaffold:
     brand_product = crud.get_brand_product_detailed_for_id(
-        db, brand_product_retailer_pair.brand_product_id
+        db, brand_product_retailer_pair.brand_product_id, user.client
     )
 
     retailer_products = crud.get_matched_retailer_products_by_brand_product_id(
