@@ -8,7 +8,11 @@ from app.crud.utils import process_historical_value_per_retailer
 from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter, PagedGlobalFilter
-from app.schemas.prices import PriceTableData, HistoricalPerRetailerResponse
+from app.schemas.prices import (
+    PriceTableData,
+    HistoricalPerRetailerResponse,
+    PriceChangeResponse,
+)
 from app.security import get_user_data
 from app.tags import TAG_DATA, TAG_PRICE
 
@@ -74,3 +78,16 @@ def get_historical_wholesale_deviation_per_retailer(
     return process_historical_value_per_retailer(
         history, "average_price_deviation", False
     )
+
+
+@router.post("/changes", tags=[TAG_PRICE], response_model=PriceChangeResponse)
+def get_price_changes(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    changes = crud.get_price_changes(db, global_filter, user.client)
+
+    return {
+        "changes": changes,
+    }

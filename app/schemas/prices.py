@@ -61,3 +61,13 @@ class PriceTableData(PagedResponse):
 
     class Config:
         orm_mode = True
+
+
+class PriceChangeItem(BaseModel):
+    retailer_name: str
+    product_name: str
+    price_diff: float
+
+
+class PriceChangeResponse(BaseModel):
+    changes: List[PriceChangeItem]
