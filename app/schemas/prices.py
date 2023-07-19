@@ -64,6 +64,7 @@ class PriceTableData(PagedResponse):
 
 
 class PriceChangeItem(BaseModel):
+    brand_product_id: typing.Union[UUID, str]
     retailer_name: str
     product_name: str
     price_diff: float
