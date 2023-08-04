@@ -127,7 +127,7 @@ class DataPageFilter(GlobalFilter):
     )
 
 
-class PagedGlobalFilter(DataPageFilter):
+class PaginationMixin(BaseModel):
     page_number: int = Field(
         description="The number of the currently requested page in the pagination system. Index is 1 based.",
         example=1,
@@ -135,7 +135,14 @@ class PagedGlobalFilter(DataPageFilter):
     page_size: int = Field(
         default=10, description="The number of results displayed per page.", example=10
     )
-    sorting: Optional[DataGridSorting]
 
     def get_products_offset(self):
         return (self.page_number - 1) * self.page_size
+
+
+class PagedGlobalFilter(DataPageFilter, PaginationMixin):
+    sorting: Optional[DataGridSorting]
+
+
+class PricingChangesFilter(GlobalFilter, PaginationMixin):
+    pass

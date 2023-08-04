@@ -7,7 +7,7 @@ from app import crud
 from app.crud.utils import process_historical_value_per_retailer
 from app.database import get_db
 from app.schemas.auth import TokenData
-from app.schemas.filters import GlobalFilter, PagedGlobalFilter
+from app.schemas.filters import GlobalFilter, PagedGlobalFilter, PricingChangesFilter
 from app.schemas.prices import (
     PriceTableData,
     HistoricalPerRetailerResponse,
@@ -86,7 +86,11 @@ def get_price_changes(
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
-    changes = crud.get_price_changes(db, global_filter, user.client)
+    changes = crud.get_price_changes(
+        db,
+        global_filter,
+        user.client,
+    )
 
     return {
         "changes": changes,

@@ -16,7 +16,12 @@ def convert_rows_to_dicts(rows: List[Row]) -> List[Dict]:
 
 
 def get_results_from_statement_with_filters(
-    db: Session, brand_id: str, global_filter: GlobalFilter, statement: str
+    db: Session,
+    brand_id: str,
+    global_filter: GlobalFilter,
+    statement: str,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
 ):
     result = db.execute(
         text(statement),
@@ -27,6 +32,8 @@ def get_results_from_statement_with_filters(
             "retailers": tuple(global_filter.retailers),
             "categories": tuple(global_filter.categories),
             "groups": tuple(global_filter.groups),
+            "limit": limit,
+            "offset": offset,
         },
     ).all()
 

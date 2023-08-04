@@ -234,7 +234,11 @@ def get_historical_wholesale_deviation_per_retailer(
     return get_results_from_statement_with_filters(db, brand_id, global_filter, query)
 
 
-def get_price_changes(db: Session, global_filter: GlobalFilter, brand_id: str):
+def get_price_changes(
+    db: Session,
+    global_filter: GlobalFilter,
+    brand_id: str,
+):
     query = f"""
         SELECT retailer_name, product_name, price_diff, brand_product_id
         FROM price_changes_matview pcm
@@ -248,7 +252,10 @@ def get_price_changes(db: Session, global_filter: GlobalFilter, brand_id: str):
                 if global_filter.groups else ""
             }
         ORDER BY ABS(price_diff) DESC
-        LIMIT 10;
+        LIMIT :limit
+        OFFSET :offset;
     """
 
-    return get_results_from_statement_with_filters(db, brand_id, global_filter, query)
+    return get_results_from_statement_with_filters(
+        db, brand_id, global_filter, query, limit=200
+    )
