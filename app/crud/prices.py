@@ -237,11 +237,12 @@ def get_historical_wholesale_deviation_per_retailer(
 def get_price_changes(db: Session, global_filter: GlobalFilter, brand_id: str):
     query = f"""
         SELECT retailer_name, product_name, price_diff, brand_product_id
-        FROM price_changes_matview
-        WHERE brand_id = :brand_id
+        FROM price_changes_matview pcm
+            JOIN retailer r ON r.id = pcm.retailer_id
+        WHERE brand_id = :brand_id AND r.status = 'success'
             {"AND brand_category_id IN :categories" if global_filter.categories else ""}
             {"AND country IN :countries" if global_filter.countries else ""}
-            {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND pcm.retailer_id IN :retailers" if global_filter.retailers else ""}
             {"AND brand_product_id IN " +
                 "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)"
                 if global_filter.groups else ""
