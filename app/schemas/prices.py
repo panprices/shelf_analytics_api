@@ -68,6 +68,7 @@ class PriceChangeItem(BaseModel):
     retailer_name: str
     product_name: str
     price_diff: float
+    sku: str
 
 
 class PriceChangeResponse(BaseModel):

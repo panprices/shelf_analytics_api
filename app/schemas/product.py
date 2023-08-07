@@ -323,7 +323,9 @@ class RetailerToBrandImageMatchScaffold(BaseModel):
 
 
 class BrandProductImageScaffold(GenericProductImageScaffold):
-    pass
+    is_obsolete: bool = Field(
+        description="Whether the image is obsolete or not", example=False
+    )
 
 
 class RetailerProductImageScaffold(GenericProductImageScaffold):
