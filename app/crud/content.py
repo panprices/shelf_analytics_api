@@ -48,7 +48,7 @@ def _get_historical_score(
             SELECT 
                 time, 
                 {score_field} as score
-            FROM product_matching_per_week_matview
+            FROM retailer_product_per_week_matview
             WHERE brand_id = :brand_id
                 AND time < date_trunc('week', now())
                 {"AND brand_category_id IN :categories" if global_filter.categories else ""}
@@ -76,7 +76,7 @@ def _get_historical_score_per_retailer(
                 retailer_name || ' ' || retailer_country as retailer,
                 time, 
                 {score_field} as score
-            FROM product_matching_per_week_matview
+            FROM retailer_product_per_week_matview
             WHERE brand_id = :brand_id
                 AND time < date_trunc('week', now())
                 {"AND brand_category_id IN :categories" if global_filter.categories else ""}
