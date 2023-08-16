@@ -240,7 +240,7 @@ def get_price_changes(
     brand_id: str,
 ):
     query = f"""
-        SELECT retailer_name, product_name, price_diff, brand_product_id, sku
+        SELECT retailer_name, product_name, price_diff, brand_product_id, sku, r.country as retailer_country
         FROM price_changes_matview pcm
             JOIN retailer r ON r.id = pcm.retailer_id
         WHERE brand_id = :brand_id AND r.status = 'success'
