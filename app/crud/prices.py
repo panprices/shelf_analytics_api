@@ -245,7 +245,7 @@ def get_price_changes(
             JOIN retailer r ON r.id = pcm.retailer_id
         WHERE brand_id = :brand_id AND r.status = 'success'
             {"AND brand_category_id IN :categories" if global_filter.categories else ""}
-            {"AND country IN :countries" if global_filter.countries else ""}
+            {"AND r.country IN :countries" if global_filter.countries else ""}
             {"AND pcm.retailer_id IN :retailers" if global_filter.retailers else ""}
             {"AND brand_product_id IN " +
                 "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)"
