@@ -74,3 +74,17 @@ class PriceChangeItem(BaseModel):
 
 class PriceChangeResponse(BaseModel):
     changes: List[PriceChangeItem]
+
+
+class RetailerPricingOverviewItem(BaseModel):
+    retailer_id: typing.Union[UUID, str]
+    retailer_name: str
+    retailer_country: str
+    products_count: int
+    cheapest_price_count: int
+    price_changed_count: int
+    average_market_price_deviation: float
+
+
+class RetailerPricingOverviewResponse(BaseModel):
+    rows: List[RetailerPricingOverviewItem]
