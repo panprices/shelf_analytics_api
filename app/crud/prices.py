@@ -259,3 +259,123 @@ def get_price_changes(
     return get_results_from_statement_with_filters(
         db, brand_id, global_filter, query, limit=200
     )
+
+
+def get_retailer_pricing_overview(
+    db: Session,
+    global_filter: GlobalFilter,
+    brand_id: str,
+):
+    query = f"""
+        -- Nr of products found last 1 day per retailer
+        WITH products_per_retailer AS (
+            SELECT 
+                r.id, 
+                r.name,
+                r.country,
+                count(*) AS nr_products
+            FROM retailer_product rp
+                JOIN product_matching pm ON rp.id = pm.retailer_product_id
+                JOIN brand_product bp ON bp.id = pm.brand_product_id
+                JOIN retailer r ON r.id = rp.retailer_id
+                JOIN brand b ON b.id = bp.brand_id
+                JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id 
+                                                AND rtbm.brand_id = b.id
+            WHERE b.id = :brand_id
+                AND fetched_at >= now()::date - interval '1 day'
+                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                {"AND r.country IN :countries" if global_filter.countries else ""}
+                {"AND r.id IN :retailers" if global_filter.retailers else ""}
+                {"AND bp.id IN " +
+                    "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)"
+                    if global_filter.groups else ""
+                }
+            GROUP BY r.id
+        -- Nr of products with price changed last 7 days
+        ), product_price_changed AS (
+            SELECT 
+                rp.id,
+                rp.retailer_id,
+                count(DISTINCT rpts.price) > 1 
+                    AS price_changed
+            FROM retailer_product rp
+                JOIN product_matching pm ON rp.id = pm.retailer_product_id
+                JOIN brand_product bp ON bp.id = pm.brand_product_id
+                JOIN brand b ON b.id = bp.brand_id
+                JOIN retailer_product_time_series rpts ON rpts.product_id = rp.id
+                JOIN retailer r ON r.id = rp.retailer_id
+            WHERE b.id = :brand_id
+                AND time >= now()::date - interval '7 days'
+                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                {"AND r.country IN :countries" if global_filter.countries else ""}
+                {"AND r.id IN :retailers" if global_filter.retailers else ""}
+                {"AND bp.id IN " +
+                    "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)"
+                    if global_filter.groups else ""
+                }
+            GROUP BY rp.id
+        ), products_with_price_changed_per_retailer AS (
+            SELECT 
+                r.id AS retailer_id,
+                count(*) AS nr_products_with_price_changed
+            FROM product_price_changed
+                JOIN retailer r ON product_price_changed.retailer_id = r.id
+            WHERE price_changed = TRUE
+            GROUP BY r.id
+        ),
+        -- Nr products with cheapest price per market (country)
+        market_price AS (
+            SELECT 
+                bp.id AS brand_product_id,
+                country,
+                currency,
+                min(rp.price) AS min_price
+            FROM retailer_product rp
+                JOIN product_matching pm ON rp.id = pm.retailer_product_id
+                JOIN brand_product bp ON bp.id = pm.brand_product_id
+                JOIN retailer r ON r.id = rp.retailer_id
+                JOIN brand b ON b.id = bp.brand_id
+                JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = b.id
+            WHERE b.id = :brand_id
+                AND fetched_at >= now()::date - interval '1 day'
+            GROUP BY bp.id, rp.currency, r.country
+        ), retailer_with_nr_cheapest_price AS (
+            SELECT 
+                r.id,
+                COUNT(*) AS nr_products_with_cheapest_price
+            FROM retailer_product rp
+                JOIN product_matching pm ON rp.id = pm.retailer_product_id
+                JOIN brand_product bp ON bp.id = pm.brand_product_id
+                JOIN retailer r ON r.id = rp.retailer_id
+                JOIN brand b ON b.id = bp.brand_id
+                JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = b.id
+                JOIN market_price ON market_price.brand_product_id = bp.id
+                                AND market_price.country = r.country
+            WHERE b.id = :brand_id
+                AND fetched_at >= now()::date - interval '1 day'
+                AND rp.price = market_price.min_price
+                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
+                {"AND r.country IN :countries" if global_filter.countries else ""}
+                {"AND r.id IN :retailers" if global_filter.retailers else ""}
+                {"AND bp.id IN " +
+                    "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)"
+                    if global_filter.groups else ""
+                }
+            GROUP BY r.id
+        )
+        SELECT 
+            r.id AS retailer_id,
+            r.name AS retailer_name,
+            r.country AS retailer_country,
+            r.nr_products AS products_count,
+            COALESCE(nr_products_with_cheapest_price, 0) AS cheapest_price_count,
+            COALESCE(nr_products_with_price_changed, 0) AS price_changed_count,
+            0 AS average_market_price_deviation -- TODO
+        FROM products_per_retailer r
+            LEFT JOIN products_with_price_changed_per_retailer
+                ON products_with_price_changed_per_retailer.retailer_id = r.id
+            LEFT JOIN retailer_with_nr_cheapest_price
+                ON retailer_with_nr_cheapest_price.id = r.id;
+    """
+
+    return get_results_from_statement_with_filters(db, brand_id, global_filter, query)

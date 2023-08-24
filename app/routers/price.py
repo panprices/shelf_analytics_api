@@ -12,6 +12,7 @@ from app.schemas.prices import (
     PriceTableData,
     HistoricalPerRetailerResponse,
     PriceChangeResponse,
+    RetailerPricingOverviewResponse,
 )
 from app.security import get_user_data
 from app.tags import TAG_DATA, TAG_PRICE
@@ -95,3 +96,22 @@ def get_price_changes(
     return {
         "changes": changes,
     }
+
+
+@router.post(
+    "/retailer_overview",
+    tags=[TAG_PRICE],
+    response_model=RetailerPricingOverviewResponse,
+)
+def get_retailer_pricing_overview(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    retailer_pricing = crud.get_retailer_pricing_overview(
+        db,
+        global_filter,
+        user.client,
+    )
+
+    return {"rows": retailer_pricing}
