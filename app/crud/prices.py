@@ -234,6 +234,28 @@ def get_historical_wholesale_deviation_per_retailer(
     return get_results_from_statement_with_filters(db, brand_id, global_filter, query)
 
 
+def get_historical_average_price_deviation_per_retailer(
+    db: Session, global_filter: GlobalFilter, brand_id: str
+):
+    query = f"""
+        SELECT retailer, time,
+            AVG(price_deviation) as average_price_deviation
+        FROM average_price_deviation_matview
+        WHERE brand_id = :brand_id
+            {"AND category_id IN :categories" if global_filter.categories else ""}
+            {"AND country IN :countries" if global_filter.countries else ""}
+            {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND brand_product_id IN " +
+                "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)"
+                if global_filter.groups else ""
+            }
+        GROUP BY retailer, time
+        ORDER BY time ASC;
+    """
+
+    return get_results_from_statement_with_filters(db, brand_id, global_filter, query)
+
+
 def get_price_changes(
     db: Session,
     global_filter: GlobalFilter,
