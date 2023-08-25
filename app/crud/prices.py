@@ -319,9 +319,7 @@ def get_retailer_pricing_overview(
         ), product_price_changed AS (
             SELECT 
                 rp.id,
-                rp.retailer_id,
-                count(DISTINCT rpts.price) > 1 
-                    AS price_changed
+                rp.retailer_id
             FROM retailer_product rp
                 JOIN product_matching pm ON rp.id = pm.retailer_product_id
                 JOIN brand_product bp ON bp.id = pm.brand_product_id
@@ -340,13 +338,13 @@ def get_retailer_pricing_overview(
                     if global_filter.groups else ""
                 }
             GROUP BY rp.id
-        ), products_with_price_changed_per_retailer AS (
+            HAVING count(DISTINCT rpts.price) > 1
+        ), retailer_with_nr_products_price_changed AS (
             SELECT 
                 r.id AS retailer_id,
                 count(*) AS nr_products_with_price_changed
             FROM product_price_changed
                 JOIN retailer r ON product_price_changed.retailer_id = r.id
-            WHERE price_changed = TRUE
             GROUP BY r.id
         ),
         -- Nr products with cheapest price per market (country)
@@ -434,8 +432,8 @@ def get_retailer_pricing_overview(
             COALESCE(nr_products_with_price_changed, 0) AS price_changed_count,
             average_market_price_deviation::decimal(10, 2)
         FROM products_per_retailer r
-            LEFT JOIN products_with_price_changed_per_retailer
-                ON products_with_price_changed_per_retailer.retailer_id = r.id
+            LEFT JOIN retailer_with_nr_products_price_changed
+                ON retailer_with_nr_products_price_changed.retailer_id = r.id
             LEFT JOIN retailer_with_nr_cheapest_price
                 ON retailer_with_nr_cheapest_price.id = r.id
             LEFT JOIN retailer_with_market_price_deviation
