@@ -112,3 +112,18 @@ class ProductGrouping(BaseModel):
     groups: List[NamedProductCategory] = Field(
         description="The list of groups defined by the client to be used for filtering",
     )
+
+
+class OverviewStatsResponse(BaseModel):
+    products_count: int = Field(
+        description="The number of products in the database for this client"
+    )
+    retailers_count: int = Field(
+        description="The number of retailers in the database for this client"
+    )
+    markets_count: int = Field(
+        description="The number of markets in the database for this client"
+    )
+    matches_count: int = Field(
+        description="The number of matches in the database for this client"
+    )
