@@ -1,5 +1,6 @@
 from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.crud import convert_rows_to_dicts
 from app.models import RetailerProduct, ProductMatching, ManualUrlMatching, MatchingTask
@@ -121,7 +122,16 @@ def get_matched_retailer_products_by_brand_product_id(
             JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = rp.retailer_id;
     """
 
-    return (
+    matched_images_statement = f"""
+        SELECT im.*
+        FROM image_matching im     
+            JOIN product_matching pm ON im.product_matching_id = pm.id
+            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+        WHERE pm.brand_product_id = :brand_product_id
+            AND rp.retailer_id = :retailer_id;
+    """
+
+    result = (
         db.query(RetailerProduct)
         .from_statement(text(statement))
         .params(brand_product_id=brand_product_id, retailer_id=retailer_id)
@@ -142,6 +152,30 @@ def get_matched_retailer_products_by_brand_product_id(
         )
         .all()
     )
+
+    matched_images = db.execute(
+        text(matched_images_statement),
+        params={
+            "brand_product_id": brand_product_id,
+            "retailer_id": retailer_id,
+        },
+    ).all()
+
+    matched_images = convert_rows_to_dicts(matched_images)
+
+    for retailer_product in result:
+        for image in retailer_product.processed_images:
+            set_committed_value(
+                image,
+                "matched_brand_images",
+                [
+                    matched_image
+                    for matched_image in matched_images
+                    if matched_image["retailer_image_id"] == image.id
+                ],
+            )
+
+    return result
 
 
 def submit_product_matching_selection(
