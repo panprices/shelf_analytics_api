@@ -2,6 +2,7 @@ from typing import List
 
 from sqlalchemy import Column, String, ForeignKey, Boolean, Float
 from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -53,6 +54,7 @@ class BrandImage(Base, UUIDPrimaryKeyMixin, ImageMixin):
 
     is_obsolete = Column(Boolean)
     brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
+    temp_wrong = Column(Boolean)
 
     product = relationship("BrandProduct", back_populates="images")
     matched_retailer_images = relationship(
@@ -128,3 +130,7 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     keywords: List[BrandKeywords] = relationship(
         "BrandKeywords", back_populates="product"
     )
+
+    @hybrid_property
+    def processed_images(self):
+        return [i for i in self.images if i.image_hash is not None and not i.temp_wrong]
