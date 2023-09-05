@@ -118,6 +118,7 @@ def get_matched_retailer_products_by_brand_product_id(
             WHERE brand_product_id = :brand_product_id
                 AND certainty >= 'auto_low_confidence_skipped'
                 AND certainty < 'auto_high_confidence'
+                AND temp_wrong = FALSE
         ) pm ON rp.id = pm.retailer_product_id
             JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = rp.retailer_id;
     """
