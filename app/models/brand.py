@@ -89,6 +89,12 @@ class MSRP(Base):
 
     brand_product = relationship("BrandProduct", back_populates="msrp")
 
+    @hybrid_property
+    def price_standard(self):
+        if not self.price:
+            return self.price
+        return self.price / 100
+
 
 class MockBrandProductWithMarketPrices(Base):
     __tablename__ = "mock_brand_product_with_market_prices"

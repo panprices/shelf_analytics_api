@@ -8,6 +8,7 @@ from app.models import (
     RetailerProductHistory,
     RetailerProduct,
     MockBrandProductWithMarketPrices,
+    MSRP,
 )
 from app.schemas.filters import GlobalFilter, PagedGlobalFilter
 
@@ -442,3 +443,10 @@ def get_retailer_pricing_overview(
     """
 
     return get_results_from_statement_with_filters(db, brand_id, global_filter, query)
+
+
+def get_product_msrp(
+    db: Session,
+    brand_product_id: str,
+):
+    return db.query(MSRP).filter(MSRP.brand_product_id == brand_product_id).all()

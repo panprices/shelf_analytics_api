@@ -15,7 +15,7 @@ from app.crud.utils import (
 from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import PagedGlobalFilter, GlobalFilter, DataPageFilter
-from app.schemas.prices import HistoricalPerRetailerResponse
+from app.schemas.prices import HistoricalPerRetailerResponse, MSRPValueResponse
 from app.schemas.product import (
     ProductPage,
     BrandProductScaffold,
@@ -173,3 +173,24 @@ def get_historical_prices_for_brand_product(
         "max_value": max_value,
         "minimal_values": minimal_values,
     }
+
+
+@router.post(
+    "/brand/{brand_product_id}/msrp",
+    tags=[TAG_DATA],
+    response_model=MSRPValueResponse,
+)
+def get_product_msrp(
+    brand_product_id: str,
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Must be authenticated"
+        )
+
+    result = crud.get_product_msrp(db, brand_product_id)
+
+    return {"msrp_values": result}

@@ -88,3 +88,16 @@ class RetailerPricingOverviewItem(BaseModel):
 
 class RetailerPricingOverviewResponse(BaseModel):
     rows: List[RetailerPricingOverviewItem]
+
+
+class MSRPValueItem(BaseModel):
+    price_standard: float
+    currency: str
+    country: str
+
+    class Config:
+        orm_mode = True
+
+
+class MSRPValueResponse(BaseModel):
+    msrp_values: List[MSRPValueItem]
