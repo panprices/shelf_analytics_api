@@ -109,6 +109,7 @@ class MockBrandProductWithMarketPrices(Base):
     msrp_currency = Column(String)
     msrp_country = Column(String, primary_key=True)
     msrp_client_currency = Column(Float)
+    client_currency = Column(String)
     image_id = Column(UUID(as_uuid=True))
     image_url = Column(String)
     offers = Column(JSONB)

@@ -48,6 +48,7 @@ class PriceTableRowScaffold(BaseModel):
     image_url: Optional[str]
     msrp_standard: Optional[float]
     msrp_client_currency: Optional[float]
+    client_currency: str
     msrp_currency: Optional[str]
     msrp_country: Optional[str]
     offers: List[RetailerProductPriceInMarket]
