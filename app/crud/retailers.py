@@ -1,7 +1,7 @@
 from typing import List, Dict, Optional
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, selectinload, subqueryload
 
 from app.crud.utils import convert_rows_to_dicts
 from app.models import (
@@ -116,28 +116,31 @@ def get_retailer_products_for_brand_product(
     :param brand_id:
     :return:
     """
+
+    filter_on_product_group_statement = """
+        AND matched_brand_product_id IN (
+            SELECT product_id 
+            FROM product_group_assignation pga 
+            WHERE pga.product_group_id IN :groups
+        )
+    """
+
     statement = f"""
-        select * from (
-            select pm.*, 
-                rank() over (
-                    partition by r.id ORDER BY date_trunc('week', rp.fetched_at) DESC
-                ) as "rank"
-            from product_matching pm 
-                join brand_product bp on bp.id = pm.brand_product_id
-                join retailer_product rp on pm.retailer_product_id = rp.id
-                join retailer r on r.id = rp.retailer_id
-                JOIN retailer_to_brand_mapping rtbm on rtbm.retailer_id = r.id AND rtbm.brand_id = bp.brand_id
-                LEFT JOIN product_group_assignation pga on pga.product_id = bp.id
-            where bp.id = :brand_product_id
-                AND pm.certainty >= 'auto_high_confidence'
-                AND bp.brand_id = :brand_id
-                AND NOT rtbm.shallow
-                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-                {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
-                {"AND r.country IN :countries" if global_filter.countries else ""}
-                {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
-        ) ranked_matches
-        where ranked_matches.rank = 1
+        select DISTINCT pm.*
+        from product_matching pm 
+            JOIN (
+                SELECT id, matched_brand_product_id
+                FROM retailer_product_including_unavailable_matview
+                WHERE matched_brand_product_id = :brand_product_id
+                    AND available_at_retailer = true
+                    AND brand_id = :brand_id
+                    AND retailer_images_count > 0
+                    {"AND brand_category_id IN :categories" if global_filter.categories else ""}
+                    {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
+                    {"AND country IN :countries" if global_filter.countries else ""}
+                    {filter_on_product_group_statement if global_filter.groups else ""}
+            ) rp on pm.retailer_product_id = rp.id 
+                AND rp.matched_brand_product_id = pm.brand_product_id
     """
 
     return (
