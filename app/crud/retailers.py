@@ -80,7 +80,7 @@ def get_categories_split(
     )
 
     statement = f"""
-        SELECT *
+        SELECT *, COALESCE(brand_id = :brand_id, False) AS is_current_customer
         FROM categories_split
         WHERE category_id IN (
             SELECT DISTINCT category_id 
@@ -88,7 +88,7 @@ def get_categories_split(
             WHERE brand_id = :brand_id
           ) AND retailer_id = :retailer_id
         {brand_category_filter}
-        ORDER BY is_customer DESC NULLS LAST
+        ORDER BY is_current_customer DESC NULLS LAST
     """
     rows = db.execute(
         text(statement),
