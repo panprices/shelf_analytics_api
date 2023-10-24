@@ -18,7 +18,8 @@ def get_historical_in_stock(
         FROM product_stock_time_series pmts
             {"LEFT JOIN product_group_assignation pga ON pga.product_id = pmts.id" if global_filter.groups else ""}
             JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = pmts.retailer_id AND rtbm.brand_id = pmts.brand_id
-        where pmts.brand_id = :brand_id 
+        WHERE pmts.brand_id = :brand_id 
+            AND time >= :start_date
             AND NOT rtbm.shallow
             {"AND category_id IN :categories" if global_filter.categories else ""}
             {"AND rtbm.retailer_id in :retailers" if global_filter.retailers else ""}
