@@ -275,6 +275,8 @@ def get_historical_visibility_average(
                     ON rtbm.retailer_id = scraped_brand_product_in_stock_per_retailer.retailer_id 
                         AND rtbm.brand_id = scraped_brand_product_in_stock_per_retailer.brand_id
             WHERE rtbm.brand_id = :brand_id
+                AND date >= :start_date
+                AND date < date_trunc('week', now())::date
                 AND NOT rtbm.shallow
                 {"AND category_id IN :categories" if global_filter.categories else ""}
                 {"AND rtbm.retailer_id in :retailers" if global_filter.retailers else ""}
@@ -289,6 +291,8 @@ def get_historical_visibility_average(
             SELECT date, COUNT(DISTINCT id) AS full_count
             FROM brand_product_in_stock
             WHERE brand_id = :brand_id
+                AND date >= :start_date
+                AND date < date_trunc('week', now())::date
                 {"AND category_id IN :categories" if global_filter.categories else ""}
                 {'''AND brand_product_in_stock.id in (
                     SELECT DISTINCT product_id
@@ -304,8 +308,6 @@ def get_historical_visibility_average(
                 retailer_id
             FROM scraped_brand_product_in_stock_per_retailer_grouped
                 JOIN brand_product_in_stock_grouped USING (date)
-            -- Only present data up to last week:
-            WHERE date < date_trunc('week', now())::date
             ORDER BY date ASC
         )
         SELECT
