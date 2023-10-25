@@ -21,17 +21,18 @@ def get_overview_stats(db: Session, brand_id: str, global_filter: GlobalFilter):
             ) AS products_count,
             COUNT(DISTINCT retailer_id) AS retailers_count,
             COUNT(DISTINCT country) AS markets_count,
-            COUNT(DISTINCT retailer_product_id) AS matches_count
-        FROM product_matching_matview
+            COUNT(id) AS matches_count
+        FROM retailer_product_including_unavailable_matview
         WHERE brand_id = :brand_id
+            AND available_at_retailer = TRUE
             {"AND country IN :countries" if global_filter.countries else ""}
             {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
-            {"AND brand_product_category_id IN :categories" if global_filter.categories else ""}
+            {"AND brand_category_id IN :categories" if global_filter.categories else ""}
             {
-                "AND brand_product_id IN (SELECT product_id FROM product_group_assignation WHERE product_group_id IN :groups)"
+                "AND matched_brand_product_id IN (SELECT product_id FROM product_group_assignation WHERE product_group_id IN :groups)"
                 if global_filter.groups
                 else ""
-            }
+            };
     """
 
     return get_results_from_statement_with_filters(db, brand_id, global_filter, query)[
