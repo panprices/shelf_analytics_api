@@ -158,7 +158,7 @@ def extract_minimal_values(retailers: List[Dict[str, any]]):
 
 def process_historical_value_per_retailer(
     history, value_label: str = "score", force_two_points: bool = True
-):
+) -> dict:
     """
     Process the historical value per retailer
 
@@ -204,3 +204,13 @@ def process_historical_value_per_retailer(
     )
 
     return {"retailers": retailers, "max_value": max_value, "min_value": min_value}
+
+
+def duplicate_unique_points(grouped_history: dict) -> dict:
+    for r in grouped_history["retailers"]:
+        if len(r["data"]) == 1:
+            r["data"].insert(
+                0, {**r["data"][0], "x": r["data"][0]["x"] - timedelta(days=7)}
+            )
+
+    return grouped_history

@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends
 from requests import Session
 
 from app import crud
-from app.crud.utils import process_historical_value_per_retailer
+from app.crud.utils import (
+    process_historical_value_per_retailer,
+    duplicate_unique_points,
+)
 from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter, PagedGlobalFilter, PricingChangesFilter
@@ -53,13 +56,7 @@ def get_historical_msrp_deviation_per_retailer(
         history, "average_price_deviation", False
     )
 
-    for r in grouped_history["retailers"]:
-        if len(r["data"]) == 1:
-            r["data"].insert(
-                0, {**r["data"][0], "x": r["data"][0]["x"] - timedelta(days=7)}
-            )
-
-    return grouped_history
+    return duplicate_unique_points(grouped_history)
 
 
 @router.post(
@@ -76,9 +73,10 @@ def get_historical_wholesale_deviation_per_retailer(
         db, global_filter, user.client
     )
 
-    return process_historical_value_per_retailer(
+    grouped_history = process_historical_value_per_retailer(
         history, "average_price_deviation", False
     )
+    return duplicate_unique_points(grouped_history)
 
 
 @router.post(
@@ -95,9 +93,10 @@ def get_historical_average_price_deviation_per_retailer(
         db, global_filter, user.client
     )
 
-    return process_historical_value_per_retailer(
+    grouped_history = process_historical_value_per_retailer(
         history, "average_price_deviation", False
     )
+    return duplicate_unique_points(grouped_history)
 
 
 @router.post("/changes", tags=[TAG_PRICE], response_model=PriceChangeResponse)
