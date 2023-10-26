@@ -205,6 +205,7 @@ def invalidate_product_matching_selection(
         ProductMatching.brand_product_id == brand_product_id,
         ProductMatching.retailer_product_id == RetailerProduct.id,
         RetailerProduct.retailer_id == retailer_id,
+        ProductMatching.certainty >= "auto_low_confidence_skipped",
     ).update({"certainty": certainty}, synchronize_session="fetch")
 
     db.commit()
