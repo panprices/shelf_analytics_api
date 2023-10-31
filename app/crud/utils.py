@@ -22,6 +22,7 @@ def get_results_from_statement_with_filters(
     statement: str,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
+    extra_params: Optional[Dict] = None,
 ):
     result = db.execute(
         text(statement),
@@ -34,6 +35,7 @@ def get_results_from_statement_with_filters(
             "groups": tuple(global_filter.groups),
             "limit": limit,
             "offset": offset,
+            **(extra_params or {}),
         },
     ).all()
 

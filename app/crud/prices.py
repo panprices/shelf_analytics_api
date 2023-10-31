@@ -455,3 +455,72 @@ def get_product_msrp(
     brand_product_id: str,
 ):
     return db.query(MSRP).filter(MSRP.brand_product_id == brand_product_id).all()
+
+
+def get_comparison_products(db, global_filter, brand_product_id, brand_id):
+    query = """
+        SELECT AVG(
+                CASE
+                    WHEN rp.currency = b.default_currency THEN rp.price
+                    ELSE rp.price * rc.to_sek / dc.to_sek
+                END / 100
+           ) as market_average, bi.url as image_url, bp.name, true as is_client
+        FROM brand_product bp
+            JOIN product_matching pm ON pm.brand_product_id = bp.id
+            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+            JOIN retailer r ON rp.retailer_id = r.id
+            JOIN brand b ON bp.brand_id = b.id
+            JOIN LATERAL (
+                SELECT * FROM currency WHERE currency.name = b.default_currency LIMIT 1
+            ) dc ON true
+            JOIN LATERAL (
+                SELECT * FROM currency WHERE currency.name = rp.currency LIMIT 1
+            ) rc ON true
+            LEFT JOIN LATERAL (
+                SELECT *
+                FROM brand_image
+                WHERE brand_product_id = bp.id
+                ORDER BY processed DESC
+                LIMIT 1
+            ) bi ON true
+        WHERE bp.id = :brand_product_id
+            AND bp.brand_id = :brand_id
+            AND pm.certainty >= 'auto_high_confidence'
+            AND rp.fetched_at >= date_trunc('week', now()) - '1 week'::interval
+        GROUP BY bi.url, bp.name
+        UNION ALL
+        SELECT  AVG(
+                CASE
+                    WHEN rp.currency = b.default_currency THEN rp.price
+                    ELSE rp.price * rc.to_sek / dc.to_sek
+                END / 100
+           ) as market_average, cp.image_url, cp.name, false as is_client
+        FROM brand_product bp
+            JOIN comparison_to_brand_product ctbp ON bp.id = ctbp.brand_product_id
+            JOIN comparison_product cp ON cp.id = ctbp.comparison_product_id
+            JOIN comparison_product_matching cpm ON cpm.comparison_product_id = cp.id
+            JOIN retailer_product rp ON rp.id = cpm.retailer_product_id
+            JOIN retailer r ON rp.retailer_id = r.id
+            JOIN brand b ON bp.brand_id = b.id
+            JOIN LATERAL (
+                SELECT * FROM currency WHERE currency.name = b.default_currency LIMIT 1
+            ) dc ON true
+            JOIN LATERAL (
+                SELECT * FROM currency WHERE currency.name = rp.currency LIMIT 1
+            ) rc ON true
+        WHERE bp.id = :brand_product_id
+            AND bp.brand_id = :brand_id
+            AND cpm.certainty >= 'auto_high_confidence'
+            AND rp.fetched_at >= date_trunc('week', now()) - '1 week'::interval
+        GROUP BY cp.image_url, cp.name;
+    """
+
+    return get_results_from_statement_with_filters(
+        db,
+        brand_id,
+        global_filter,
+        query,
+        extra_params={
+            "brand_product_id": brand_product_id,
+        },
+    )

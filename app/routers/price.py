@@ -16,6 +16,7 @@ from app.schemas.prices import (
     HistoricalPerRetailerResponse,
     PriceChangeResponse,
     RetailerPricingOverviewResponse,
+    ComparisonProductsResponse,
 )
 from app.security import get_user_data
 from app.tags import TAG_DATA, TAG_PRICE
@@ -133,3 +134,24 @@ def get_retailer_pricing_overview(
     )
 
     return {"rows": retailer_pricing}
+
+
+@router.post(
+    "/{brand_product_id}/comparison",
+    tags=[TAG_PRICE, TAG_DATA],
+    response_model=ComparisonProductsResponse,
+)
+def get_comparison_products(
+    global_filter: GlobalFilter,
+    brand_product_id: str,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    comparison_products = crud.get_comparison_products(
+        db,
+        global_filter,
+        brand_product_id,
+        user.client,
+    )
+
+    return {"products": comparison_products}

@@ -102,3 +102,14 @@ class MSRPValueItem(BaseModel):
 
 class MSRPValueResponse(BaseModel):
     msrp_values: List[MSRPValueItem]
+
+
+class ComparisonProductItem(BaseModel):
+    market_average: float
+    image_url: str
+    name: str
+    is_client: bool
+
+
+class ComparisonProductsResponse(BaseModel):
+    products: List[ComparisonProductItem]
