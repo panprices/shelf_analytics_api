@@ -70,7 +70,7 @@ class PriceChangeItem(BaseModel):
     retailer_country: str
     product_name: str
     price_diff: float
-    sku: str
+    sku: Optional[str]
 
 
 class PriceChangeResponse(BaseModel):
