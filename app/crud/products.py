@@ -342,18 +342,16 @@ def count_available_products_by_retailers(
         WITH scraped_brand_product_in_stock_per_retailer_grouped AS (
             SELECT
                 retailer_id,
-                COUNT(DISTINCT brand_product_id) AS visible_count
-            FROM
-                retailer_product_per_week_matview
+                COUNT(DISTINCT matched_brand_product_id) AS visible_count
+            FROM retailer_product_including_unavailable_matview
             WHERE
                 brand_id = :brand_id
-                AND brand_product_availability = 'in_stock'
-                AND time < date_trunc('week', now())::date
-                AND time >= date_trunc('week', now())::date - interval '1 week'
+                AND brand_in_stock = TRUE
+                AND fetched_at >= date_trunc('week', now())::date - interval '1 week'
                 {"AND brand_category_id IN :categories" if global_filter.categories else ""}
                 {"AND retailer_id in :retailers" if global_filter.retailers else ""}
-                {"AND retailer_country in :countries" if global_filter.countries else ""}
-                {'''AND brand_product_id IN 
+                {"AND country in :countries" if global_filter.countries else ""}
+                {'''AND matched_brand_product_id IN 
                     (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)''' 
                     if global_filter.groups else ""
                 }
@@ -364,10 +362,9 @@ def count_available_products_by_retailers(
                 bp.category_id,
                 bp.brand_id
             FROM brand_product bp
-                JOIN brand_product_time_series bpts ON bpts.product_id = bp.id
-            WHERE bpts.availability = 'in_stock'
-                AND time < date_trunc('week', now())::date
-                AND time >= date_trunc('week', now())::date - interval '1 week'
+            WHERE bp.availability = 'in_stock'
+                AND brand_id = :brand_id
+                AND active = TRUE
         ),
         brand_product_in_stock_grouped AS (
             SELECT
