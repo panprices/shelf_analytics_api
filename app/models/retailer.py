@@ -52,6 +52,7 @@ class Retailer(Base, UUIDPrimaryKeyMixin):
     url = Column(String)
     country = Column(String, ForeignKey("country_to_language.country"))
     status = Column(Enum(RetailerStatus))
+    retailer_specific_language = Column(String)
 
     brands = relationship("RetailerBrandAssociation", back_populates="retailer")
     categories = relationship("RetailerCategory", back_populates="retailer")

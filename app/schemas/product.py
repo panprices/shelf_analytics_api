@@ -386,8 +386,8 @@ class BrandProductMatchesScaffold(BaseModel):
 
 class BrandKeywordsScaffold(BaseModel):
     title_keywords: List[List[str]] = Field(description="The actual list of keywords")
-    description_keywords: List[List[str]] = Field(
-        description="The actual list of keywords"
+    description_keywords: Optional[List[List[str]]] = Field(
+        description="The actual list of keywords",
     )
     specs_keywords: Optional[List[List[str]]] = Field(
         description="The actual list of keywords"

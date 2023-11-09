@@ -58,6 +58,9 @@ class FilterRetailer(NamedRetailer):
 
 
 class RetailerForProduct(NamedRetailer):
+    retailer_specific_language: Optional[str] = Field(
+        description="Overwrites the language of the country for this retailer"
+    )
     country_to_language: CountryToLanguageScaffold = Field(
         description="The language available for the retailer's country"
     )
