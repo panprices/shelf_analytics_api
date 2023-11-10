@@ -24,7 +24,7 @@ class GlobalFilter(BaseModel):
     Retailers and categories are passed by their literal values (as returned by this API).
     """
 
-    start_date: datetime = Field(description="Test description", example="15/10/2022")
+    start_date: datetime = Field(description="Test description", example="2022-09-01")
     countries: List[str] = Field(
         description="The list of desired countries. If no country is specified all countries are considered.",
         example=[],

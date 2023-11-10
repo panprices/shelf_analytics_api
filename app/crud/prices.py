@@ -204,6 +204,7 @@ def get_historical_msrp_deviation_per_retailer(
             AVG(price_deviation) as average_price_deviation
         FROM msrp_deviation_matview
         WHERE brand_id = :brand_id
+            AND time >= :start_date
             {"AND category_id IN :categories" if global_filter.categories else ""}
             {"AND country IN :countries" if global_filter.countries else ""}
             {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
@@ -226,6 +227,7 @@ def get_historical_wholesale_deviation_per_retailer(
             AVG(price_deviation) as average_price_deviation
         FROM wholesale_deviation_matview
         WHERE brand_id = :brand_id
+            AND time >= :start_date
             {"AND category_id IN :categories" if global_filter.categories else ""}
             {"AND country IN :countries" if global_filter.countries else ""}
             {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
@@ -248,6 +250,7 @@ def get_historical_average_price_deviation_per_retailer(
             AVG(price_deviation) as average_price_deviation
         FROM average_price_deviation_matview
         WHERE brand_id = :brand_id
+            AND time >= :start_date
             {"AND category_id IN :categories" if global_filter.categories else ""}
             {"AND country IN :countries" if global_filter.countries else ""}
             {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
