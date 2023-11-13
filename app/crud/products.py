@@ -211,6 +211,7 @@ def get_historical_visibility(db: Session, brand_id: str, global_filter: GlobalF
                         AND rtbm.brand_id = scraped_brand_product.brand_id
                 WHERE brand_product_in_stock.brand_id = :brand_id
                     AND NOT rtbm.shallow
+                    AND scraped_brand_product.date >= :start_date
                     {"AND scraped_brand_product.category_id IN :categories" if global_filter.categories else ""}
                     {"AND scraped_brand_product.retailer_id in :retailers" if global_filter.retailers else ""}
                     {"AND scraped_brand_product.country in :countries" if global_filter.countries else ""}

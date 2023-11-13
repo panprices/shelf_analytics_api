@@ -45,6 +45,7 @@ def get_historical_prices_by_retailer_for_brand_product(
                     AND bp.brand_id = :brand_id
                     AND rpts.availability <> 'out_of_stock'
                     AND pm.certainty >= 'auto_high_confidence'
+                    AND rpts.time >= :start_date
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
                     {"AND r.country IN :countries" if global_filter.countries else ""}
@@ -89,6 +90,7 @@ def get_historical_prices_by_retailer_for_brand_product(
             countries=tuple(global_filter.countries),
             groups=tuple(global_filter.groups),
             brand_id=brand_id,
+            start_date=global_filter.start_date,
         )
         .options(
             selectinload(RetailerProductHistory.product).selectinload(
