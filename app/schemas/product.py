@@ -91,6 +91,9 @@ class MockRetailerProductGridItem(BaseModel):
     transparent_images_count: int = Field(
         description="The number of transparent images shown for the product", example=3
     )
+    obsolete_images_count: int = Field(
+        description="The number of obsolete images shown for the product", example=1
+    )
     sku: Optional[str] = Field(
         description="The SKU from the retailer", example="16052-101"
     )

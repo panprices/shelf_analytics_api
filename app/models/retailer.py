@@ -175,6 +175,7 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     image_score = Column(Float)
     content_score = Column(Float)
     transparent_images_count = Column(Integer)
+    obsolete_images_count = Column(Integer)
     environmental_images_count = Column(Integer)
     wholesale_price = Column(Float)
     in_stock = Column(Boolean)
