@@ -1,5 +1,7 @@
 .benchmarks/
 .env*
+# Keep this for an example env
+!.env.example
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
