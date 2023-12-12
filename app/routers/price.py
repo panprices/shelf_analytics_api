@@ -103,14 +103,11 @@ def get_historical_average_price_deviation_per_retailer(
 @router.post("/changes", tags=[TAG_PRICE], response_model=PriceChangeResponse)
 def get_price_changes(
     global_filter: GlobalFilter,
+    sign: int,
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
-    changes = crud.get_price_changes(
-        db,
-        global_filter,
-        user.client,
-    )
+    changes = crud.get_price_changes(db, global_filter, user.client, sign)
 
     return {
         "changes": changes,

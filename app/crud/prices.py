@@ -271,6 +271,7 @@ def get_price_changes(
     db: Session,
     global_filter: GlobalFilter,
     brand_id: str,
+    sign: int,
 ):
     query = f"""
         SELECT retailer_name, product_name, price_diff, brand_product_id, sku, r.country as retailer_country
@@ -284,13 +285,14 @@ def get_price_changes(
                 "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)"
                 if global_filter.groups else ""
             }
+            AND price_diff * :sign >= 0
         ORDER BY ABS(price_diff) DESC
         LIMIT :limit
         OFFSET :offset;
     """
 
     return get_results_from_statement_with_filters(
-        db, brand_id, global_filter, query, limit=200
+        db, brand_id, global_filter, query, limit=200, extra_params={"sign": sign}
     )
 
 
