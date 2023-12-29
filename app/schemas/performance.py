@@ -39,3 +39,21 @@ class RetailersCategoryPerformanceDetails(BaseModel):
     categories: Dict[
         Union[str, uuid.UUID], IndividualRetailerCategoryPerformanceDetails
     ] = Field(description="A dict where the key is the retailer id")
+
+
+class IndividualCategoryBracketDetails(BaseModel):
+    n: int
+    customer_products_count: int
+    customer_products_percentage: float
+
+
+class IndividualRetailerCategoryTopNDetails(BaseModel):
+    category_name: str = Field(description="The name of the category")
+    category_id: Union[str, uuid.UUID] = Field(description="The id of the category")
+    brackets: List[IndividualCategoryBracketDetails] = Field(
+        description="A list of brackets"
+    )
+
+
+class RetailerCategoryPerformanceTopN(BaseModel):
+    categories: List[IndividualRetailerCategoryTopNDetails]

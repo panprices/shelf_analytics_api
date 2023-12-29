@@ -198,3 +198,49 @@ def get_individual_category_performance_details(db: Session, categories: List[st
     ).fetchall()
 
     return convert_rows_to_dicts(rows)
+
+
+def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilter):
+    statement = f"""
+        SELECT rc.id,
+            COALESCE(
+                (
+                    SELECT string_agg(value::json ->> 'name', ' > ') FROM json_array_elements_text(category_tree)
+                ),
+                'No category'
+            ) as category_name,
+            COUNT(DISTINCT bp.id) AS product_count,
+            max_popularity_index.value as full_category_count,
+            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 10) AS product_count_top_10,
+            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 20) AS product_count_top_20,
+            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 40) AS product_count_top_40,
+            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 100) AS product_count_top_100
+        FROM retailer_product rp
+            JOIN retailer_category rc ON rp.popularity_category_id = rc.id
+            JOIN product_matching pm ON pm.retailer_product_id = rp.id
+            JOIN brand_product bp ON pm.brand_product_id = bp.id
+            JOIN LATERAL (
+                SELECT MAX(popularity_index) as value
+                FROM retailer_product
+                WHERE popularity_category_id = rc.id
+            ) AS max_popularity_index ON TRUE
+            {'JOIN product_group_assignation pga ON pga.product_id = bp.id' if global_filter.groups else ''}
+        WHERE bp.brand_id = :brand_id
+            AND rc.retailer_id = :retailer_id
+            {'AND bp.category_id IN :categories' if global_filter.categories else ''}
+            {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
+        GROUP BY rc.id, max_popularity_index.value
+        ORDER BY product_count DESC
+    """
+
+    return convert_rows_to_dicts(
+        db.execute(
+            statement,
+            {
+                "brand_id": brand_id,
+                "categories": tuple(global_filter.categories),
+                "retailer_id": global_filter.retailers[0],
+                "groups": tuple(global_filter.groups),
+            },
+        ).fetchall()
+    )

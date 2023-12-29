@@ -12,6 +12,7 @@ from app.schemas.performance import (
     RetailerPerformance,
     RetailersCategoryPerformanceDetails,
     IndividualRetailerCategoryPerformanceDetails,
+    RetailerCategoryPerformanceTopN,
 )
 from app.security import get_user_data
 from app.tags import TAG_PERFORMANCE, TAG_DATA
@@ -69,4 +70,49 @@ async def get_performance_for_categories(
             c["id"]: IndividualRetailerCategoryPerformanceDetails(**c)
             for c in categories_performance_details
         }
+    }
+
+
+@router.post(
+    "/top_n",
+    tags=[TAG_PERFORMANCE],
+    response_model=RetailerCategoryPerformanceTopN,
+)
+async def get_category_top_n(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    if len(global_filter.retailers) == 0:
+        return {"categories": []}
+
+    top_n_raw = crud.get_top_n_performance(db, user.client, global_filter)
+
+    return {
+        "categories": [
+            {
+                "category_id": c["id"],
+                "category_name": c["category_name"],
+                "brackets": [
+                    {
+                        "n": n,
+                        "customer_products_count": c[f"product_count_top_{n}"],
+                        "customer_products_percentage": c[f"product_count_top_{n}"]
+                        / n
+                        * 100,
+                    }
+                    for n in [10, 20, 40, 100]
+                ]
+                + [
+                    {
+                        "n": c["full_category_count"],
+                        "customer_products_count": c["product_count"],
+                        "customer_products_percentage": (
+                            c["product_count"] / c["full_category_count"] * 100
+                        ),
+                    }
+                ],
+            }
+            for c in top_n_raw
+        ]
     }
