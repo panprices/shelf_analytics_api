@@ -50,6 +50,9 @@ class IndividualCategoryBracketDetails(BaseModel):
 class IndividualRetailerCategoryTopNDetails(BaseModel):
     category_name: str = Field(description="The name of the category")
     category_id: Union[str, uuid.UUID] = Field(description="The id of the category")
+    category_total_count: int = Field(
+        description="The total number of products in the category"
+    )
     brackets: List[IndividualCategoryBracketDetails] = Field(
         description="A list of brackets"
     )

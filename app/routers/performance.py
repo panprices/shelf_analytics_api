@@ -93,13 +93,13 @@ async def get_category_top_n(
             {
                 "category_id": c["id"],
                 "category_name": c["category_name"],
+                "category_total_count": c["full_category_count"],
                 "brackets": [
                     {
                         "n": n,
                         "customer_products_count": c[f"product_count_top_{n}"],
                         "customer_products_percentage": c[f"product_count_top_{n}"]
-                        / n
-                        * 100,
+                        / min(n, c["full_category_count"]),
                     }
                     for n in [10, 20, 40, 100]
                 ]
@@ -108,7 +108,7 @@ async def get_category_top_n(
                         "n": c["full_category_count"],
                         "customer_products_count": c["product_count"],
                         "customer_products_percentage": (
-                            c["product_count"] / c["full_category_count"] * 100
+                            c["product_count"] / c["full_category_count"]
                         ),
                     }
                 ],
