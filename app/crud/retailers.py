@@ -209,7 +209,7 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                 ),
                 'No category'
             ) as category_name,
-            COUNT(DISTINCT bp.id) AS product_count,
+            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index IS NOT NULL) AS product_count,
             max_popularity_index.value as full_category_count,
             COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 10) AS product_count_top_10,
             COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 20) AS product_count_top_20,
@@ -227,6 +227,7 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
             {'JOIN product_group_assignation pga ON pga.product_id = bp.id' if global_filter.groups else ''}
         WHERE bp.brand_id = :brand_id
             AND rc.retailer_id = :retailer_id
+            AND max_popularity_index.value IS NOT NULL
             {'AND bp.category_id IN :categories' if global_filter.categories else ''}
             {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
         GROUP BY rc.id, max_popularity_index.value
