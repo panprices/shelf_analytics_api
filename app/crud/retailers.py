@@ -234,7 +234,7 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
         ORDER BY product_count DESC
     """
 
-    return convert_rows_to_dicts(
+    result = convert_rows_to_dicts(
         db.execute(
             statement,
             {
@@ -245,3 +245,14 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
             },
         ).fetchall()
     )
+
+    # HARD CODE to remove Louis Polsen categories from the result.
+    # Only for the PoC. Delete this by 2024-03-01.
+    if global_filter.retailers[0] == "9a4e566a-fb8f-4250-9986-6d0dc945d714":
+        result = [
+            category
+            for category in result
+            if "Louis Poulsen >" not in category["category_name"]
+        ]
+
+    return result
