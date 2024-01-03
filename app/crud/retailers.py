@@ -100,7 +100,16 @@ def get_categories_split(
         },
     ).fetchall()
 
-    return convert_rows_to_dicts(rows)
+    result = convert_rows_to_dicts(rows)
+    # HARD CODE to remove Louis Polsen categories from the result.
+    # Only for the PoC. Delete this by 2024-03-01.
+    result = [
+        category
+        for category in result
+        if "Louis Poulsen >" not in category["category_name"]
+    ]
+
+    return result
 
 
 def get_retailer_products_for_brand_product(
