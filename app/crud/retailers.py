@@ -197,7 +197,16 @@ def get_individual_category_performance_details(db: Session, categories: List[st
         params={"categories": tuple(categories)},
     ).fetchall()
 
-    return convert_rows_to_dicts(rows)
+    result = convert_rows_to_dicts(rows)
+    # HARD CODE to remove Louis Polsen categories from the result.
+    # Only for the PoC. Delete this by 2024-03-01.
+    result = [
+        category
+        for category in result
+        if "Louis Poulsen >" not in category["category_name"]
+    ]
+
+    return result
 
 
 def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilter):
