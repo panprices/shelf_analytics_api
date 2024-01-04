@@ -212,7 +212,7 @@ def get_individual_category_performance_details(db: Session, categories: List[st
     result = [
         category
         for category in result
-        if "Louis Poulsen >" not in category["category_name"]
+        if "Louis Poulsen >" not in category["full_name"]
     ]
 
     return result
