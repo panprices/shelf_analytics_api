@@ -268,7 +268,7 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                     AND popularity_index IS NOT NULL
             ) AS max_popularity_index ON TRUE
             {'JOIN product_group_assignation pga ON pga.product_id = bp.id' if global_filter.groups else ''}
-        WHERE bp.brand_id = :brand_id
+        WHERE brand_id = :brand_id
             AND rc.retailer_id = :retailer_id
             AND max_popularity_index.value IS NOT NULL
             {'AND bp.category_id IN :categories' if global_filter.categories else ''}
