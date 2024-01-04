@@ -220,27 +220,52 @@ def get_individual_category_performance_details(db: Session, categories: List[st
 
 def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilter):
     statement = f"""
-        SELECT rc.id,
+        WITH rp_brand_fixed AS (
+            SELECT rp.id,
+                rp.retailer_id,
+                    CASE
+                        WHEN b.id IS NULL THEN ( SELECT brand.id
+                        FROM brand
+                        WHERE brand.name::text = rp.brand::text)
+                        ELSE b.id
+                    END AS brand_id,
+                rp.popularity_category_id, -- AS category_id,
+                rp.popularity_index,
+                b.id IS NOT NULL OR (rp.brand::text IN ( SELECT brand.name
+                    FROM brand)) AS is_customer,
+                    CASE
+                        WHEN b.id IS NOT NULL THEN b.name
+                        WHEN rp.brand IS NULL THEN 'No brand'::character varying
+                        ELSE rp.brand
+                    END AS brand
+            FROM retailer_product rp
+                LEFT JOIN product_matching pm ON rp.id = pm.retailer_product_id
+                LEFT JOIN brand_product bp ON pm.brand_product_id = bp.id
+                LEFT JOIN brand b ON bp.brand_id = b.id
+                JOIN retailer_category rc_1 ON rc_1.id = rp.popularity_category_id
+        )
+
+        SELECT 
+            rc.id,
             COALESCE(
                 (
                     SELECT string_agg(value::json ->> 'name', ' > ') FROM json_array_elements_text(category_tree)
                 ),
                 'No category'
             ) as category_name,
-            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index IS NOT NULL) AS product_count,
+            COUNT(*) FILTER (WHERE popularity_index IS NOT NULL) AS product_count,
             max_popularity_index.value as full_category_count,
-            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 10) AS product_count_top_10,
-            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 20) AS product_count_top_20,
-            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 40) AS product_count_top_40,
-            COUNT(DISTINCT bp.id) FILTER (WHERE popularity_index <= 100) AS product_count_top_100
-        FROM retailer_product rp
+            COUNT(*) FILTER (WHERE popularity_index <= 10) AS product_count_top_10,
+            COUNT(*) FILTER (WHERE popularity_index <= 20) AS product_count_top_20,
+            COUNT(*) FILTER (WHERE popularity_index <= 40) AS product_count_top_40,
+            COUNT(*) FILTER (WHERE popularity_index <= 100) AS product_count_top_100
+        FROM rp_brand_fixed rp
             JOIN retailer_category rc ON rp.popularity_category_id = rc.id
-            JOIN product_matching pm ON pm.retailer_product_id = rp.id
-            JOIN brand_product bp ON pm.brand_product_id = bp.id
             JOIN LATERAL (
-                SELECT MAX(popularity_index) as value
-                FROM retailer_product
+                SELECT count(*) as value
+                FROM retailer_product rp2
                 WHERE popularity_category_id = rc.id
+                    AND popularity_index IS NOT NULL
             ) AS max_popularity_index ON TRUE
             {'JOIN product_group_assignation pga ON pga.product_id = bp.id' if global_filter.groups else ''}
         WHERE bp.brand_id = :brand_id
