@@ -220,31 +220,6 @@ def get_individual_category_performance_details(db: Session, categories: List[st
 
 def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilter):
     statement = f"""
-        WITH rp_brand_fixed AS (
-            SELECT rp.id,
-                rp.retailer_id,
-                    CASE
-                        WHEN b.id IS NULL THEN ( SELECT brand.id
-                        FROM brand
-                        WHERE brand.name::text = rp.brand::text)
-                        ELSE b.id
-                    END AS brand_id,
-                rp.popularity_category_id, -- AS category_id,
-                rp.popularity_index,
-                b.id IS NOT NULL OR (rp.brand::text IN ( SELECT brand.name
-                    FROM brand)) AS is_customer,
-                    CASE
-                        WHEN b.id IS NOT NULL THEN b.name
-                        WHEN rp.brand IS NULL THEN 'No brand'::character varying
-                        ELSE rp.brand
-                    END AS brand
-            FROM retailer_product rp
-                LEFT JOIN product_matching pm ON rp.id = pm.retailer_product_id
-                LEFT JOIN brand_product bp ON pm.brand_product_id = bp.id
-                LEFT JOIN brand b ON bp.brand_id = b.id
-                JOIN retailer_category rc_1 ON rc_1.id = rp.popularity_category_id
-        )
-
         SELECT 
             rc.id,
             COALESCE(
@@ -253,13 +228,13 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                 ),
                 'No category'
             ) as category_name,
-            COUNT(*) FILTER (WHERE popularity_index IS NOT NULL) AS product_count,
+            COUNT(DISTINCT rp.brand_product_id) FILTER (WHERE popularity_index IS NOT NULL) AS product_count,
             max_popularity_index.value as full_category_count,
-            COUNT(*) FILTER (WHERE popularity_index <= 10) AS product_count_top_10,
-            COUNT(*) FILTER (WHERE popularity_index <= 20) AS product_count_top_20,
-            COUNT(*) FILTER (WHERE popularity_index <= 40) AS product_count_top_40,
-            COUNT(*) FILTER (WHERE popularity_index <= 100) AS product_count_top_100
-        FROM rp_brand_fixed rp
+            COUNT(DISTINCT rp.brand_product_id) FILTER (WHERE popularity_index <= 10) AS product_count_top_10,
+            COUNT(DISTINCT rp.brand_product_id) FILTER (WHERE popularity_index <= 20) AS product_count_top_20,
+            COUNT(DISTINCT rp.brand_product_id) FILTER (WHERE popularity_index <= 40) AS product_count_top_40,
+            COUNT(DISTINCT rp.brand_product_id) FILTER (WHERE popularity_index <= 100) AS product_count_top_100
+        FROM rp_brand_fixed_matview rp
             JOIN retailer_category rc ON rp.popularity_category_id = rc.id
             JOIN LATERAL (
                 SELECT count(*) as value
@@ -267,13 +242,18 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                 WHERE popularity_category_id = rc.id
                     AND popularity_index IS NOT NULL
             ) AS max_popularity_index ON TRUE
-            {'JOIN product_group_assignation pga ON pga.product_id = bp.id' if global_filter.groups else ''}
+            {'JOIN product_group_assignation pga ON pga.pxroduct_id = bp.id' if global_filter.groups else ''}
         WHERE brand_id = :brand_id
             AND rc.retailer_id = :retailer_id
             AND max_popularity_index.value IS NOT NULL
-            {'AND bp.category_id IN :categories' if global_filter.categories else ''}
+            {'-- AND bp.category_id IN :categories' if global_filter.categories else ''}
             {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
         GROUP BY rc.id, max_popularity_index.value
+        HAVING COUNT(DISTINCT rp.brand_product_id) FILTER (WHERE popularity_index IS NOT NULL) > 0
+        -- HARDCODE TO NOT EXCEED 100%. 
+        -- There can be more than 10 products due to variants
+            -- AND COUNT(*) FILTER (WHERE popularity_index <= 10) <= 10
+
         ORDER BY product_count DESC
     """
 
