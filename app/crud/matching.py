@@ -10,13 +10,15 @@ from app.schemas.filters import GlobalFilter
 
 def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
     return f"""
-        SELECT brand_product_id, retailer_id, skip_count
+        SELECT mt.id, brand_product_id, retailer_id, skip_count
         FROM matching_task mt
             JOIN brand_product bp ON bp.id = mt.brand_product_id
             JOIN retailer r ON mt.retailer_id = r.id
         WHERE mt.status = 'pending' 
+--             AND ARRAY_LENGTH(mt.solution, 1) > 2
+            AND mt.solution IS NOT NULL
             AND bp.brand_id = :brand_id
-            AND bp.active = TRUE
+--             AND bp.active = TRUE
             {"AND retailer_id IN :retailers" if global_filters.retailers else ""}
             {"AND r.country IN :countries" if global_filters.countries else ""}
             {"AND bp.category_id IN :categories" if global_filters.categories else ""}
@@ -118,8 +120,8 @@ def get_matched_retailer_products_by_brand_product_id(
         ) rp JOIN (
             SELECT * FROM product_matching
             WHERE brand_product_id = :brand_product_id
-                AND certainty >= 'auto_low_confidence_skipped'
-                AND certainty < 'auto_high_confidence'
+--                 AND certainty >= 'auto_low_confidence_skipped'
+--                 AND certainty < 'auto_high_confidence'
                 AND temp_wrong = FALSE
         ) pm ON rp.id = pm.retailer_product_id
             JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = rp.retailer_id;
@@ -246,3 +248,14 @@ def mark_task_completed(db: Session, brand_product_id: str, retailer_id: str):
     ).update({"status": "completed"}, synchronize_session="fetch")
 
     db.commit()
+
+
+def get_task_solution(db: Session, brand_product_id: str, retailer_id: str):
+    return (
+        db.query(MatchingTask.solution)
+        .filter(
+            MatchingTask.retailer_id == retailer_id,
+            MatchingTask.brand_product_id == brand_product_id,
+        )
+        .first()
+    )[0]
