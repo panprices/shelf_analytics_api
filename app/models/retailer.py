@@ -198,6 +198,7 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     category_page_number = Column(Integer)
     category_pages_count = Column(Integer)
     category_products_count = Column(Integer)
+    deactivated_by_retailer = Column(Boolean)
 
 
 class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):

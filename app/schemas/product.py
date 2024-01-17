@@ -198,6 +198,10 @@ class MockRetailerProductGridItem(BaseModel):
         description="The total number of products at the retailer for this category",
         example=288,
     )
+    deactivated_by_retailer: bool = Field(
+        description="Whether the product is deactivated by the retailer",
+        example=False,
+    )
 
     class Config:
         orm_mode = True
