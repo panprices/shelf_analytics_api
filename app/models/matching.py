@@ -17,12 +17,12 @@ class MatchingType(enum.Enum):
 
 
 class MatchingCertaintyType(enum.Enum):
-    manual_input = object()
-    auto_high_confidence = object()
-    auto_low_confidence = object()
-    auto_low_confidence_skipped = object()
-    brand_mismatch = object()
-    not_match = object()
+    manual_input = "manual_input"
+    auto_high_confidence = "auto_high_confidence"
+    auto_low_confidence = "auto_low_confidence"
+    auto_low_confidence_skipped = "auto_low_confidence_skipped"
+    brand_mismatch = "brand_mismatch"
+    not_match = "not_match"
 
 
 class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):

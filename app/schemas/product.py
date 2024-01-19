@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from app.schemas.general import RetailerForProduct
 
@@ -32,9 +32,15 @@ class MatchedBrandProductScaffold(BaseModel):
 
 class RetailerToBrandProductMatchScaffold(BaseModel):
     brand_product: MatchedBrandProductScaffold
+    certainty: str
+
+    @validator("certainty", pre=True)
+    def convert_certainty_to_enum(cls, v):
+        return v if isinstance(v, str) else v.value
 
     class Config:
         orm_mode = True
+        use_enum_values = True
 
 
 class MockRetailerProductGridItem(BaseModel):
@@ -360,6 +366,9 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
     )
     specifications: Optional[List[SpecificationScaffold]] = Field(
         description="The specifications of the product"
+    )
+    matched_brand_products: Optional[List[RetailerToBrandProductMatchScaffold]] = Field(
+        description="List of matching brand products"
     )
 
     class Config:
