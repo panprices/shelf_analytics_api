@@ -1,6 +1,7 @@
 import enum
 
 from sqlalchemy import ForeignKey, Column, Enum, Float, String, Integer
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -16,12 +17,12 @@ class MatchingType(enum.Enum):
 
 
 class MatchingCertaintyType(enum.Enum):
-    manual_input = object()
-    auto_high_confidence = object()
-    auto_low_confidence = object()
-    auto_low_confidence_skipped = object()
-    brand_mismatch = object()
-    not_match = object()
+    manual_input = "manual_input"
+    auto_high_confidence = "auto_high_confidence"
+    auto_low_confidence = "auto_low_confidence"
+    auto_low_confidence_skipped = "auto_low_confidence_skipped"
+    brand_mismatch = "brand_mismatch"
+    not_match = "not_match"
 
 
 class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
@@ -70,6 +71,7 @@ class MatchingTask(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
     status = Column(String)
     skip_count = Column(Integer)
+    solution = Column(postgresql.ARRAY(UUID(as_uuid=True)), nullable=True)
 
 
 class ImageMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):

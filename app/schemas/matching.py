@@ -16,6 +16,9 @@ class MatchingTaskScaffold(BaseModel):
     brand_name: str = Field(description="The brand name")
     retailer_name: str = Field(description="The retailer name")
     tasks_count: int = Field(description="The total number of tasks")
+    solution: Optional[List[Union[str, uuid.UUID]]] = Field(
+        description="The matching solution"
+    )
 
 
 class MatchingSolutionScaffold(BaseModel):

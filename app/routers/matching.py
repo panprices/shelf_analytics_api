@@ -44,6 +44,12 @@ def fill_matching_task(
         db, user.client, global_filters=global_filter
     )
 
+    solution = crud.get_task_solution(
+        db,
+        brand_product_id=brand_product_retailer_pair.brand_product_id,
+        retailer_id=brand_product_retailer_pair.retailer_id,
+    )
+
     return MatchingTaskScaffold(
         **{
             "brand_product": brand_product,
@@ -52,6 +58,7 @@ def fill_matching_task(
             "retailer_name": retailer_name,
             "retailer_id": brand_product_retailer_pair.retailer_id,
             "tasks_count": tasks_count,
+            "solution": solution,
         }
     )
 
