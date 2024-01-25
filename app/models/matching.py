@@ -1,5 +1,6 @@
 import enum
 
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy import ForeignKey, Column, Enum, Float, String, Integer
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import UUID
@@ -71,7 +72,8 @@ class MatchingTask(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
     retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
     status = Column(String)
     skip_count = Column(Integer)
-    solution = Column(postgresql.ARRAY(UUID(as_uuid=True)), nullable=True)
+    solutions = Column(postgresql.ARRAY(UUID(as_uuid=True)), nullable=True)
+    llm_solution = Column(JSONB, nullable=True)
 
 
 class ImageMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):

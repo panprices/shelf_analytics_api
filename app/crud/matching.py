@@ -248,10 +248,10 @@ def mark_task_completed(db: Session, brand_product_id: str, retailer_id: str):
 
 def get_task_solution(db: Session, brand_product_id: str, retailer_id: str):
     return (
-        db.query(MatchingTask.solution)
+        db.query(MatchingTask.solutions, MatchingTask.llm_solution)
         .filter(
             MatchingTask.retailer_id == retailer_id,
             MatchingTask.brand_product_id == brand_product_id,
         )
         .first()
-    )[0]
+    )

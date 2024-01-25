@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Optional, Union, Literal
+from typing import List, Optional, Union, Literal, Any, Dict
 
 from pydantic import BaseModel, Field
 
@@ -16,9 +16,10 @@ class MatchingTaskScaffold(BaseModel):
     brand_name: str = Field(description="The brand name")
     retailer_name: str = Field(description="The retailer name")
     tasks_count: int = Field(description="The total number of tasks")
-    solution: Optional[List[Union[str, uuid.UUID]]] = Field(
+    solutions: Optional[List[Union[str, uuid.UUID]]] = Field(
         description="The matching solution"
     )
+    llm_solution: Optional[Dict[str, Any]] = Field(description="The LLM feedback")
 
 
 class MatchingSolutionScaffold(BaseModel):
