@@ -501,7 +501,9 @@ def get_comparison_products(db, global_filter, brand_product_id, brand_id):
                     WHEN rp.currency = b.default_currency THEN rp.price
                     ELSE rp.price * rc.to_sek / dc.to_sek
                 END / 100
-           ) as market_average, cp.image_url, cp.name, false as is_client
+           ) as market_average, 
+           CASE WHEN cp.image_processed THEN 'https://storage.googleapis.com/b2b_shelf_analytics_images/' || cp.id::text || '.png' ELSE image_url END as image_url, 
+           cp.name, false as is_client
         FROM brand_product bp
             JOIN comparison_to_brand_product ctbp ON bp.id = ctbp.brand_product_id
             JOIN comparison_product cp ON cp.id = ctbp.comparison_product_id
@@ -519,7 +521,7 @@ def get_comparison_products(db, global_filter, brand_product_id, brand_id):
             AND bp.brand_id = :brand_id
             AND cpm.certainty >= 'auto_high_confidence'
             AND rp.fetched_at >= date_trunc('week', now()) - '1 week'::interval
-        GROUP BY cp.image_url, cp.name;
+        GROUP BY cp.image_url, cp.name, cp.image_processed, cp.id;
     """
 
     return get_results_from_statement_with_filters(
