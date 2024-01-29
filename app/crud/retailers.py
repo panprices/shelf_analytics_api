@@ -243,9 +243,9 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
             JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
             JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
             JOIN LATERAL (
-                SELECT count(*) AS value
-                FROM retailer_product rp2
-                WHERE popularity_category_id = rc.id
+                SELECT max(popularity_index) AS value
+                FROM retailer_product_category_mapping
+                WHERE retailer_category_id = rc.id
                     AND popularity_index IS NOT NULL
             ) AS max_popularity_index ON TRUE
             {'JOIN product_group_assignation pga ON pga.pxroduct_id = bp.id' if global_filter.groups else ''}
