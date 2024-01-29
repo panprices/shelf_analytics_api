@@ -227,17 +227,23 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                     SELECT string_agg(value::json ->> 'name', ' > ') FROM json_array_elements_text(category_tree)
                 ),
                 'No category'
-            ) as category_name,
-            COUNT(*) FILTER (WHERE popularity_index IS NOT NULL) AS product_count,
-            max_popularity_index.value as full_category_count,
-            COUNT(*) FILTER (WHERE popularity_index <= 10) AS product_count_top_10,
-            COUNT(*) FILTER (WHERE popularity_index <= 20) AS product_count_top_20,
-            COUNT(*) FILTER (WHERE popularity_index <= 40) AS product_count_top_40,
-            COUNT(*) FILTER (WHERE popularity_index <= 100) AS product_count_top_100
+            ) AS category_name,
+            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index IS NOT NULL) 
+                AS product_count,
+            max_popularity_index.value AS full_category_count,
+            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 10) 
+                AS product_count_top_10,
+            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 20)
+                AS product_count_top_20,
+            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 40)
+                AS product_count_top_40,
+            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 100)
+                AS product_count_top_100
         FROM rp_brand_fixed_matview rp
-            JOIN retailer_category rc ON rp.popularity_category_id = rc.id
+            JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
+            JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
             JOIN LATERAL (
-                SELECT count(*) as value
+                SELECT count(*) AS value
                 FROM retailer_product rp2
                 WHERE popularity_category_id = rc.id
                     AND popularity_index IS NOT NULL
@@ -249,11 +255,7 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
             {'-- AND bp.category_id IN :categories' if global_filter.categories else ''}
             {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
         GROUP BY rc.id, max_popularity_index.value
-        HAVING COUNT(*) FILTER (WHERE popularity_index IS NOT NULL) > 0
-        -- HARDCODE TO NOT EXCEED 100%. 
-        -- There can be more than 10 products due to variants
-            AND COUNT(*) FILTER (WHERE popularity_index <= 10) <= 10
-
+        HAVING COUNT(*) FILTER (WHERE rpcm.popularity_index IS NOT NULL) > 0
         ORDER BY product_count DESC
     """
 
