@@ -228,9 +228,8 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                 ),
                 'No category'
             ) AS category_name,
-            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index IS NOT NULL) 
-                AS product_count,
-            max_popularity_index.value AS full_category_count,
+            MAX(rpcm.popularity_index) AS full_category_count,
+            COUNT(DISTINCT rpcm.popularity_index) AS product_count,
             COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 10) 
                 AS product_count_top_10,
             COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 20)
@@ -242,21 +241,14 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
         FROM rp_brand_fixed_matview rp
             JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
             JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
-            JOIN LATERAL (
-                SELECT max(popularity_index) AS value
-                FROM retailer_product_category_mapping
-                WHERE retailer_category_id = rc.id
-                    AND popularity_index IS NOT NULL
-            ) AS max_popularity_index ON TRUE
             {'JOIN product_group_assignation pga ON pga.pxroduct_id = bp.id' if global_filter.groups else ''}
         WHERE brand_id = :brand_id
             AND rc.retailer_id = :retailer_id
-            AND max_popularity_index.value IS NOT NULL
             {'-- AND bp.category_id IN :categories' if global_filter.categories else ''}
             {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
-        GROUP BY rc.id, max_popularity_index.value
+        GROUP BY rc.id
         HAVING COUNT(*) FILTER (WHERE rpcm.popularity_index IS NOT NULL) > 0
-        ORDER BY product_count DESC
+        ORDER BY product_count DESC;
     """
 
     result = convert_rows_to_dicts(
