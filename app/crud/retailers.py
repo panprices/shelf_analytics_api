@@ -237,7 +237,6 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                     ),
                     'No category'
                 ) AS category_name,
-                COUNT(DISTINCT rpcm.popularity_index) AS product_count,
                 COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 10) 
                     AS product_count_top_10,
                 COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 20)
@@ -245,7 +244,11 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                 COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 40)
                     AS product_count_top_40,
                 COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 100)
-                    AS product_count_top_100
+                    AS product_count_top_100,
+                -- Special case: When we count the whole category, we count variants
+                -- instead. This is to match the numbers in the "Brand share of 
+                -- retailers categories" bar char.
+                COUNT(*) AS product_count,
             FROM rp_brand_fixed_matview rp
                 JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
                 JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
