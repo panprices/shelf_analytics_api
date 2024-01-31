@@ -248,7 +248,7 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                 -- Special case: When we count the whole category, we count variants
                 -- instead. This is to match the numbers in the "Brand share of 
                 -- retailers categories" bar char.
-                COUNT(*) AS product_count,
+                COUNT(DISTINCT rpcm.retailer_product_id) AS product_count
             FROM rp_brand_fixed_matview rp
                 JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
                 JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
