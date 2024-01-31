@@ -81,12 +81,13 @@ def get_categories_split(
 
     statement = f"""
         SELECT *, COALESCE(brand_id = :brand_id, False) AS is_current_customer
-        FROM categories_split
+        FROM categories_split_v2
         WHERE category_id IN (
-            SELECT DISTINCT category_id 
-            FROM categories_split 
-            WHERE brand_id = :brand_id
-          ) AND retailer_id = :retailer_id
+                SELECT DISTINCT category_id 
+                FROM categories_split_v2 
+                WHERE brand_id = :brand_id
+            ) 
+            AND retailer_id = :retailer_id
         {brand_category_filter}
         ORDER BY is_current_customer DESC NULLS LAST
     """
@@ -220,34 +221,46 @@ def get_individual_category_performance_details(db: Session, categories: List[st
 
 def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilter):
     statement = f"""
-        SELECT 
-            rc.id,
-            COALESCE(
-                (
-                    SELECT string_agg(value::json ->> 'name', ' > ') FROM json_array_elements_text(category_tree)
-                ),
-                'No category'
-            ) AS category_name,
-            MAX(rpcm.popularity_index) AS full_category_count,
-            COUNT(DISTINCT rpcm.popularity_index) AS product_count,
-            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 10) 
-                AS product_count_top_10,
-            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 20)
-                AS product_count_top_20,
-            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 40)
-                AS product_count_top_40,
-            COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 100)
-                AS product_count_top_100
-        FROM rp_brand_fixed_matview rp
-            JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
-            JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
-            {'JOIN product_group_assignation pga ON pga.pxroduct_id = bp.id' if global_filter.groups else ''}
-        WHERE brand_id = :brand_id
-            AND rc.retailer_id = :retailer_id
-            {'-- AND bp.category_id IN :categories' if global_filter.categories else ''}
-            {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
-        GROUP BY rc.id
-        HAVING COUNT(*) FILTER (WHERE rpcm.popularity_index IS NOT NULL) > 0
+        WITH category_count AS (
+            SELECT 
+                retailer_category_id,
+                COUNT(*) AS value
+            FROM retailer_product_category_mapping
+            GROUP BY retailer_category_id
+        ),
+        brand_product_count AS (
+            SELECT 
+                rc.id,
+                COALESCE(
+                    (
+                        SELECT string_agg(value::json ->> 'name', ' > ') FROM json_array_elements_text(category_tree)
+                    ),
+                    'No category'
+                ) AS category_name,
+                COUNT(DISTINCT rpcm.popularity_index) AS product_count,
+                COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 10) 
+                    AS product_count_top_10,
+                COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 20)
+                    AS product_count_top_20,
+                COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 40)
+                    AS product_count_top_40,
+                COUNT(DISTINCT rpcm.popularity_index) FILTER (WHERE rpcm.popularity_index <= 100)
+                    AS product_count_top_100
+            FROM rp_brand_fixed_matview rp
+                JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
+                JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
+                {'JOIN product_group_assignation pga ON pga.pxroduct_id = bp.id' if global_filter.groups else ''}
+            WHERE brand_id = :brand_id
+                AND rc.retailer_id = :retailer_id
+                {'-- AND bp.category_id IN :categories' if global_filter.categories else ''}
+                {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
+            GROUP BY rc.id
+        )
+        SELECT brand_product_count.*,
+            category_count.value AS full_category_count
+        FROM brand_product_count
+            JOIN category_count ON brand_product_count.id = category_count.retailer_category_id
+        WHERE product_count > 0
         ORDER BY product_count DESC;
     """
 
