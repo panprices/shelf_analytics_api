@@ -451,6 +451,7 @@ def get_retailer_pricing_overview(
                 ON retailer_with_nr_cheapest_price.id = r.id
             LEFT JOIN retailer_with_market_price_deviation
                 ON retailer_with_market_price_deviation.id = r.id
+        WHERE average_market_price_deviation IS NOT NULL
         ORDER BY products_count DESC;
     """
 
@@ -503,7 +504,7 @@ def get_comparison_products(db, global_filter, brand_product_id, brand_id):
                 END / 100
            ) as market_average, 
            CASE WHEN cp.image_processed THEN 'https://storage.googleapis.com/b2b_shelf_analytics_images/' || cp.id::text || '.png' ELSE image_url END as image_url, 
-           cp.name, false as is_client
+           cp.brand_name || ' - ' || cp.name, false as is_client
         FROM brand_product bp
             JOIN comparison_to_brand_product ctbp ON bp.id = ctbp.brand_product_id
             JOIN comparison_product cp ON cp.id = ctbp.comparison_product_id
