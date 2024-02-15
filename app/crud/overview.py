@@ -1,6 +1,9 @@
+from typing import List
+
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.crud import get_results_from_statement_with_filters
+from app.crud import get_results_from_statement_with_filters, convert_rows_to_dicts
 from app.schemas.filters import GlobalFilter
 
 
@@ -38,3 +41,31 @@ def get_overview_stats(db: Session, brand_id: str, global_filter: GlobalFilter):
     return get_results_from_statement_with_filters(db, brand_id, global_filter, query)[
         0
     ]
+
+
+def get_currencies(db: Session) -> List[str]:
+    return [
+        "EUR",
+        "SEK",
+        "DKK",
+        "NOK",
+        "USD",
+        "GBP",
+        "CHF",
+        "JPY",
+        "AUD",
+        "CAD",
+        "CNH",
+        "HKD",
+    ]
+
+
+def get_default_currency(db: Session, brand_id: str) -> str:
+    query = """
+        SELECT default_currency
+        FROM brand
+        WHERE id = :brand_id;
+    """
+
+    result = db.execute(text(query), {"brand_id": brand_id})
+    return result.first()[0]

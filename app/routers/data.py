@@ -14,7 +14,12 @@ from app.crud.utils import (
 )
 from app.database import get_db
 from app.schemas.auth import TokenData
-from app.schemas.filters import PagedGlobalFilter, GlobalFilter, DataPageFilter
+from app.schemas.filters import (
+    PagedGlobalFilter,
+    GlobalFilter,
+    DataPageFilter,
+    PriceValuesFilter,
+)
 from app.schemas.prices import HistoricalPerRetailerResponse, MSRPValueResponse
 from app.schemas.product import (
     ProductPage,
@@ -132,7 +137,7 @@ def get_matched_retailer_products_for_brand_product(
 )
 def get_historical_prices_for_brand_product(
     brand_product_id: str,
-    global_filter: GlobalFilter,
+    global_filter: PriceValuesFilter,
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):

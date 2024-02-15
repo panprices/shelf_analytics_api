@@ -10,11 +10,11 @@ from app.models import (
     MockBrandProductWithMarketPrices,
     MSRP,
 )
-from app.schemas.filters import GlobalFilter, PagedGlobalFilter
+from app.schemas.filters import GlobalFilter, PagedGlobalFilter, PriceValuesFilter
 
 
 def get_historical_prices_by_retailer_for_brand_product(
-    db: Session, global_filter: GlobalFilter, brand_product_id: str, brand_id: str
+    db: Session, prices_filter: PriceValuesFilter, brand_product_id: str, brand_id: str
 ) -> List[RetailerProductHistory]:
     statement = f"""
         with available_prices as (
@@ -23,10 +23,10 @@ def get_historical_prices_by_retailer_for_brand_product(
                 select rpts.product_id,
                     rp.retailer_id,
                     CASE 
-                        WHEN c.name = b.default_currency THEN rpts.price
+                        WHEN c.name = :selected_currency THEN rpts.price
                         ELSE rpts.price * c.to_sek / dc.to_sek
                     END as price,
-                    b.default_currency as currency,
+                    :selected_currency as currency,
                     rpts.availability,
                     date_trunc('day', time)::timestamp as time,
                     row_number() over (
@@ -39,17 +39,17 @@ def get_historical_prices_by_retailer_for_brand_product(
                     join brand_product bp on bp.id = pm.brand_product_id
                     JOIN brand b ON b.id = bp.brand_id 
                     join currency c on c.name = rpts.currency
-                    join currency dc ON dc.name = b.default_currency 
+                    join currency dc ON dc.name = :selected_currency 
                     LEFT JOIN product_group_assignation pga ON pga.product_id = bp.id
                 where bp.id = :brand_product_id and rpts.price <> 0
                     AND bp.brand_id = :brand_id
                     AND rpts.availability <> 'out_of_stock'
                     AND pm.certainty >= 'auto_high_confidence'
                     AND rpts.time >= :start_date
-                    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-                    {"AND rp.retailer_id IN :retailers" if global_filter.retailers else ""}
-                    {"AND r.country IN :countries" if global_filter.countries else ""}
-                    {"AND pga.product_group_id IN :groups" if global_filter.groups else ""}
+                    {"AND bp.category_id IN :categories" if prices_filter.categories else ""}
+                    {"AND rp.retailer_id IN :retailers" if prices_filter.retailers else ""}
+                    {"AND r.country IN :countries" if prices_filter.countries else ""}
+                    {"AND pga.product_group_id IN :groups" if prices_filter.groups else ""}
                 order by time asc
             ) per_retailer_time_series
             where rank = 1
@@ -85,12 +85,13 @@ def get_historical_prices_by_retailer_for_brand_product(
         .from_statement(text(statement))
         .params(
             brand_product_id=brand_product_id,
-            categories=tuple(global_filter.categories),
-            retailers=tuple(global_filter.retailers),
-            countries=tuple(global_filter.countries),
-            groups=tuple(global_filter.groups),
+            categories=tuple(prices_filter.categories),
+            retailers=tuple(prices_filter.retailers),
+            countries=tuple(prices_filter.countries),
+            groups=tuple(prices_filter.groups),
             brand_id=brand_id,
-            start_date=global_filter.start_date,
+            start_date=prices_filter.start_date,
+            selected_currency=prices_filter.currency,
         )
         .options(
             selectinload(RetailerProductHistory.product).selectinload(
@@ -465,11 +466,13 @@ def get_product_msrp(
     return db.query(MSRP).filter(MSRP.brand_product_id == brand_product_id).all()
 
 
-def get_comparison_products(db, global_filter, brand_product_id, brand_id):
+def get_comparison_products(
+    db, prices_filter: PriceValuesFilter, brand_product_id, brand_id
+):
     query = """
         SELECT AVG(
                 CASE
-                    WHEN rp.currency = b.default_currency THEN rp.price
+                    WHEN rp.currency = :selected_currency THEN rp.price
                     ELSE rp.price * rc.to_sek / dc.to_sek
                 END / 100
            ) as market_average, bi.url as image_url, bp.name, true as is_client
@@ -479,7 +482,7 @@ def get_comparison_products(db, global_filter, brand_product_id, brand_id):
             JOIN retailer r ON rp.retailer_id = r.id
             JOIN brand b ON bp.brand_id = b.id
             JOIN LATERAL (
-                SELECT * FROM currency WHERE currency.name = b.default_currency LIMIT 1
+                SELECT * FROM currency WHERE currency.name = :selected_currency LIMIT 1
             ) dc ON true
             JOIN LATERAL (
                 SELECT * FROM currency WHERE currency.name = rp.currency LIMIT 1
@@ -499,7 +502,7 @@ def get_comparison_products(db, global_filter, brand_product_id, brand_id):
         UNION ALL
         SELECT  AVG(
                 CASE
-                    WHEN rp.currency = b.default_currency THEN rp.price
+                    WHEN rp.currency = :selected_currency THEN rp.price
                     ELSE rp.price * rc.to_sek / dc.to_sek
                 END / 100
            ) as market_average, 
@@ -513,7 +516,7 @@ def get_comparison_products(db, global_filter, brand_product_id, brand_id):
             JOIN retailer r ON rp.retailer_id = r.id
             JOIN brand b ON bp.brand_id = b.id
             JOIN LATERAL (
-                SELECT * FROM currency WHERE currency.name = b.default_currency LIMIT 1
+                SELECT * FROM currency WHERE currency.name = :selected_currency LIMIT 1
             ) dc ON true
             JOIN LATERAL (
                 SELECT * FROM currency WHERE currency.name = rp.currency LIMIT 1
@@ -528,9 +531,10 @@ def get_comparison_products(db, global_filter, brand_product_id, brand_id):
     return get_results_from_statement_with_filters(
         db,
         brand_id,
-        global_filter,
+        prices_filter,
         query,
         extra_params={
             "brand_product_id": brand_product_id,
+            "selected_currency": prices_filter.currency,
         },
     )

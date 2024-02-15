@@ -130,3 +130,10 @@ class OverviewStatsResponse(BaseModel):
     matches_count: int = Field(
         description="The number of matches in the database for this client"
     )
+
+
+class CurrencyResponse(BaseModel):
+    options: list[str] = Field(
+        description="The list of currencies available for this client"
+    )
+    default: str = Field(description="The default currency for this client")

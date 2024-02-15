@@ -20,6 +20,7 @@ from app.schemas.general import (
     ProductGrouping,
     NamedBrand,
     OverviewStatsResponse,
+    CurrencyResponse,
 )
 from app.schemas.scores import HistoricalScore, AvailableProductsPerRetailer
 from app.security import get_user_data
@@ -151,3 +152,12 @@ def get_overview_stats(
     db: Session = Depends(get_db),
 ):
     return crud.get_overview_stats(db, user.client, filters)
+
+
+@router.get("/currency", tags=[TAG_OVERVIEW], response_model=CurrencyResponse)
+def get_currencies(
+    user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)
+):
+    all_currencies = crud.get_currencies(db)
+    default_currency = crud.get_default_currency(db, user.client)
+    return {"options": all_currencies, "default": default_currency}

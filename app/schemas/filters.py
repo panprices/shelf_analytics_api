@@ -146,3 +146,7 @@ class PagedGlobalFilter(DataPageFilter, PaginationMixin):
 
 class PricingChangesFilter(GlobalFilter, PaginationMixin):
     pass
+
+
+class PriceValuesFilter(GlobalFilter):
+    currency: str
