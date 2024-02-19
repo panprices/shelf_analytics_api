@@ -10,7 +10,12 @@ from app.crud.utils import (
 )
 from app.database import get_db
 from app.schemas.auth import TokenData
-from app.schemas.filters import GlobalFilter, PagedGlobalFilter, PricingChangesFilter
+from app.schemas.filters import (
+    GlobalFilter,
+    PagedGlobalFilter,
+    PagedPriceValuesFilter,
+    PricingChangesFilter,
+)
 from app.schemas.prices import (
     PriceTableData,
     HistoricalPerRetailerResponse,
@@ -26,7 +31,7 @@ router = APIRouter(prefix="/price")
 
 @router.post("/data", tags=[TAG_PRICE, TAG_DATA], response_model=PriceTableData)
 def get_price_table_data(
-    global_filter: PagedGlobalFilter,
+    global_filter: PagedPriceValuesFilter,
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
