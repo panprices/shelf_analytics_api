@@ -49,13 +49,13 @@ def get_currencies(db: Session) -> List[str]:
         "SEK",
         "DKK",
         "NOK",
-        "USD",
         "GBP",
         "CHF",
-        "JPY",
-        "AUD",
+        "USD",
         "CAD",
-        "CNH",
+        "AUD",
+        "JPY",
+        "CNY",
         "HKD",
     ]
 
