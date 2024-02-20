@@ -7,7 +7,6 @@ from app.config.constants import DATE_FORMAT
 
 
 class GlobalFilter(BaseModel):
-
     """
     Represents the model for filtering on the data showed through the UI.
 
@@ -150,3 +149,7 @@ class PricingChangesFilter(GlobalFilter, PaginationMixin):
 
 class PriceValuesFilter(GlobalFilter):
     currency: str
+
+
+class PagedPriceValuesFilter(PriceValuesFilter, PagedGlobalFilter):
+    pass

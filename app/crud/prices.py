@@ -10,7 +10,12 @@ from app.models import (
     MockBrandProductWithMarketPrices,
     MSRP,
 )
-from app.schemas.filters import GlobalFilter, PagedGlobalFilter, PriceValuesFilter
+from app.schemas.filters import (
+    GlobalFilter,
+    PagedGlobalFilter,
+    PagedPriceValuesFilter,
+    PriceValuesFilter,
+)
 
 
 def get_historical_prices_by_retailer_for_brand_product(
@@ -103,13 +108,26 @@ def get_historical_prices_by_retailer_for_brand_product(
 
 
 def _create_price_table_data_query(
-    global_filter: PagedGlobalFilter, brand_id: str
+    global_filter: PagedPriceValuesFilter, brand_id: str
 ) -> Tuple[str, dict]:
     well_defined_grid_filters = [
         i for i in global_filter.data_grid_filter.items if i.is_well_defined()
     ]
     query = f"""
-        SELECT * FROM brand_product_msrp_view
+        SELECT 
+            "brand_product_id", brand_product_msrp_view."name", "gtin", "sku", "category_id", "brand_id", "msrp_standard", "msrp_currency", "msrp_country", "image_id", "image_url", "offers",
+            CASE 
+                WHEN c.name = :selected_currency THEN NULL -- no need to convert
+                ELSE msrp_standard * c.to_sek / dc.to_sek
+            END as msrp_client_currency,
+            :selected_currency AS client_currency
+        FROM brand_product_msrp_view
+            JOIN LATERAL (
+                SELECT * FROM currency WHERE currency.name = :selected_currency LIMIT 1
+            ) dc ON TRUE
+            JOIN LATERAL (
+                SELECT * FROM currency WHERE currency.name = brand_product_msrp_view.msrp_currency LIMIT 1
+            ) c ON TRUE
         WHERE brand_id = :brand_id
             AND array_length(offers, 1) > 0
             {"AND category_id IN :categories" if global_filter.categories else ""}
@@ -136,6 +154,7 @@ def _create_price_table_data_query(
         "countries": tuple(global_filter.countries),
         "groups": tuple(global_filter.groups),
         "retailers": tuple(global_filter.retailers),
+        "selected_currency": global_filter.currency,
         **{
             f"fv_{index}": i.get_safe_postgres_value()
             for index, i in enumerate(global_filter.data_grid_filter.items)
@@ -146,7 +165,9 @@ def _create_price_table_data_query(
     return query, params
 
 
-def get_price_table_data(db: Session, global_filter: PagedGlobalFilter, brand_id: str):
+def get_price_table_data(
+    db: Session, global_filter: PagedPriceValuesFilter, brand_id: str
+):
     price_data_query, price_data_params = _create_price_table_data_query(
         global_filter, brand_id
     )
@@ -180,7 +201,7 @@ def get_price_table_data(db: Session, global_filter: PagedGlobalFilter, brand_id
 
 
 def count_price_table_data(
-    db: Session, global_filter: PagedGlobalFilter, brand_id: str
+    db: Session, global_filter: PagedPriceValuesFilter, brand_id: str
 ):
     price_data_query, price_data_params = _create_price_table_data_query(
         global_filter, brand_id
