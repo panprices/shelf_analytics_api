@@ -20,7 +20,7 @@ from app.schemas.filters import (
     DataPageFilter,
     PriceValuesFilter,
 )
-from app.schemas.prices import HistoricalPerRetailerResponse, MSRPValueResponse
+from app.schemas.prices import HistoricalPerRetailerResponse, MSRPValueItem
 from app.schemas.product import (
     ProductPage,
     BrandProductScaffold,
@@ -183,11 +183,11 @@ def get_historical_prices_for_brand_product(
 @router.post(
     "/brand/{brand_product_id}/msrp",
     tags=[TAG_DATA],
-    response_model=MSRPValueResponse,
+    response_model=MSRPValueItem,
 )
 def get_product_msrp(
     brand_product_id: str,
-    global_filter: GlobalFilter,
+    global_filter: PriceValuesFilter,
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
@@ -196,6 +196,14 @@ def get_product_msrp(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Must be authenticated"
         )
 
-    result = crud.get_product_msrp(db, brand_product_id)
+    result = crud.get_product_msrp(db, global_filter, brand_product_id)
 
-    return {"msrp_values": result}
+    return (
+        {
+            "price_standard": result[0],
+            "currency": result[1],
+            "country": result[2],
+        }
+        if result
+        else {"price_standard": None, "currency": None, "country": None}
+    )

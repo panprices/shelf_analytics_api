@@ -482,9 +482,33 @@ def get_retailer_pricing_overview(
 
 def get_product_msrp(
     db: Session,
+    global_filter: PriceValuesFilter,
     brand_product_id: str,
 ):
-    return db.query(MSRP).filter(MSRP.brand_product_id == brand_product_id).all()
+    query = """
+        SELECT price / 100, currency, country, 1 AS priority
+        FROM msrp
+        WHERE brand_product_id = :brand_product_id
+            AND currency = :selected_currency
+        UNION 
+        SELECT msrp.price * rc.to_sek / (dc.to_sek * 100), :selected_currency as currency, dc.country, 100 AS priority
+        FROM msrp
+            JOIN currency rc ON rc.name = msrp.currency
+            JOIN currency dc ON dc.name = :selected_currency
+        WHERE brand_product_id = :brand_product_id
+        ORDER BY priority ASC
+        LIMIT 1
+    """
+
+    results = db.execute(
+        text(query),
+        params={
+            "brand_product_id": brand_product_id,
+            "selected_currency": global_filter.currency,
+        },
+    )
+
+    return results.first()
 
 
 def get_comparison_products(

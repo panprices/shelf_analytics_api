@@ -92,16 +92,12 @@ class RetailerPricingOverviewResponse(BaseModel):
 
 
 class MSRPValueItem(BaseModel):
-    price_standard: float
-    currency: str
-    country: str
+    price_standard: Optional[float]
+    currency: Optional[str]
+    country: Optional[str]
 
     class Config:
         orm_mode = True
-
-
-class MSRPValueResponse(BaseModel):
-    msrp_values: List[MSRPValueItem]
 
 
 class ComparisonProductItem(BaseModel):

@@ -10,12 +10,7 @@ from app.crud.utils import (
 )
 from app.database import get_db
 from app.schemas.auth import TokenData
-from app.schemas.filters import (
-    GlobalFilter,
-    PagedGlobalFilter,
-    PagedPriceValuesFilter,
-    PricingChangesFilter,
-)
+from app.schemas.filters import GlobalFilter, PagedGlobalFilter, PricingChangesFilter
 from app.schemas.prices import (
     PriceTableData,
     HistoricalPerRetailerResponse,
@@ -144,7 +139,7 @@ def get_retailer_pricing_overview(
     response_model=ComparisonProductsResponse,
 )
 def get_comparison_products(
-    global_filter: GlobalFilter,
+    global_filter: PriceValuesFilter,
     brand_product_id: str,
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
