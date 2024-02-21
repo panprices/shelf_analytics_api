@@ -140,7 +140,7 @@ def _create_price_table_data_query(
                 (
                     "AND " + (" " + global_filter.data_grid_filter.operator + " ")
                         .join([
-                            i.to_postgres_condition(index) 
+                            i.to_postgres_condition(index, table_name="brand_product_msrp_view") 
                             for index, i in enumerate(well_defined_grid_filters)
                         ])
                 )

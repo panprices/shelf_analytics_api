@@ -60,42 +60,46 @@ class DataGridFilterItem(BaseModel):
     operator: str
     value: Optional[Union[str, int, float, List[str]]]
 
-    def to_postgres_condition(self, index: int):
+    def to_postgres_condition(self, index: int, table_name: Optional[str] = None):
+        full_column_name = f"{table_name}.{self.column}" if table_name else self.column
+
         if self.operator == "contains":
-            return f"{self.column} LIKE ('%' || :fv_{index} || '%')"
+            return f"LOWER({full_column_name}) LIKE ('%' || :fv_{index} || '%')"
         elif self.operator == "startsWith":
-            return f"{self.column} LIKE (:fv_{index} || '%')"
+            return f"LOWER({full_column_name}) LIKE (:fv_{index} || '%')"
         elif self.operator == "endsWith":
-            return f"{self.column} LIKE ('%' || :fv_{index})"
+            return f"LOWER({full_column_name}) LIKE ('%' || :fv_{index})"
         elif self.operator == "equals":
-            return f"{self.column} = :fv_{index}"
+            return f"{full_column_name} = :fv_{index}"
         elif self.operator == "isEmpty":
-            return f"{self.column} IS NULL"
+            return f"{full_column_name} IS NULL"
         elif self.operator == "isNotEmpty":
-            return f"{self.column} IS NOT NULL"
+            return f"{full_column_name} IS NOT NULL"
         elif self.operator == "isAnyOf":
-            return f"{self.column} IN :fv_{index}"
+            return f"{full_column_name} IN :fv_{index}"
         elif self.operator == "!=":
-            return f"{self.column} <> :fv_{index}"
+            return f"{full_column_name} <> :fv_{index}"
         elif self.operator in [">", "<", "<=", ">=", "="]:
-            return f"{self.column} {self.operator} :fv_{index}"
+            return f"{full_column_name} {self.operator} :fv_{index}"
         elif self.operator == "is":
-            return f"{self.column} = :fv_{index}"
+            return f"{full_column_name} = :fv_{index}"
         elif self.operator == "after":
-            return f"{self.column} > :fv_{index}"
+            return f"{full_column_name} > :fv_{index}"
         elif self.operator == "before":
-            return f"{self.column} < :fv_{index}"
+            return f"{full_column_name} < :fv_{index}"
         elif self.operator == "onOrAfter":
-            return f"{self.column} >= :fv_{index}"
+            return f"{full_column_name} >= :fv_{index}"
         elif self.operator == "onOrBefore":
-            return f"{self.column} <= :fv_{index}"
+            return f"{full_column_name} <= :fv_{index}"
         elif self.operator == "not":
-            return f"{self.column} <> :fv_{index}"
+            return f"{full_column_name} <> :fv_{index}"
         return ""
 
     def get_safe_postgres_value(self):
         if self.operator == "isAnyOf":
             return tuple(self.value) if self.value else ()
+        elif self.operator in ["contains", "startsWith", "endsWith"]:
+            return self.value.lower() if self.value else ""
 
         return self.value if self.value else ""
 
