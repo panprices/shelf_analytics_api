@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from fastapi import APIRouter, Depends
 from requests import Session
 
@@ -10,7 +8,7 @@ from app.crud.utils import (
 )
 from app.database import get_db
 from app.schemas.auth import TokenData
-from app.schemas.filters import GlobalFilter, PagedGlobalFilter, PricingChangesFilter
+from app.schemas.filters import GlobalFilter, PagedPriceValuesFilter, PriceValuesFilter
 from app.schemas.prices import (
     PriceTableData,
     HistoricalPerRetailerResponse,
