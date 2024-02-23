@@ -520,7 +520,9 @@ def get_comparison_products(
                     WHEN rp.currency = :selected_currency THEN rp.price
                     ELSE rp.price * rc.to_sek / dc.to_sek
                 END / 100
-           ) as market_average, bi.url as image_url, bp.name, true as is_client
+           ) as market_average, 
+           CASE WHEN (bi.processed OR bi.image_hash IS NOT NULL) THEN 'https://storage.googleapis.com/b2b_shelf_analytics_images/' || bi.id::text || '.png' ELSE bi.url END as image_url, 
+           bp.name, true as is_client
         FROM brand_product bp
             JOIN product_matching pm ON pm.brand_product_id = bp.id
             JOIN retailer_product rp ON rp.id = pm.retailer_product_id
@@ -543,7 +545,7 @@ def get_comparison_products(
             AND bp.brand_id = :brand_id
             AND pm.certainty >= 'auto_high_confidence'
             AND rp.fetched_at >= date_trunc('week', now()) - '1 week'::interval
-        GROUP BY bi.url, bp.name
+        GROUP BY bi.url, bp.name, bi.id, bi.processed, bi.image_hash
         UNION ALL
         SELECT  AVG(
                 CASE
