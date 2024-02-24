@@ -60,7 +60,9 @@ def get_user_metadata(postgres_db: Session, uid: str) -> Optional[UserMetadata]:
 
     client_name = crud.get_brand_name(postgres_db, user_metadata.get("client"))
 
-    return UserMetadata(**user_metadata.to_dict(), features=extra_features, client_name=client_name)
+    return UserMetadata(
+        **user_metadata.to_dict(), features=extra_features, client_name=client_name
+    )
 
 
 def authenticate_verified_user(
@@ -187,7 +189,7 @@ def invite_user_by_mail(
         "https://api.eu.mailgun.net/v3/mailgun.panprices.com/messages",
         auth=("api", settings.mailgun_api_key),
         data={
-            "from": "Panprices Brand Intelligence <info@panprices.com>",
+            "from": "Loupe Team <info@getloupe.co>",
             "to": f"{invitation.first_name} {invitation.last_name} <{invitation.email}>",
             "subject": f"{inviting_user.first_name} {inviting_user.last_name} invited you to join the {brand_name} team",
             "template": "shelf_analytics_invite",
