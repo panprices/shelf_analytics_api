@@ -1,5 +1,6 @@
 from typing import List
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import (
@@ -18,7 +19,28 @@ def get_brands(db: Session) -> List[brand.Brand]:
 def get_brand_categories(db: Session, brand_id: str) -> List[brand.BrandCategory]:
     return (
         db.query(brand.BrandCategory)
-        .filter(brand.BrandCategory.brand_id == brand_id)
+        .from_statement(
+            text(
+                """
+                    WITH current_brand_category AS (
+                        SELECT *
+                        FROM brand_category
+                        WHERE brand_id = :brand_id
+                    ), brand_category_with_active_products AS (
+                        SELECT bc.id, COUNT(*) FILTER (WHERE bp.active = TRUE) AS active_products_count
+                        FROM brand_category bc
+                            JOIN brand_product bp ON bc.id = bp.category_id
+                        WHERE bc.id IN (SELECT DISTINCT id FROM current_brand_category)
+                        GROUP BY bc.id
+                    )
+                    SELECT bc.*
+                    FROM current_brand_category bc
+                        JOIN brand_category_with_active_products ON bc.id = brand_category_with_active_products.id
+                    WHERE active_products_count > 0            
+        """
+            )
+        )
+        .params(brand_id=brand_id)
         .all()
     )
 
