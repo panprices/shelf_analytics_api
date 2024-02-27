@@ -308,6 +308,7 @@ def get_price_changes(
                 if global_filter.groups else ""
             }
             AND price_diff * :sign >= 0
+            AND ABS(price_diff) > 0
         ORDER BY ABS(price_diff) DESC
         LIMIT :limit
         OFFSET :offset;
