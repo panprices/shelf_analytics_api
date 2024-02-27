@@ -5,14 +5,16 @@ from app.schemas.filters import GlobalFilter
 
 CONTENT_SCORE_FIELD = """
     CASE
-        WHEN AVG(text_score) IS NULL
-            THEN COALESCE(AVG(image_score), 0)
-        ELSE COALESCE(AVG(image_score) + AVG(text_score)) / 2
+        WHEN text_score IS NULL
+            THEN image_score
+        WHEN image_score IS NULL
+            THEN text_score
+        ELSE (image_score + text_score) / 2
     END
 """
 
-TEXT_SCORE_FIELD = "COALESCE(AVG(text_score), 0)"
-IMAGE_SCORE_FIELD = "COALESCE(AVG(image_score), 0)"
+TEXT_SCORE_FIELD = "text_score"
+IMAGE_SCORE_FIELD = "image_score"
 
 
 def _get_scores_root_query(global_filter: GlobalFilter):
@@ -47,7 +49,7 @@ def _get_historical_score(
         f"""
             SELECT 
                 time, 
-                {score_field} as score
+                COALESCE(AVG({score_field}), 0) as score
             FROM retailer_product_per_week_matview
             WHERE brand_id = :brand_id
                 AND time >= :start_date
@@ -60,6 +62,7 @@ def _get_historical_score(
                     if global_filter.groups else ""
                 }
             GROUP BY time
+            HAVING COUNT(*) FILTER (WHERE {score_field} IS NOT NULL) > 0
             ORDER BY time ASC
         """,
     )
@@ -76,7 +79,7 @@ def _get_historical_score_per_retailer(
             SELECT 
                 retailer_name || ' ' || retailer_country as retailer,
                 time, 
-                {score_field} as score
+                COALESCE(AVG({score_field}), 0) as score
             FROM retailer_product_per_week_matview
             WHERE brand_id = :brand_id
                 AND time >= :start_date
@@ -89,6 +92,7 @@ def _get_historical_score_per_retailer(
                     if global_filter.groups else ""
                 }
             GROUP BY time, retailer
+            HAVING COUNT(*) FILTER (WHERE {score_field} IS NOT NULL) > 0
             ORDER BY time ASC, retailer ASC
        """,
     )
