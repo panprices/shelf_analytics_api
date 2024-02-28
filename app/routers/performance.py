@@ -69,6 +69,7 @@ async def get_performance_for_categories(
         "categories": {
             c["id"]: IndividualRetailerCategoryPerformanceDetails(**c)
             for c in categories_performance_details
+            if c["products_count"]
         }
     }
 

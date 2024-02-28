@@ -11,6 +11,7 @@ from app import crud
 from app.crud.utils import (
     create_append_to_history_reducer,
     extract_minimal_values,
+    export_rows_to_xlsx,
 )
 from app.database import get_db
 from app.schemas.auth import TokenData
@@ -27,6 +28,7 @@ from app.schemas.product import (
     BrandProductMatchesScaffold,
     MockRetailerProductGridItem,
     BrandProductsPage,
+    MockBrandProductGridItem,
 )
 from app.security import get_user_data
 from app.tags import TAG_DATA
@@ -65,7 +67,11 @@ async def export_products_to_csv(
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
-    pass
+    products = crud.export_full_brand_products_result(
+        db, user.client, page_global_filter
+    )
+    products = [MockBrandProductGridItem.from_orm(p) for p in products]
+    return export_rows_to_xlsx(products)
 
 
 @router.get("/{brand_product_id}", tags=[TAG_DATA], response_model=BrandProductScaffold)

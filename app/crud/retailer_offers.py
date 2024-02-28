@@ -141,14 +141,6 @@ def _count_retailer_offers_datapool(
     ).scalar()
 
 
-def count_brand_products(
-    db: Session, brand_id: str, global_filter: DataPageFilter
-) -> int:
-    return _count_retailer_offers_datapool(
-        db, brand_id, global_filter, count_target="DISTINCT matched_brand_product_id"
-    )
-
-
 def count_retailer_offers(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
 ) -> int:

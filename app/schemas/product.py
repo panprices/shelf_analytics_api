@@ -241,7 +241,8 @@ class MockBrandProductGridItem(BaseModel):
         description="The number of markets selling this product", example=2
     )
     retailer_coverage_rate: float = Field(
-        description="The percentage of markets selling this product", example=50.0
+        description="A value between 0 and 1, showing the coverage of the product by retailers",
+        example=0.33,
     )
 
     class Config:

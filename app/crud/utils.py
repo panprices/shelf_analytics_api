@@ -1,13 +1,16 @@
+import io
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import List, Dict, Optional, TypeVar, Callable, Type
+from typing import List, Dict, Optional, TypeVar, Callable, Type, Literal, Union
 
+import pandas
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.orm import Session
+from starlette.responses import Response
 
-from app.schemas.filters import GlobalFilter, PagedGlobalFilter
+from app.schemas.filters import GlobalFilter, PagedGlobalFilter, DataPageFilter
 from app.schemas.prices import RetailerHistoricalItem
 
 
@@ -45,32 +48,47 @@ def get_results_from_statement_with_filters(
 
 def get_result_entities_from_statement_with_paged_filters(
     db: Session,
-    entity: Type[BaseModel],
+    entity: Union[Type[BaseModel], Literal["count"]],
     brand_id: str,
-    global_filter: PagedGlobalFilter,
+    global_filter: Union[PagedGlobalFilter, DataPageFilter],
     statement: str,
+    ignore_pagination: bool = False,
 ):
-    return (
-        db.query(entity)
-        .from_statement(text(statement))
-        .params(
-            start_date=global_filter.start_date,
-            brand_id=brand_id,
-            categories=tuple(global_filter.categories),
-            retailers=tuple(global_filter.retailers),
-            countries=tuple(global_filter.countries),
-            groups=tuple(global_filter.groups),
-            offset=global_filter.get_products_offset(),
-            limit=global_filter.page_size,
-            search_text=f"%{global_filter.search_text}%",
-            **{
-                f"fv_{index}": i.get_safe_postgres_value()
-                for index, i in enumerate(global_filter.data_grid_filter.items)
-                if i.is_well_defined()
-            },
+    params_dict = {
+        "brand_id": brand_id,
+        "start_date": global_filter.start_date,
+        "countries": tuple(global_filter.countries),
+        "retailers": tuple(global_filter.retailers),
+        "categories": tuple(global_filter.categories),
+        "groups": tuple(global_filter.groups),
+        "offset": global_filter.get_products_offset() if not ignore_pagination else 0,
+        "limit": global_filter.page_size if not ignore_pagination else None,
+        "search_text": f"%{global_filter.search_text}%",
+        **{
+            f"fv_{index}": i.get_safe_postgres_value()
+            for index, i in enumerate(global_filter.data_grid_filter.items)
+            if i.is_well_defined()
+        },
+    }
+
+    if entity == "count":
+        statement = f"""
+            SELECT COUNT(*)
+            FROM (
+                {statement}
+            ) aux
+        """
+        query = db.execute(text(statement), params=params_dict)
+    else:
+        query = (
+            db.query(entity)
+            .from_statement(text(statement))
+            .params(
+                **params_dict,
+            )
         )
-        .all()
-    )
+
+    return query.all()
 
 
 def add_extra_date_value_to_historical_prices(
@@ -247,3 +265,12 @@ def duplicate_unique_points(grouped_history: dict) -> dict:
             )
 
     return grouped_history
+
+
+def export_rows_to_xlsx(products: List[BaseModel]):
+    products_df = pandas.DataFrame([p.dict() for p in products])
+
+    buffer = io.BytesIO()
+    products_df.to_excel(buffer, index=False, engine="xlsxwriter")
+
+    return Response(buffer.getvalue())

@@ -1,11 +1,8 @@
-import io
-
-import pandas
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from starlette.responses import Response
 
 from app import crud
+from app.crud.utils import export_rows_to_xlsx
 from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import (
@@ -47,9 +44,4 @@ async def export_products_to_csv(
         db, user.client, page_global_filter
     )
     products = [MockRetailerProductGridItem.from_orm(p) for p in products]
-    products_df = pandas.DataFrame([p.dict() for p in products])
-
-    buffer = io.BytesIO()
-    products_df.to_excel(buffer, index=False, engine="xlsxwriter")
-
-    return Response(buffer.getvalue())
+    return export_rows_to_xlsx(products)
