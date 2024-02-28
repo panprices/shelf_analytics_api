@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy import Column, String, ForeignKey, Boolean, Float
+from sqlalchemy import Column, String, ForeignKey, Boolean, Float, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
@@ -141,3 +141,16 @@ class BrandProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixi
     @hybrid_property
     def processed_images(self):
         return [i for i in self.images if i.image_hash is not None and not i.temp_wrong]
+
+
+class MockBrandProductGridItem(Base, UUIDPrimaryKeyMixin):
+    __tablename__ = "__mocked_brand_product_grid_item__"
+
+    name = Column(String)
+    description = Column(String)
+    sku = Column(String)
+    gtin = Column(String)
+    brand_in_stock = Column(Boolean)
+    retailers_count = Column(Integer)
+    markets_count = Column(Integer)
+    retailer_coverage_rate = Column(Float)

@@ -213,6 +213,41 @@ class MockRetailerProductGridItem(BaseModel):
         orm_mode = True
 
 
+class MockBrandProductGridItem(BaseModel):
+    id: Union[str, uuid.UUID] = Field(
+        description="UUID identifying the product uniquely",
+        example="31ef6c6c-be2d-4478-a948-10a66dad1d2a",
+    )
+    name: str = Field(
+        description="The name of the product",
+        example="Matgrupp Copenhagen med Matstol Comfort",
+    )
+    description: Optional[str] = Field(
+        description="The description of the product", example="Some description"
+    )
+    sku: Optional[str] = Field(
+        description="The SKU assigned by the client", example="16052-101"
+    )
+    gtin: Optional[str] = Field(
+        description="The GTIN assigned by the client", example="7350133230816"
+    )
+    brand_in_stock: bool = Field(
+        description="Whether the product is in stock at the brand", example=False
+    )
+    retailers_count: int = Field(
+        description="The number of retailers selling this product", example=2
+    )
+    markets_count: int = Field(
+        description="The number of markets selling this product", example=2
+    )
+    retailer_coverage_rate: float = Field(
+        description="The percentage of markets selling this product", example=50.0
+    )
+
+    class Config:
+        orm_mode = True
+
+
 class BaseRetailerProductScaffold(BaseModel):
     id: Union[str, uuid.UUID] = Field(
         description="""
@@ -278,14 +313,22 @@ class PagedResponse(BaseModel):
     )
 
 
-class ProductPage(PagedResponse):
+class RetailerOffersPage(PagedResponse):
     """
-    Holds the data for a page of products as showed on the data page in FE.
+    Holds the data for a page of products as showed on the retailer offers table.
     """
 
     rows: List[MockRetailerProductGridItem] = Field(
-        description="The list of products",
+        description="The list of retailer offers",
     )
+
+
+class BrandProductsPage(PagedResponse):
+    """
+    Holds the data for a page of products as showed on the brand products table.
+    """
+
+    rows: List[MockBrandProductGridItem] = Field(description="The list of products")
 
 
 class MatchedRetailerProductCategoryScaffold(BaseModel):

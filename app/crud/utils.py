@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import List, Dict, Optional, TypeVar, Callable
+from typing import List, Dict, Optional, TypeVar, Callable, Type
 
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.orm import Session
 
-from app.schemas.filters import GlobalFilter
+from app.schemas.filters import GlobalFilter, PagedGlobalFilter
 from app.schemas.prices import RetailerHistoricalItem
 
 
@@ -40,6 +41,36 @@ def get_results_from_statement_with_filters(
     ).all()
 
     return convert_rows_to_dicts(result)
+
+
+def get_result_entities_from_statement_with_paged_filters(
+    db: Session,
+    entity: Type[BaseModel],
+    brand_id: str,
+    global_filter: PagedGlobalFilter,
+    statement: str,
+):
+    return (
+        db.query(entity)
+        .from_statement(text(statement))
+        .params(
+            start_date=global_filter.start_date,
+            brand_id=brand_id,
+            categories=tuple(global_filter.categories),
+            retailers=tuple(global_filter.retailers),
+            countries=tuple(global_filter.countries),
+            groups=tuple(global_filter.groups),
+            offset=global_filter.get_products_offset(),
+            limit=global_filter.page_size,
+            search_text=f"%{global_filter.search_text}%",
+            **{
+                f"fv_{index}": i.get_safe_postgres_value()
+                for index, i in enumerate(global_filter.data_grid_filter.items)
+                if i.is_well_defined()
+            },
+        )
+        .all()
+    )
 
 
 def add_extra_date_value_to_historical_prices(

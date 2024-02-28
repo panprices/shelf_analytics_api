@@ -22,34 +22,35 @@ from app.schemas.filters import (
 )
 from app.schemas.prices import HistoricalPerRetailerResponse, MSRPValueItem
 from app.schemas.product import (
-    ProductPage,
+    RetailerOffersPage,
     BrandProductScaffold,
     BrandProductMatchesScaffold,
     MockRetailerProductGridItem,
+    BrandProductsPage,
 )
 from app.security import get_user_data
 from app.tags import TAG_DATA
 
-router = APIRouter(prefix="/products")
+router = APIRouter(prefix="/products/brand")
 
 
-@router.post("", tags=[TAG_DATA], response_model=ProductPage)
-def get_products(
+@router.post("", tags=[TAG_DATA], response_model=BrandProductsPage)
+def get_brand_products(
     page_global_filter: PagedGlobalFilter,
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
-    products = crud.get_products(db, user.client, page_global_filter)
+    products = crud.get_brand_products_data_grid(db, user.client, page_global_filter)
 
     return {
         "rows": products,
         "count": len(products),
         "offset": page_global_filter.get_products_offset(),
-        "total_count": crud.count_products(db, user.client, page_global_filter),
+        "total_count": crud.count_brand_products(db, user.client, page_global_filter),
     }
 
 
-@router.post("/brand/count", tags=[TAG_DATA], response_model=int)
+@router.post("/count", tags=[TAG_DATA], response_model=int)
 def get_brand_products_count(
     paged_global_filter: DataPageFilter,
     user: TokenData = Depends(get_user_data),
@@ -64,21 +65,10 @@ async def export_products_to_csv(
     user: TokenData = Depends(get_user_data),
     db: Session = Depends(get_db),
 ):
-    products = crud.export_full_brand_products_result(
-        db, user.client, page_global_filter
-    )
-    products = [MockRetailerProductGridItem.from_orm(p) for p in products]
-    products_df = pandas.DataFrame([p.dict() for p in products])
-
-    buffer = io.BytesIO()
-    products_df.to_excel(buffer, index=False, engine="xlsxwriter")
-
-    return Response(buffer.getvalue())
+    pass
 
 
-@router.get(
-    "/brand/{brand_product_id}", tags=[TAG_DATA], response_model=BrandProductScaffold
-)
+@router.get("/{brand_product_id}", tags=[TAG_DATA], response_model=BrandProductScaffold)
 def get_brand_product_details(
     brand_product_id: str,
     user: TokenData = Depends(get_user_data),
@@ -99,7 +89,7 @@ def get_brand_product_details(
 
 
 @router.post(
-    "/brand/{brand_product_id}/matches",
+    "/{brand_product_id}/matches",
     tags=[TAG_DATA],
     response_model=BrandProductMatchesScaffold,
 )
@@ -131,7 +121,7 @@ def get_matched_retailer_products_for_brand_product(
 
 
 @router.post(
-    "/brand/{brand_product_id}/prices",
+    "/{brand_product_id}/prices",
     tags=[TAG_DATA],
     response_model=HistoricalPerRetailerResponse,
 )
@@ -181,7 +171,7 @@ def get_historical_prices_for_brand_product(
 
 
 @router.post(
-    "/brand/{brand_product_id}/msrp",
+    "/{brand_product_id}/msrp",
     tags=[TAG_DATA],
     response_model=MSRPValueItem,
 )

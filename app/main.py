@@ -10,7 +10,8 @@ from app.routers import (
     auth,
     performance,
     availability,
-    data,
+    brand_products,
+    retailer_offers,
     overview,
     content,
     matching,
@@ -46,7 +47,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(performance.router)
 app.include_router(availability.router)
-app.include_router(data.router)
+app.include_router(brand_products.router)
+app.include_router(retailer_offers.router)
 app.include_router(overview.router)
 app.include_router(content.router)
 app.include_router(matching.router)
