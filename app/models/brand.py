@@ -154,3 +154,4 @@ class MockBrandProductGridItem(Base, UUIDPrimaryKeyMixin):
     retailers_count = Column(Integer)
     markets_count = Column(Integer)
     retailer_coverage_rate = Column(Float)
+    retailers = Column(String)

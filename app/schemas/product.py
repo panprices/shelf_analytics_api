@@ -244,6 +244,10 @@ class MockBrandProductGridItem(BaseModel):
         description="A value between 0 and 1, showing the coverage of the product by retailers",
         example=0.33,
     )
+    retailers: str = Field(
+        description="Comma separated list of retailers that sell this product",
+        example="Trademax SE,Bygghemma SE",
+    )
 
     class Config:
         orm_mode = True

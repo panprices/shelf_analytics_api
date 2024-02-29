@@ -41,7 +41,8 @@ def _create_query_for_retailer_offers_datapool(global_filter: DataPageFilter) ->
                     COUNT(DISTINCT r.id) FILTER (WHERE rp.fetched_at > DATE_TRUNC('week', NOW()) - INTERVAL '1 week') as retailers_count,
                     COUNT(DISTINCT r.country) FILTER (WHERE rp.fetched_at > DATE_TRUNC('week', NOW()) - INTERVAL '1 week') as markets_count,
                     COUNT(DISTINCT r.id) FILTER (WHERE rp.fetched_at > DATE_TRUNC('week', NOW()) - INTERVAL '1 week') 
-                        / (SELECT * FROM retailers_count_for_client LIMIT 1)::float as retailer_coverage_rate
+                        / (SELECT * FROM retailers_count_for_client LIMIT 1)::float as retailer_coverage_rate,
+                    STRING_AGG(DISTINCT COALESCE(r.name  || ' ' || r.country, ''), ', ' ORDER BY COALESCE(r.name  || ' ' || r.country, '')) as retailers
                 FROM brand_product bp
                     LEFT JOIN product_matching pm ON pm.brand_product_id = bp.id
                     LEFT JOIN retailer_product rp ON rp.id = pm.retailer_product_id
