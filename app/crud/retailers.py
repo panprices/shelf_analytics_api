@@ -289,3 +289,43 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
         ]
 
     return result
+
+
+def get_retailer_homepage_urls(db: Session, brand_id: str, global_filter: GlobalFilter):
+    statement = """
+        SELECT 
+            'brand' AS type,
+            rbp.brand_name AS brand,
+            sum(rhu.count) AS count
+        FROM retailer_homepage_url rhu
+            JOIN retailer_brand_page rbp ON rbp.id = rhu.brand_page_id
+        WHERE rbp.retailer_id = :retailer_id
+            AND rhu.time >= date_trunc('week', now()) - interval '1 week'
+            AND rhu.time < date_trunc('week', now())
+        GROUP BY (rbp.id)
+
+        UNION
+
+        SELECT 
+            'product' AS type,
+            rbp.brand_name AS brand,
+            sum(rhu.count) AS count
+        FROM retailer_homepage_url rhu
+            JOIN retailer_product rp ON rp.id = rhu.retailer_product_id
+            JOIN retailer_brand_page rbp ON rbp.id = rp.brand_page_id
+        WHERE rp.retailer_id = :retailer_id
+            AND rhu.time >= date_trunc('week', now()) - interval '1 week'
+            AND rhu.time < date_trunc('week', now())
+        GROUP BY (rbp.id);
+    """
+
+    result = convert_rows_to_dicts(
+        db.execute(
+            statement,
+            {
+                "retailer_id": global_filter.retailers[0],
+            },
+        ).fetchall()
+    )
+
+    return result
