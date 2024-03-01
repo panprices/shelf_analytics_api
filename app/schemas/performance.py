@@ -60,3 +60,13 @@ class IndividualRetailerCategoryTopNDetails(BaseModel):
 
 class RetailerCategoryPerformanceTopN(BaseModel):
     categories: List[IndividualRetailerCategoryTopNDetails]
+
+
+class IndividualBrandShareHomepageUrl(BaseModel):
+    type: str  # {product, brand}
+    brand: str
+    count: int
+
+
+class RetailerCategoryPerformanceBrandShareHomepage(BaseModel):
+    urls: List[IndividualBrandShareHomepageUrl]

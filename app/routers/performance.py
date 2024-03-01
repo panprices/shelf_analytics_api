@@ -9,6 +9,7 @@ from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter
 from app.schemas.performance import (
+    RetailerCategoryPerformanceBrandShareHomepage,
     RetailerPerformance,
     RetailersCategoryPerformanceDetails,
     IndividualRetailerCategoryPerformanceDetails,
@@ -116,3 +117,21 @@ async def get_category_top_n(
             for c in top_n_raw
         ]
     }
+
+
+@router.post(
+    "/homepage",
+    tags=[TAG_PERFORMANCE],
+    response_model=RetailerCategoryPerformanceBrandShareHomepage,
+)
+async def get_brand_share_homepage(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    if len(global_filter.retailers) == 0:
+        return {"urls": []}
+
+    homepage_urls = crud.get_retailer_homepage_urls(db, user.client, global_filter)
+
+    return {"urls": homepage_urls}
