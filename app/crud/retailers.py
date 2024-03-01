@@ -297,7 +297,7 @@ def get_retailer_homepage_urls(db: Session, brand_id: str, global_filter: Global
             rhu.type,
             rbp.brand_name AS brand,
             sum(rhu.count)
-        FROM retailer_homepage_urls rhu
+        FROM retailer_homepage_url rhu
             JOIN retailer_brand_page rbp ON rbp.id = rhu.brand_page_id
         WHERE rhu.retailer_id = :retailer_id
         GROUP BY (rbp.id, rhu.type);
