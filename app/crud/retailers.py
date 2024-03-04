@@ -293,30 +293,38 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
 
 def get_retailer_homepage_urls(db: Session, brand_id: str, global_filter: GlobalFilter):
     statement = """
-        SELECT 
-            'brand' AS type,
-            rbp.brand_name AS brand,
-            sum(rhu.count) AS count
-        FROM retailer_homepage_url rhu
-            JOIN retailer_brand_page rbp ON rbp.id = rhu.brand_page_id
-        WHERE rbp.retailer_id = :retailer_id
-            AND rhu.time >= date_trunc('week', now()) - interval '1 week'
-            AND rhu.time < date_trunc('week', now())
-        GROUP BY (rbp.id)
-
-        UNION
-
-        SELECT 
-            'product' AS type,
-            rbp.brand_name AS brand,
-            sum(rhu.count) AS count
-        FROM retailer_homepage_url rhu
-            JOIN retailer_product rp ON rp.id = rhu.retailer_product_id
-            JOIN retailer_brand_page rbp ON rbp.id = rp.brand_page_id
-        WHERE rp.retailer_id = :retailer_id
-            AND rhu.time >= date_trunc('week', now()) - interval '1 week'
-            AND rhu.time < date_trunc('week', now())
-        GROUP BY (rbp.id);
+        WITH all_recent_result AS (
+            SELECT 
+                time,
+                'brand' AS type,
+                rbp.brand_name AS brand,
+                sum(rhu.count) AS count
+            FROM retailer_homepage_url rhu
+                JOIN retailer_brand_page rbp ON rbp.id = rhu.brand_page_id
+            WHERE rbp.retailer_id = :retailer_id
+                AND rhu.time >= date_trunc('week', now()) - interval '1 week'
+            GROUP BY (rbp.id, time)
+            
+            UNION
+            
+            SELECT  
+                time,
+                'product' AS type,
+                rbp.brand_name AS brand,
+                sum(rhu.count) AS count
+            FROM retailer_homepage_url rhu
+                JOIN retailer_product rp ON rp.id = rhu.retailer_product_id
+                JOIN retailer_brand_page rbp ON rbp.id = rp.brand_page_id
+            WHERE rp.retailer_id = :retailer_id
+                AND rhu.time >= date_trunc('week', now()) - interval '1 week'
+            GROUP BY (rbp.id, time)
+        )
+        -- Select only the latest fetch.
+        -- All data within a homepage fetch should have the same time since they are 
+        -- inserted at the same time.
+        SELECT *
+        FROM all_recent_result
+        WHERE time = (SELECT MAX(time) FROM all_recent_result);
     """
 
     result = convert_rows_to_dicts(
