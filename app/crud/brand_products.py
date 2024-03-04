@@ -38,23 +38,21 @@ def _create_query_for_retailer_offers_datapool(global_filter: DataPageFilter) ->
             ), table_data AS (
                 SELECT bp.id, bp.name, bp.description, bp.sku, bp.gtin, 
                     COALESCE(bp.availability = 'in_stock', TRUE) as brand_in_stock, -- Assume in stock if not specified
-                    COUNT(DISTINCT r.id) FILTER (WHERE rp.fetched_at > DATE_TRUNC('week', NOW()) - INTERVAL '1 week') as retailers_count,
-                    COUNT(DISTINCT r.country) FILTER (WHERE rp.fetched_at > DATE_TRUNC('week', NOW()) - INTERVAL '1 week') as markets_count,
-                    COUNT(DISTINCT r.id) FILTER (WHERE rp.fetched_at > DATE_TRUNC('week', NOW()) - INTERVAL '1 week') 
+                    COUNT(DISTINCT retailer_id) FILTER (WHERE available_at_retailer = TRUE) as retailers_count,
+                    COUNT(DISTINCT country) FILTER (WHERE available_at_retailer = TRUE) as markets_count,
+                    COUNT(DISTINCT retailer_id) FILTER (WHERE available_at_retailer = TRUE) 
                         / (SELECT * FROM retailers_count_for_client LIMIT 1)::float as retailer_coverage_rate,
-                    COALESCE(STRING_AGG(DISTINCT COALESCE(r.name  || ' ' || r.country, ''), ', ' ORDER BY COALESCE(r.name  || ' ' || r.country, '')) 
-                        FILTER (WHERE rp.fetched_at > DATE_TRUNC('week', NOW()) - INTERVAL '1 week'), '') as retailers
-                FROM brand_product bp
-                    LEFT JOIN product_matching pm ON pm.brand_product_id = bp.id
-                    LEFT JOIN retailer_product rp ON rp.id = pm.retailer_product_id
-                    LEFT JOIN retailer r ON r.id = rp.retailer_id
+                    COALESCE(STRING_AGG(DISTINCT retailer_name  || ' ' || country, ', ' ORDER BY retailer_name  || ' ' || country) 
+                        FILTER (WHERE available_at_retailer = TRUE), '') as retailers
+                FROM retailer_product_including_unavailable_matview rpm
+                    JOIN brand_product bp ON bp.id = rpm.matched_brand_product_id
                 WHERE bp.brand_id = :brand_id
                     AND bp.active = TRUE
-                    {"AND category_id IN :categories" if global_filter.categories else ""}
+                    {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
                     {"AND country IN :countries" if global_filter.countries else ""}
                     {'''
-                        AND brand_product_id IN (
+                        AND bp.id IN (
                             SELECT product_id 
                             FROM product_group_assignation pga 
                             WHERE pga.product_group_id IN :groups
