@@ -48,7 +48,7 @@ class UserInvitation(BaseModel):
     domain: str
 
 
-class InvitationResponse(BaseModel):
+class CheckEnvelopeResponse(BaseModel):
     success: bool
 
 
@@ -60,3 +60,7 @@ class MagicAuthResponse(AuthenticationResponse):
     firebase_token: Optional[str] = Field(
         default=None, description="The JWT token to be used with firebase"
     )
+
+
+class AuthProbeRequest(BaseModel):
+    email: str

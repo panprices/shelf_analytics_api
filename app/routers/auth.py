@@ -9,7 +9,8 @@ import requests
 from fastapi import Depends, Response, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth, firestore
-from firebase_admin.auth import EmailAlreadyExistsError
+from firebase_admin.auth import EmailAlreadyExistsError, UserNotFoundError
+from firebase_admin.exceptions import FirebaseError
 from jose import jwt
 from magic_admin import Magic
 from magic_admin.error import (
@@ -27,10 +28,11 @@ from app.schemas.auth import (
     TokenData,
     UserMetadata,
     UserInvitation,
-    InvitationResponse,
+    CheckEnvelopeResponse,
     MagicAuthResponse,
     MagicAuthRequest,
     ExtraFeatureScaffold,
+    AuthProbeRequest,
 )
 from app.security import firebase_app, JWT_ALGORITHM, JWT_SECRET_KEY, get_user_data
 from app.tags import TAG_AUTH
@@ -166,7 +168,7 @@ def authenticate_with_firebase_token(
         )
 
 
-@router.post("/invite", tags=[TAG_AUTH], response_model=InvitationResponse)
+@router.post("/invite", tags=[TAG_AUTH], response_model=CheckEnvelopeResponse)
 def invite_user_by_mail(
     invitation: UserInvitation,
     response: Response,
@@ -233,3 +235,15 @@ def authenticate_with_magic_link(
         return {**authentication_response.dict(), "firebase_token": firebase_token}
     except MagicError as e:
         return AuthenticationResponse(success=False)
+
+
+@router.post("/probe", tags=[TAG_AUTH], response_model=CheckEnvelopeResponse)
+def probe_user(
+    body: AuthProbeRequest,
+):
+    try:
+        auth.get_user_by_email(body.email)
+
+        return {"success": True}
+    except (ValueError, UserNotFoundError, FirebaseError) as e:
+        return {"success": False}
