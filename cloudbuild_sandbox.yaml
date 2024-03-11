@@ -20,7 +20,7 @@ steps:
         "DB_HOST",
         "MAGIC_API_SECRET_KEY",
         "JWT_SECRET",
-        "MAILGUN_API_KEY",
+        "POSTMARK_API_TOKEN",
       ]
 
 availableSecrets:
@@ -39,5 +39,5 @@ availableSecrets:
       env: "MAGIC_API_SECRET_KEY"
     - versionName: projects/panprices/secrets/SHELF_ANALYTICS_JWT_SECRET/versions/latest
       env: "JWT_SECRET"
-    - versionName: projects/panprices/secrets/MAILGUN_API_KEY/versions/latest
-      env: "MAILGUN_API_KEY"
+    - versionName: projects/panprices/secrets/POSTMARK_API_TOKEN/versions/latest
+      env: "POSTMARK_API_TOKEN"

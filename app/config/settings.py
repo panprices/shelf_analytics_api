@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     firebase_api_key: str = Field()
     magic_api_secret_key: str = Field()
-    mailgun_api_key: str = Field()
+    postmark_api_token: str = Field()
     jwt_secret: str = Field()
 
     class Config:
