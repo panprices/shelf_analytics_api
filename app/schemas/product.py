@@ -69,7 +69,6 @@ class MockRetailerProductGridItem(BaseModel):
     )
     currency: Optional[str] = Field(
         description="The currency in which the product is being sold. Can be `None` if the price is not available",
-        examples={"sweden": "SEK", "eu": "EUR"},
     )
     review_average: Optional[float] = Field(
         description="The rating of this product, average of the scores from the reviews the product received.",
@@ -287,7 +286,6 @@ class BaseRetailerProductScaffold(BaseModel):
     )
     currency: str = Field(
         description="The currency in which the product is being sold",
-        examples={"sweden": "SEK", "eu": "EUR"},
     )
     review_average: Optional[float] = Field(
         description="The rating of this product, average of the scores from the reviews the product received.",
