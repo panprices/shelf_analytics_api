@@ -4,40 +4,11 @@ steps:
     args:
       - run
       - deploy
-      - shelf-analytics-middleware-sandbox
+      - shelf-analytics-middleware
       - --region=europe-west1
       - --source=.
       - --min-instances=1
       - --max-instances=20
-      - --add-cloudsql-instances=panprices:europe-west1:panprices-core-sandbox
-      - --set-env-vars=PANPRICES_ENVIRONMENT=sandbox
-    secretEnv:
-      [
-        "FIREBASE_API_KEY",
-        "DB_NAME",
-        "DB_USER",
-        "DB_PASS",
-        "DB_HOST",
-        "MAGIC_API_SECRET_KEY",
-        "JWT_SECRET",
-        "POSTMARK_API_TOKEN",
-      ]
-
-availableSecrets:
-  secretManager:
-    - versionName: projects/panprices/secrets/firebase_api_key/versions/latest
-      env: "FIREBASE_API_KEY"
-    - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_SHELF_ANALYTICS_DB/versions/latest
-      env: "DB_NAME"
-    - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_USER/versions/latest
-      env: "DB_USER"
-    - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_PASSWORD/versions/latest
-      env: "DB_PASS"
-    - versionName: projects/panprices/secrets/POSTGRES_SANDBOX_HOST/versions/latest
-      env: "DB_HOST"
-    - versionName: projects/panprices/secrets/MAGIC_API_SECRET_KEY/versions/latest
-      env: "MAGIC_API_SECRET_KEY"
-    - versionName: projects/panprices/secrets/SHELF_ANALYTICS_JWT_SECRET/versions/latest
-      env: "JWT_SECRET"
-    - versionName: projects/panprices/secrets/POSTMARK_API_TOKEN/versions/latest
-      env: "POSTMARK_API_TOKEN"
+      - --add-cloudsql-instances=panprices:europe-west1:panprices-core
+      - --set-env-vars=PANPRICES_ENVIRONMENT=production
+      - --update-secrets=DB_NAME=POSTGRES_SANDBOX_SHELF_ANALYTICS_DB:latest,DB_USER=POSTGRES_SANDBOX_USER:latest,DB_PASS=POSTGRES_SANDBOX_PASSWORD:latest,DB_HOST=POSTGRES_SANDBOX_HOST:latest,FIREBASE_API_KEY=firebase_api_key:latest,JWT_SECRET=SHELF_ANALYTICS_JWT_SECRET:latest,POSTMARK_API_TOKEN=POSTMARK_API_TOKEN:latest
