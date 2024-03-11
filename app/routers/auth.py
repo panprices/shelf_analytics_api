@@ -6,6 +6,7 @@ from typing import Optional
 
 import fastapi
 import requests
+import structlog
 from fastapi import Depends, Response, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth, firestore
@@ -17,6 +18,7 @@ from magic_admin.error import (
 )
 from sqlalchemy.orm import Session
 from starlette import status
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app import crud
 from app.config.settings import get_settings, Settings
@@ -36,6 +38,7 @@ from app.security import firebase_app, JWT_ALGORITHM, JWT_SECRET_KEY, get_user_d
 from app.tags import TAG_AUTH
 
 router = fastapi.APIRouter(prefix="/authenticate")
+logger = structlog.get_logger()
 rest_api_url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
 
 
@@ -180,22 +183,34 @@ def invite_user_by_mail(
     brand_name = crud.get_brand_name(postgres_db, inviting_user.client)
     settings = get_settings()
 
-    mailgun_variables = {
+    email_env = Environment(
+        loader=FileSystemLoader("resources/email"), autoescape=select_autoescape()
+    )
+    template = email_env.get_template("invite.html")
+    template_data = {
         "inviter_name": inviting_user.first_name + " " + inviting_user.last_name,
         "brand_name": brand_name,
         "invite_link": f"{invitation.domain}/login?email={invitation.email}",
     }
-    requests.post(
-        "https://api.eu.mailgun.net/v3/mailgun.panprices.com/messages",
-        auth=("api", settings.mailgun_api_key),
-        data={
-            "from": "Loupe Team <info@getloupe.co>",
-            "to": f"{invitation.first_name} {invitation.last_name} <{invitation.email}>",
-            "subject": f"{inviting_user.first_name} {inviting_user.last_name} invited you to join the {brand_name} team",
-            "template": "shelf_analytics_invite",
-            "h:X-Mailgun-Variables": json.dumps(mailgun_variables),
+    email_body = template.render(**template_data)
+    email_response = requests.post(
+        "https://api.postmarkapp.com/email",
+        headers={
+            "X-Postmark-Server-Token": settings.postmark_api_token,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        },
+        json={
+            "From": "Loupe <info@getloupe.co>",
+            "To": f"{invitation.first_name} {invitation.last_name} <{invitation.email}>",
+            "Subject": f"{inviting_user.first_name} {inviting_user.last_name} invited you to join the {brand_name} team",
+            "HtmlBody": email_body,
+            "MessageStream": "outbound",
         },
     )
+    if email_response.status_code >= 300:
+        logger.error("Error when sending email", response=email_response.json())
+        raise HTTPException(500, detail="Error when sending email")
 
     alphabet = string.ascii_letters + string.digits
     password = "".join(secrets.choice(alphabet) for _ in range(20))
