@@ -4,11 +4,11 @@ steps:
     args:
       - run
       - deploy
-      - shelf-analytics-middleware
+      - shelf-analytics-middleware-sandbox
       - --region=europe-west1
       - --source=.
       - --min-instances=1
-      - --max-instances=20
+      - --max-instances=1
       - --add-cloudsql-instances=panprices:europe-west1:panprices-core
       - --set-env-vars=PANPRICES_ENVIRONMENT=production
       - --update-secrets=DB_NAME=POSTGRES_SANDBOX_SHELF_ANALYTICS_DB:latest,DB_USER=POSTGRES_SANDBOX_USER:latest,DB_PASS=POSTGRES_SANDBOX_PASSWORD:latest,DB_HOST=POSTGRES_SANDBOX_HOST:latest,FIREBASE_API_KEY=firebase_api_key:latest,JWT_SECRET=SHELF_ANALYTICS_JWT_SECRET:latest,POSTMARK_API_TOKEN=POSTMARK_API_TOKEN:latest
