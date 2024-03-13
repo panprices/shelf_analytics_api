@@ -186,7 +186,7 @@ def invite_user_by_mail(
     settings = get_settings()
 
     email_env = Environment(
-        loader=FileSystemLoader("resources/email"), autoescape=select_autoescape()
+        loader=FileSystemLoader("./resources/email"), autoescape=select_autoescape()
     )
     template = email_env.get_template("invite.html")
     template_data = {
