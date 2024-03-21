@@ -48,6 +48,7 @@ def _create_query_for_retailer_offers_datapool(global_filter: DataPageFilter) ->
                     JOIN brand_product bp ON bp.id = rpm.matched_brand_product_id
                 WHERE bp.brand_id = :brand_id
                     AND bp.active = TRUE
+                    AND rpm.available_at_retailer = TRUE
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
                     {"AND country IN :countries" if global_filter.countries else ""}
