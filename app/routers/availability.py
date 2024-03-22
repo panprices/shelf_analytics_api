@@ -60,4 +60,8 @@ def get_overview_availability_data(
         db, brand_id, global_filter
     )
 
-    return {"data": available_products_by_retailers}
+    return {
+        "data": available_products_by_retailers,
+        "available_status": "available",
+        "not_available_status": "not_available",
+    }

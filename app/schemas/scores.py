@@ -21,16 +21,17 @@ class HistoricalScore(BaseModel):
 
 class AvailableProductsCount(BaseModel):
     retailer: str
-    available_products_count: int
-    not_available_products_count: int
-    deactivated_products_count: int
     retailer_status: str
+    products_status: str
+    count: int
 
 
 class AvailableProductsPerRetailer(BaseModel):
     """Used for Overview -> Available products per retailer"""
 
     data: List[AvailableProductsCount]
+    available_status: str
+    not_available_status: str
 
 
 class ContentScoreItem(BaseModel):
