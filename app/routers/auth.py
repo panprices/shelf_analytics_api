@@ -10,7 +10,6 @@ import structlog
 from fastapi import Depends, Response, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-# from firebase_admin import auth, firestore
 from firebase_admin import auth
 from google.cloud import firestore
 
@@ -69,10 +68,8 @@ async def get_user_metadata(postgres_db: Session, uid: str) -> Optional[UserMeta
         for feature in crud.get_extra_features(postgres_db, user_metadata.get("client"))
     ]
 
-    print("extra_features")
     client_name = crud.get_brand_name(postgres_db, user_metadata.get("client"))
 
-    print("get_brand_name")
     return UserMetadata(
         **user_metadata.to_dict(), features=extra_features, client_name=client_name
     )
