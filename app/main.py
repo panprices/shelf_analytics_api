@@ -49,36 +49,34 @@ app.add_middleware(
 )
 
 
-# @app.middleware("http")
-# async def canonical_line_logger(request: Request, call_next):
-#     # !Important: always catch exceptions since a request should never fail
-#     # because of logging.
+@app.middleware("http")
+async def canonical_line_logger(request: Request, call_next):
+    # Inspiration from Stripe: https://stripe.com/blog/canonical-log-lines
 
-#     try:
-#         if request.method == "POST":
-#             request_body_json = await request.json() if request.body() else None
-#         else:
-#             request_body_json = None
-#         # request_body_json = await request.json() if request.body() else None
-#     except json.JSONDecodeError:
-#         # No need to care if the request body format is incorrect:
-#         request_body_json = None
-#     except Exception as e:
-#         logger.error("Logging error", error=e)
-
-#     try:
-#         logger.info(
-#             "Request received",
-#             http_method=request.method,
-#             http_path=request.url.path,
-#             http_request_headers=request.headers,
-#             http_request_body=request_body_json,
-#         )
-#     except Exception as e:
-#         logger.error(f"Canonical line logging failed!", error=e)
-
-#     response = await call_next(request)
-#     return response
+    # !Important: always catch exceptions since a request should never fail
+    # because of logging.
+    try:
+        if request.method in ("POST", "PUT"):
+            request_body_json = await request.json()
+        else:
+            request_body_json = None
+    except json.JSONDecodeError:
+        # No need to care if the request body format is incorrect:
+        request_body_json = None
+    except Exception as e:
+        logger.error("Logging error", error=e)
+    try:
+        logger.info(
+            "Request received",
+            http_method=request.method,
+            http_path=request.url.path,
+            http_request_headers=request.headers,
+            http_request_body=request_body_json,
+        )
+    except Exception as e:
+        logger.error(f"Canonical line logging failed!", error=e)
+    response = await call_next(request)
+    return response
 
 
 app.include_router(auth.router)
