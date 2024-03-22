@@ -55,7 +55,11 @@ app.add_middleware(
 #     # because of logging.
 
 #     try:
-#         request_body_json = await request.json() if request.body else None
+#         if request.method == "POST":
+#             request_body_json = await request.json() if request.body() else None
+#         else:
+#             request_body_json = None
+#         # request_body_json = await request.json() if request.body() else None
 #     except json.JSONDecodeError:
 #         # No need to care if the request body format is incorrect:
 #         request_body_json = None

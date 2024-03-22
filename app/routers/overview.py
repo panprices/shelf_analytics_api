@@ -35,12 +35,14 @@ def _reduce_category_list_to_tree(result_as_list: List[Dict], level: int) -> Lis
         return result_as_list
 
     result = reduce(
-        lambda d, c: d.setdefault(c["category_tree"][level]["name"], []).append(c) or d
-        if len(c["category_tree"]) > level
-        else (
-            d.setdefault(c["category_tree"][-1]["name"], []).append(c) or d
-            if len(c["category_tree"]) > 0
-            else d.setdefault(c["name"], []).append(c) or d
+        lambda d, c: (
+            d.setdefault(c["category_tree"][level]["name"], []).append(c) or d
+            if len(c["category_tree"]) > level
+            else (
+                d.setdefault(c["category_tree"][-1]["name"], []).append(c) or d
+                if len(c["category_tree"]) > 0
+                else d.setdefault(c["name"], []).append(c) or d
+            )
         ),
         result_as_list,
         {},
@@ -126,7 +128,7 @@ def get_brands(user: TokenData = Depends(get_user_data), db: Session = Depends(g
 
 
 @router.post("/brand", tags=[TAG_OVERVIEW], response_model=AuthenticationResponse)
-def switch_brand(
+async def switch_brand(
     brand_change_request: Dict[str, str],
     user: TokenData = Depends(get_user_data),
     postgres_db: Session = Depends(get_db),
@@ -142,7 +144,7 @@ def switch_brand(
         {"client": brand_change_request["brand_id"]}
     )
 
-    return authenticate_verified_user(postgres_db, user.uid)
+    return await authenticate_verified_user(postgres_db, user.uid)
 
 
 @router.post("/stats", tags=[TAG_OVERVIEW], response_model=OverviewStatsResponse)

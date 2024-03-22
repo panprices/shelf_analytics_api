@@ -9,7 +9,11 @@ import requests
 import structlog
 from fastapi import Depends, Response, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from firebase_admin import auth, firestore
+
+# from firebase_admin import auth, firestore
+from firebase_admin import auth
+from google.cloud import firestore
+
 from firebase_admin.auth import EmailAlreadyExistsError, UserNotFoundError
 from firebase_admin.exceptions import FirebaseError
 from jose import jwt
@@ -49,10 +53,12 @@ SHELF_ANALYTICS_ROLE_READER = "reader"
 SHELF_ANALYTICS_ROLE_ADMIN = "admin"
 
 
-def get_user_metadata(postgres_db: Session, uid: str) -> Optional[UserMetadata]:
-    db = firestore.client()
+async def get_user_metadata(postgres_db: Session, uid: str) -> Optional[UserMetadata]:
+    db = firestore.AsyncClient()
     user_metadata = (
-        db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION).document(uid).get()
+        await db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION)
+        .document(uid)
+        .get()
     )
 
     if not user_metadata.exists:
@@ -63,22 +69,23 @@ def get_user_metadata(postgres_db: Session, uid: str) -> Optional[UserMetadata]:
         for feature in crud.get_extra_features(postgres_db, user_metadata.get("client"))
     ]
 
+    print("extra_features")
     client_name = crud.get_brand_name(postgres_db, user_metadata.get("client"))
 
+    print("get_brand_name")
     return UserMetadata(
         **user_metadata.to_dict(), features=extra_features, client_name=client_name
     )
 
 
-def authenticate_verified_user(
+async def authenticate_verified_user(
     postgres_db: Session, uid: str
 ) -> AuthenticationResponse:
     """
     This method should only be called once the user has verified that they are who they pretend to be either by
     providing a password or a valid firebase token.
     """
-
-    user_metadata = get_user_metadata(postgres_db, uid)
+    user_metadata = await get_user_metadata(postgres_db, uid)
     if not user_metadata:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -100,7 +107,7 @@ def authenticate_verified_user(
 @router.post(
     "/withEmailAndPassword", tags=[TAG_AUTH], response_model=AuthenticationResponse
 )
-def authenticate(
+async def authenticate(
     user: AuthenticationRequest,
     response: Response,
     postgres_db: Session = Depends(get_db),
@@ -131,13 +138,13 @@ def authenticate(
         return AuthenticationResponse(success=False)
 
     uid = auth.get_user_by_email(user.email, app=firebase_app).uid
-    return authenticate_verified_user(postgres_db, uid)
+    return await authenticate_verified_user(postgres_db, uid)
 
 
 @router.post(
     "/withFirebaseToken", tags=[TAG_AUTH], response_model=AuthenticationResponse
 )
-def authenticate_with_firebase_token(
+async def authenticate_with_firebase_token(
     credential: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
     postgres_db: Session = Depends(get_db),
 ):
@@ -162,7 +169,7 @@ def authenticate_with_firebase_token(
     try:
         token = credential.credentials
         uid = auth.verify_id_token(token)["uid"]
-        return authenticate_verified_user(postgres_db, uid)
+        return await authenticate_verified_user(postgres_db, uid)
     except Exception as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -236,7 +243,7 @@ def invite_user_by_mail(
 
 
 @router.post("/magic", tags=[TAG_AUTH], response_model=MagicAuthResponse)
-def authenticate_with_magic_link(
+async def authenticate_with_magic_link(
     magic_request: MagicAuthRequest, postgres_db: Session = Depends(get_db)
 ):
     magic = Magic(api_secret_key=get_settings().magic_api_secret_key)
@@ -245,7 +252,9 @@ def authenticate_with_magic_link(
         metadata = magic.User.get_metadata_by_token(magic_request.did_token)
         email = metadata.data["email"]
         user = auth.get_user_by_email(email)
-        authentication_response = authenticate_verified_user(postgres_db, user.uid)
+        authentication_response = await authenticate_verified_user(
+            postgres_db, user.uid
+        )
         firebase_token = auth.create_custom_token(user.uid, app=firebase_app)
         return {**authentication_response.dict(), "firebase_token": firebase_token}
     except MagicError as e:
