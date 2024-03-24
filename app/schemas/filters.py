@@ -70,7 +70,7 @@ class DataGridFilterItem(BaseModel):
         elif self.operator == "endsWith":
             return f"LOWER({full_column_name}) LIKE ('%' || :fv_{index})"
         elif self.operator == "equals":
-            return f"{full_column_name} = :fv_{index}"
+            return f"LOWER({full_column_name}) = LOWER(:fv_{index})"
         elif self.operator == "isEmpty":
             return f"{full_column_name} IS NULL"
         elif self.operator == "isNotEmpty":

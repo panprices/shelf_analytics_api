@@ -203,7 +203,7 @@ class MockRetailerProductGridItem(BaseModel):
         description="The total number of products at the retailer for this category",
         example=288,
     )
-    deactivated_by_retailer: bool = Field(
+    product_retailer_status: Optional[str] = Field(
         description="Whether the product is deactivated by the retailer",
         example=False,
     )
