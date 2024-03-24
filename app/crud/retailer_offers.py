@@ -325,7 +325,7 @@ def count_available_products_by_retailers(
 ) -> List[Dict]:
     statement = f"""
         SELECT r.name || ' ' || r.country AS retailer, r.status as retailer_status, 
-            fpsr.status AS products_status, COUNT(*) as count
+            LOWER(fpsr.status) AS products_status, COUNT(*) as count
         FROM full_product_status_by_retailer_matview fpsr
             JOIN retailer r ON r.id = fpsr.retailer_id
         WHERE brand_id = :brand_id
@@ -336,7 +336,7 @@ def count_available_products_by_retailers(
                 (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)''' 
                 if global_filter.groups else ""
             }    
-        GROUP BY retailer, fpsr.status, r.status
+        GROUP BY retailer, LOWER(fpsr.status), r.status
         ORDER BY retailer ASC;
     """
 
