@@ -14,6 +14,7 @@ from app.schemas.performance import (
     RetailersCategoryPerformanceDetails,
     IndividualRetailerCategoryPerformanceDetails,
     RetailerCategoryPerformanceTopN,
+    HistoricalBrandShareHomepage,
 )
 from app.security import get_user_data
 from app.tags import TAG_PERFORMANCE, TAG_DATA
@@ -136,3 +137,21 @@ async def get_brand_share_homepage(
     homepage_urls = crud.get_retailer_homepage_urls(db, user.client, global_filter)
 
     return {"urls": homepage_urls}
+
+
+@router.post(
+    "/homepage/history",
+    tags=[TAG_PERFORMANCE],
+    response_model=HistoricalBrandShareHomepage,
+)
+async def get_historical_brand_share_homepage(
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_user_data),
+    db: Session = Depends(get_db),
+):
+    if len(global_filter.retailers) == 0:
+        return {"data": []}
+
+    result = crud.get_historical_homepage_visibility(db, user.client, global_filter)
+
+    return {"data": result}

@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from typing import Union, List, Optional, Dict
 
@@ -70,3 +71,11 @@ class IndividualBrandShareHomepageUrl(BaseModel):
 
 class RetailerCategoryPerformanceBrandShareHomepage(BaseModel):
     urls: List[IndividualBrandShareHomepageUrl]
+
+
+class TimedIndividualBrandShareHomepageUrl(IndividualBrandShareHomepageUrl):
+    date: datetime.date
+
+
+class HistoricalBrandShareHomepage(BaseModel):
+    data: List[TimedIndividualBrandShareHomepageUrl]
