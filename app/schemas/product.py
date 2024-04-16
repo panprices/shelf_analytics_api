@@ -207,6 +207,10 @@ class MockRetailerProductGridItem(BaseModel):
         description="Whether the product is deactivated by the retailer",
         example=False,
     )
+    screenshot_url: Optional[str] = Field(
+        description="The URL of the screenshot of the product at the retailer",
+        example="https://storage.googleapis.com/b2b_shelf_analytics_images/screenshots/1f5b0a70762ffb441caf2c872531a541.jpg",
+    )
 
     class Config:
         orm_mode = True
