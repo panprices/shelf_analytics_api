@@ -309,6 +309,10 @@ def get_price_changes(
             }
             AND price_diff * :sign >= 0
             AND ABS(price_diff) > 0
+            -- Above this it means the price increased by a factor of more than 10x
+            -- This is most likely a mistake, we want to have a data check that notifies us about this but keep it 
+            -- out of the users view
+            AND price_diff < 10   
         ORDER BY ABS(price_diff) DESC
         LIMIT :limit
         OFFSET :offset;
