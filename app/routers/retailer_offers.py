@@ -20,22 +20,32 @@ from app.schemas.product import (
 from app.models.retailer import MockRetailerProductGridItem as MockRetailerProductModel
 from app.security import get_user_data
 from app.tags import TAG_DATA
+from structlog import get_logger
 
 router = APIRouter(prefix="/products/retailers")
+logger = get_logger()
 
 
 async def __assign_screenshot_url(
     client: httpx.AsyncClient, product: MockRetailerProductModel
 ) -> MockRetailerProductModel:
-    url_hash = hashlib.md5(str(product.url).encode()).hexdigest()
-    tentative_screenshot_url = f"https://storage.googleapis.com/b2b_shelf_analytics_images/screenshots/{url_hash}.jpg"
-
-    head_response = await client.head(tentative_screenshot_url)
     result = MockRetailerProductGridItem.from_orm(product)
-    result.screenshot_url = (
-        tentative_screenshot_url if head_response.status_code == 200 else None
-    )
-    return result
+    try:
+        url_hash = hashlib.md5(str(product.url).encode()).hexdigest()
+        tentative_screenshot_url = f"https://storage.googleapis.com/b2b_shelf_analytics_images/screenshots/{url_hash}.jpg"
+
+        head_response = await client.head(tentative_screenshot_url)
+
+        result.screenshot_url = (
+            tentative_screenshot_url if head_response.status_code == 200 else None
+        )
+        return result
+    except httpx.HTTPError as exc:
+        logger.warn(
+            f"HTTP exception while checking for the screenshot for {product.url} - {exc}"
+        )
+        result.screenshot_url = None
+        return result
 
 
 async def __preprocess_retailer_offers(
