@@ -125,7 +125,7 @@ def _create_price_table_data_query(
             JOIN LATERAL (
                 SELECT * FROM currency WHERE currency.name = :selected_currency LIMIT 1
             ) dc ON TRUE
-            JOIN LATERAL (
+            LEFT JOIN LATERAL (
                 SELECT * FROM currency WHERE currency.name = brand_product_msrp_view.msrp_currency LIMIT 1
             ) c ON TRUE
         WHERE brand_id = :brand_id
