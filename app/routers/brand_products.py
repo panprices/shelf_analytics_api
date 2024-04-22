@@ -1,9 +1,7 @@
-import io
 from functools import reduce
+from typing import List
 
-import pandas
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -14,6 +12,7 @@ from app.crud.utils import (
     export_rows_to_xlsx,
 )
 from app.database import get_db
+from app.models import ProductMatching
 from app.schemas.auth import TokenData
 from app.schemas.filters import (
     PagedGlobalFilter,
@@ -23,17 +22,38 @@ from app.schemas.filters import (
 )
 from app.schemas.prices import HistoricalPerRetailerResponse, MSRPValueItem
 from app.schemas.product import (
-    RetailerOffersPage,
     BrandProductScaffold,
     BrandProductMatchesScaffold,
-    MockRetailerProductGridItem,
     BrandProductsPage,
     MockBrandProductGridItem,
+    BrandToRetailerProductMatchingScaffold,
+    MatchedRetailerProductScaffold,
 )
 from app.security import get_user_data
+from app.service.screenshot import preprocess_retailer_offers
 from app.tags import TAG_DATA
 
 router = APIRouter(prefix="/products/brand")
+
+
+async def __preprocess_retailer_product_matches(
+    matches: List[ProductMatching],
+) -> List[BrandToRetailerProductMatchingScaffold]:
+    retailer_products = [m.retailer_product for m in matches]
+
+    retailer_products_processed = await preprocess_retailer_offers(
+        retailer_products, MatchedRetailerProductScaffold
+    )
+    matches_processed = [
+        BrandToRetailerProductMatchingScaffold.from_orm(m) for m in matches
+    ]
+
+    for (match, retailer_product) in zip(
+        matches_processed, retailer_products_processed
+    ):
+        match.retailer_product = retailer_product
+
+    return matches_processed
 
 
 @router.post("", tags=[TAG_DATA], response_model=BrandProductsPage)
@@ -99,7 +119,7 @@ def get_brand_product_details(
     tags=[TAG_DATA],
     response_model=BrandProductMatchesScaffold,
 )
-def get_matched_retailer_products_for_brand_product(
+async def get_matched_retailer_products_for_brand_product(
     brand_product_id: str,
     global_filter: GlobalFilter,
     user: TokenData = Depends(get_user_data),
@@ -123,7 +143,8 @@ def get_matched_retailer_products_for_brand_product(
     matches = crud.get_retailer_products_for_brand_product(
         db, global_filter, brand_product_id, user.client
     )
-    return {"matches": matches}
+    processed_matches = await __preprocess_retailer_product_matches(matches)
+    return {"matches": processed_matches}
 
 
 @router.post(

@@ -420,6 +420,9 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
     matched_brand_products: Optional[List[RetailerToBrandProductMatchScaffold]] = Field(
         description="List of matching brand products"
     )
+    screenshot_url: Optional[str] = Field(
+        description="The url of the screenshot of the product page"
+    )
 
     class Config:
         orm_mode = True
