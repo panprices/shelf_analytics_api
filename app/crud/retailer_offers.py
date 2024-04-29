@@ -331,7 +331,7 @@ def count_available_products_by_retailers(
         WHERE brand_id = :brand_id
             {"AND brand_category_id IN :categories" if global_filter.categories else ""}
             {"AND retailer_id in :retailers" if global_filter.retailers else ""}
-            {"AND country in :countries" if global_filter.countries else ""}
+            {"AND r.country in :countries" if global_filter.countries else ""}
             {'''AND brand_product_id IN 
                 (SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)''' 
                 if global_filter.groups else ""
