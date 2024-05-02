@@ -32,8 +32,8 @@ async def get_category_performance(
         return {"categories": []}
 
     def append_result(result: Dict[str, Dict[str, any]], element: Dict[str, any]):
-        result[element["category_id"]] = result.get(
-            element["category_id"],
+        result[element["category_name"]] = result.get(
+            element["category_name"],
             {
                 "category_name": element["category_name"],
                 "split": [],
@@ -41,10 +41,19 @@ async def get_category_performance(
             },
         )
 
-        result[element["category_id"]]["split"].append(
-            {"brand": element["brand"], "product_count": element["product_count"]}
-        )
-        result[element["category_id"]]["total_products"] += element["product_count"]
+        try:
+            index_of_brand_in_split = [
+                e["brand"] for e in result[element["category_name"]]["split"]
+            ].index(element["brand"])
+            result[element["category_name"]]["split"][index_of_brand_in_split][
+                "product_count"
+            ] += element["product_count"]
+        except ValueError:
+            result[element["category_name"]]["split"].append(
+                {"brand": element["brand"], "product_count": element["product_count"]}
+            )
+
+        result[element["category_name"]]["total_products"] += element["product_count"]
         return result
 
     category_split = crud.get_categories_split(db, user.client, global_filter)
