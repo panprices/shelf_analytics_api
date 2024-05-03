@@ -80,11 +80,16 @@ def get_categories_split(
     )
 
     statement = f"""
-        SELECT *, COALESCE(brand_id = :brand_id, False) AS is_current_customer
-        FROM categories_split_v2
+        SELECT *,
+            CASE 
+                WHEN COALESCE(brand_id = :brand_id, False) THEN brand 
+                ELSE brand_scraped
+            END as brand,     
+            COALESCE(brand_id = :brand_id, False) AS is_current_customer
+        FROM categories_split
         WHERE category_id IN (
                 SELECT DISTINCT category_id 
-                FROM categories_split_v2 
+                FROM categories_split 
                 WHERE brand_id = :brand_id
             ) 
             AND retailer_id = :retailer_id
