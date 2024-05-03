@@ -22,7 +22,6 @@ async def __retrieve_screenshot_url(
         url_hash = hashlib.md5(str(product_url).encode()).hexdigest()
         tentative_screenshot_url = f"https://storage.googleapis.com/b2b_shelf_analytics_images/screenshots/{url_hash}.jpg"
 
-        logger.debug(f"Retrieving screenshot URL for {product_url}...")
         head_response = await client.head(tentative_screenshot_url)
         return tentative_screenshot_url if head_response.status_code == 200 else None
     except httpx.HTTPError as exc:
