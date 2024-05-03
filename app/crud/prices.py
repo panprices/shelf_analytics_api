@@ -544,7 +544,7 @@ def get_comparison_products(
                 SELECT *
                 FROM brand_image
                 WHERE brand_product_id = bp.id
-                ORDER BY processed DESC
+                ORDER BY processed DESC, priority ASC
                 LIMIT 1
             ) bi ON true
         WHERE bp.id = :brand_product_id

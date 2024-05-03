@@ -60,6 +60,7 @@ class BrandImage(Base, UUIDPrimaryKeyMixin, ImageMixin):
     matched_retailer_images = relationship(
         "ImageMatching", back_populates="brand_image"
     )
+    priority = Column(Integer)
     type_predictions = relationship("BrandImageType", back_populates="brand_image")
 
 

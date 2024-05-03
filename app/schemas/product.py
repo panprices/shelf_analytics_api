@@ -389,6 +389,7 @@ class BrandProductImageScaffold(GenericProductImageScaffold):
     is_obsolete: bool = Field(
         description="Whether the image is obsolete or not", example=False
     )
+    priority: int = Field(description="The priority of the image", example=1)
 
 
 class RetailerProductImageScaffold(GenericProductImageScaffold):
