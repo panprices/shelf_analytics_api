@@ -1,4 +1,3 @@
-import json
 import secrets
 import string
 from datetime import datetime, timedelta
@@ -186,44 +185,12 @@ def invite_user_by_mail(
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {"success": False}
 
-    brand_name = crud.get_brand_name(postgres_db, inviting_user.client)
-    settings = get_settings()
-
-    email_env = Environment(
-        loader=FileSystemLoader("app/resources/email"), autoescape=select_autoescape()
-    )
-    template = email_env.get_template("invite.html")
-    template_data = {
-        "inviter_name": inviting_user.first_name + " " + inviting_user.last_name,
-        "brand_name": brand_name,
-        "invite_link": f"{invitation.domain}/login?email={invitation.email}",
-    }
-    email_body = template.render(**template_data)
-    email_response = requests.post(
-        "https://api.postmarkapp.com/email",
-        headers={
-            "X-Postmark-Server-Token": settings.postmark_api_token,
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        },
-        json={
-            "From": "Loupe <info@getloupe.co>",
-            "To": f"{invitation.first_name} {invitation.last_name} <{invitation.email}>",
-            "Subject": f"{inviting_user.first_name} {inviting_user.last_name} invited you to join the {brand_name} team",
-            "HtmlBody": email_body,
-            "MessageStream": "outbound",
-        },
-    )
-    if email_response.status_code >= 300:
-        logger.error("Error when sending email", response=email_response.json())
-        raise HTTPException(500, detail="Error when sending email")
-
     alphabet = string.ascii_letters + string.digits
     password = "".join(secrets.choice(alphabet) for _ in range(20))
 
     try:
         new_user = auth.create_user(email=invitation.email, password=password)
-        db = firestore.client()
+        db = firestore.Client()
         db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION).document(
             new_user.uid
         ).set(
@@ -233,8 +200,43 @@ def invite_user_by_mail(
                 "client": inviting_user.client,
             }
         )
+
+        brand_name = crud.get_brand_name(postgres_db, inviting_user.client)
+        settings = get_settings()
+
+        email_env = Environment(
+            loader=FileSystemLoader("app/resources/email"),
+            autoescape=select_autoescape(),
+        )
+        template = email_env.get_template("invite.html")
+        template_data = {
+            "inviter_name": inviting_user.first_name + " " + inviting_user.last_name,
+            "brand_name": brand_name,
+            "invite_link": f"{invitation.domain}/login?email={invitation.email}",
+        }
+        email_body = template.render(**template_data)
+        email_response = requests.post(
+            "https://api.postmarkapp.com/email",
+            headers={
+                "X-Postmark-Server-Token": settings.postmark_api_token,
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            },
+            json={
+                "From": "Loupe <info@getloupe.co>",
+                "To": f"{invitation.first_name} {invitation.last_name} <{invitation.email}>",
+                "Subject": f"{inviting_user.first_name} {inviting_user.last_name} invited you to join the {brand_name} team",
+                "HtmlBody": email_body,
+                "MessageStream": "outbound",
+            },
+        )
+        if email_response.status_code >= 300:
+            logger.error("Error when sending email", response=email_response.json())
+            raise HTTPException(500, detail="Error when sending email")
+
     except EmailAlreadyExistsError:
-        pass
+        response.status_code = status.HTTP_409_CONFLICT
+        return {"success": False}
 
     return {"success": True}
 
