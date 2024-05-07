@@ -8,12 +8,11 @@ import requests
 import structlog
 from fastapi import Depends, Response, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-
 from firebase_admin import auth
-from google.cloud import firestore
-
 from firebase_admin.auth import EmailAlreadyExistsError, UserNotFoundError
 from firebase_admin.exceptions import FirebaseError
+from google.cloud import firestore
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from jose import jwt
 from magic_admin import Magic
 from magic_admin.error import (
@@ -21,9 +20,8 @@ from magic_admin.error import (
 )
 from sqlalchemy.orm import Session
 from starlette import status
-from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from app import crud
+from app import crud, security
 from app.config.settings import get_settings, Settings
 from app.database import get_db
 from app.schemas.auth import (
@@ -37,8 +35,15 @@ from app.schemas.auth import (
     MagicAuthRequest,
     ExtraFeatureScaffold,
     AuthProbeRequest,
+    CreateApiKeyResponse,
+    ApiKeysListResponse,
 )
-from app.security import firebase_app, JWT_ALGORITHM, JWT_SECRET_KEY, get_user_data
+from app.security import (
+    firebase_app,
+    JWT_ALGORITHM,
+    JWT_SECRET_KEY,
+    get_logged_in_user_data,
+)
 from app.tags import TAG_AUTH
 
 router = fastapi.APIRouter(prefix="/authenticate")
@@ -178,7 +183,7 @@ async def authenticate_with_firebase_token(
 def invite_user_by_mail(
     invitation: UserInvitation,
     response: Response,
-    inviting_user: TokenData = Depends(get_user_data),
+    inviting_user: TokenData = Depends(get_logged_in_user_data),
     postgres_db=Depends(get_db),
 ):
     if SHELF_ANALYTICS_ROLE_ADMIN not in inviting_user.roles:
@@ -270,3 +275,35 @@ def probe_user(
         return {"success": True}
     except (ValueError, UserNotFoundError, FirebaseError) as e:
         return {"success": False}
+
+
+@router.post("/keys", tags=[TAG_AUTH], response_model=CreateApiKeyResponse)
+def create_api_key(
+    db: Session = Depends(get_db),
+    user: TokenData = Depends(get_logged_in_user_data),
+):
+    generated_key = security.generate_api_key()
+    crud.save_api_key(db, generated_key, user)
+
+    return {"success": True, "api_key": generated_key}
+
+
+@router.get("/keys", tags=[TAG_AUTH], response_model=ApiKeysListResponse)
+def get_api_keys(
+    db: Session = Depends(get_db),
+    user: TokenData = Depends(get_logged_in_user_data),
+):
+    api_keys = crud.get_api_keys(db, user)
+
+    return {"keys": api_keys, "client": user.client}
+
+
+@router.delete("/keys/{api_key}", tags=[TAG_AUTH])
+def delete_api_key(
+    api_key: str,
+    user: TokenData = Depends(get_logged_in_user_data),
+    db: Session = Depends(get_db),
+):
+    crud.delete_api_key(db, api_key, user)
+
+    return {"success": True}

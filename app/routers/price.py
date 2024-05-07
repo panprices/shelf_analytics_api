@@ -7,7 +7,7 @@ from app.crud.utils import (
     duplicate_unique_points,
 )
 from app.database import get_db
-from app.schemas.auth import TokenData
+from app.schemas.auth import AuthMetadata
 from app.schemas.filters import GlobalFilter, PagedPriceValuesFilter, PriceValuesFilter
 from app.schemas.prices import (
     PriceTableData,
@@ -16,7 +16,7 @@ from app.schemas.prices import (
     RetailerPricingOverviewResponse,
     ComparisonProductsResponse,
 )
-from app.security import get_user_data
+from app.security import get_auth_data
 from app.tags import TAG_DATA, TAG_PRICE
 
 router = APIRouter(prefix="/price")
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/price")
 @router.post("/data", tags=[TAG_PRICE, TAG_DATA], response_model=PriceTableData)
 def get_price_table_data(
     global_filter: PagedPriceValuesFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     result = crud.get_price_table_data(db, global_filter, user.client)
@@ -45,7 +45,7 @@ def get_price_table_data(
 )
 def get_historical_msrp_deviation_per_retailer(
     global_filter: GlobalFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_msrp_deviation_per_retailer(
@@ -65,7 +65,7 @@ def get_historical_msrp_deviation_per_retailer(
 )
 def get_historical_wholesale_deviation_per_retailer(
     global_filter: GlobalFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_wholesale_deviation_per_retailer(
@@ -85,7 +85,7 @@ def get_historical_wholesale_deviation_per_retailer(
 )
 def get_historical_average_price_deviation_per_retailer(
     global_filter: GlobalFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_average_price_deviation_per_retailer(
@@ -102,7 +102,7 @@ def get_historical_average_price_deviation_per_retailer(
 def get_price_changes(
     global_filter: GlobalFilter,
     sign: int,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     changes = crud.get_price_changes(db, global_filter, user.client, sign)
@@ -119,7 +119,7 @@ def get_price_changes(
 )
 def get_retailer_pricing_overview(
     global_filter: GlobalFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     retailer_pricing = crud.get_retailer_pricing_overview(
@@ -139,7 +139,7 @@ def get_retailer_pricing_overview(
 def get_comparison_products(
     global_filter: PriceValuesFilter,
     brand_product_id: str,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     comparison_products = crud.get_comparison_products(

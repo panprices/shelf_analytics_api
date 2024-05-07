@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     postmark_api_token: str = Field()
     jwt_secret: str = Field()
 
+    api_keys_secret_salt: str = Field()
+
     class Config:
         env_file = ".env"
 

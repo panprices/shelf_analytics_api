@@ -5,11 +5,11 @@ from sqlalchemy.orm import Session
 
 from app import crud
 from app.database import get_db
-from app.schemas.auth import TokenData
+from app.schemas.auth import AuthMetadata
 from app.schemas.availability import HistoricalVisibility
 from app.schemas.filters import GlobalFilter
 from app.schemas.scores import AvailableProductsPerRetailer
-from app.security import get_user_data
+from app.security import get_auth_data
 from app.tags import TAG_AVAILABILITY, TAG_OVERVIEW
 
 router = APIRouter(prefix="/availability")
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/availability")
 @router.post("/visible", tags=[TAG_AVAILABILITY], response_model=HistoricalVisibility)
 def get_visible_history(
     global_filter: GlobalFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_visibility(db, user.client, global_filter)
@@ -34,7 +34,7 @@ def get_visible_history(
 )
 def get_visible_history_average(
     global_filter: GlobalFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_visibility_average(db, user.client, global_filter)
@@ -52,7 +52,7 @@ def get_visible_history_average(
 )
 def get_overview_availability_data(
     global_filter: GlobalFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     brand_id = user.client

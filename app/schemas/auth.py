@@ -1,3 +1,5 @@
+import datetime
+import uuid
 from typing import Optional, List
 
 from pydantic import BaseModel, Field
@@ -27,7 +29,11 @@ class ExtraFeatureScaffold(BaseModel):
         orm_mode = True
 
 
-class UserMetadata(BaseModel):
+class AuthMetadata(BaseModel):
+    client: str
+
+
+class UserMetadata(AuthMetadata):
     client: str
     first_name: str
     last_name: str
@@ -64,3 +70,24 @@ class MagicAuthResponse(AuthenticationResponse):
 
 class AuthProbeRequest(BaseModel):
     email: str
+
+
+class CreateApiKeyResponse(BaseModel):
+    api_key: Optional[str]
+    success: bool
+
+
+class ApiKey(BaseModel):
+    id: uuid.UUID
+    masked_key: str
+    created_at: datetime.datetime
+    expires_at: datetime.datetime
+    last_used_at: datetime.datetime
+
+    class Config:
+        orm_mode = True
+
+
+class ApiKeysListResponse(BaseModel):
+    keys: List[ApiKey]
+    client: str

@@ -6,20 +6,20 @@ from starlette import status
 
 from app import crud
 from app.database import get_db
-from app.schemas.auth import TokenData
+from app.schemas.auth import AuthMetadata
 from app.schemas.groups import (
     BrandProductGroupCreationScaffold,
     BrandProductGroupAppendScaffold,
     BaseBrandProductGroupScaffold,
 )
-from app.security import get_user_data
+from app.security import get_auth_data
 from app.tags import TAG_GROUPS
 
 router = APIRouter(prefix="/groups")
 
 
 def _check_existing_products_in_filter(
-    group: BaseBrandProductGroupScaffold, db: Session, user: TokenData
+    group: BaseBrandProductGroupScaffold, db: Session, user: AuthMetadata
 ) -> List[str]:
     if group.products:
         return group.products
@@ -39,7 +39,7 @@ def _check_existing_products_in_filter(
 @router.post("", tags=[TAG_GROUPS])
 def create_group(
     group: BrandProductGroupCreationScaffold,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     group.products = _check_existing_products_in_filter(group, db, user)
@@ -54,7 +54,7 @@ def create_group(
 @router.put("", tags=[TAG_GROUPS])
 def add_products_to_group(
     group: BrandProductGroupAppendScaffold,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     group.products = _check_existing_products_in_filter(group, db, user)
@@ -69,7 +69,7 @@ def add_products_to_group(
 @router.delete("/{group_id}", tags=[TAG_GROUPS])
 def delete_group(
     group_id: str,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     crud.delete_brand_products_group(db, group_id, user.client)

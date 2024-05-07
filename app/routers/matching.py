@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import crud
 from app.database import get_db
-from app.schemas.auth import TokenData
+from app.schemas.auth import TokenData, AuthMetadata
 from app.schemas.filters import GlobalFilter
 from app.schemas.matching import (
     MatchingTaskScaffold,
@@ -13,7 +13,7 @@ from app.schemas.matching import (
     MatchingTaskDeterministicRequest,
     MatchingTaskIdentifierScaffold,
 )
-from app.security import get_user_data
+from app.security import get_auth_data, get_logged_in_user_data
 from app.tags import TAG_MATCHING
 
 router = APIRouter(prefix="/matching")
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/matching")
 
 def fill_matching_task(
     db: Session,
-    user: TokenData,
+    user: AuthMetadata,
     brand_product_retailer_pair: MatchingTaskIdentifierScaffold,
     global_filter: GlobalFilter,
 ) -> MatchingTaskScaffold:
@@ -74,7 +74,7 @@ def fill_matching_task(
 def get_next(
     global_filter: GlobalFilter,
     index: Union[int, None] = None,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     if not user:
@@ -94,7 +94,7 @@ def get_next(
 @router.post("/submit", tags=[TAG_MATCHING])
 def submit_matching(
     matching: MatchingSolutionScaffold,
-    user: TokenData = Depends(get_user_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     if not user:
@@ -154,7 +154,7 @@ def submit_matching(
 @router.post("/task", tags=[TAG_MATCHING], response_model=MatchingTaskScaffold)
 def get_task_deterministically(
     request: MatchingTaskDeterministicRequest,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     if not user:

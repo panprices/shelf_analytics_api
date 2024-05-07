@@ -9,3 +9,4 @@ from app.crud.groups import *
 from app.crud.stock import *
 from app.crud.features import *
 from app.crud.overview import *
+from app.crud.security import *

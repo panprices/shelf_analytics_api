@@ -11,7 +11,7 @@ from app.routers.auth import (
     SHELF_ANALYTICS_USER_METADATA_COLLECTION,
     authenticate_verified_user,
 )
-from app.schemas.auth import TokenData, AuthenticationResponse
+from app.schemas.auth import TokenData, AuthenticationResponse, AuthMetadata
 from app.schemas.filters import GlobalFilter
 from app.schemas.general import (
     TrackedRetailerPool,
@@ -23,7 +23,7 @@ from app.schemas.general import (
     CurrencyResponse,
 )
 from app.schemas.scores import HistoricalScore, AvailableProductsPerRetailer
-from app.security import get_user_data
+from app.security import get_auth_data, get_logged_in_user_data
 from app.tags import TAG_OVERVIEW, TAG_FILTERING
 
 router = APIRouter(prefix="")
@@ -68,7 +68,7 @@ def _reduce_category_list_to_tree(result_as_list: List[Dict], level: int) -> Lis
     "/countries", tags=[TAG_OVERVIEW, TAG_FILTERING], response_model=ActiveMarket
 )
 def get_countries(
-    user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)
+    user: AuthMetadata = Depends(get_auth_data), db: Session = Depends(get_db)
 ):
     countries = crud.get_countries(db, user.client)
     return {"countries": [c[0] for c in countries]}
@@ -79,7 +79,7 @@ def get_countries(
 )
 def get_retailers(
     countries: Optional[List[str]] = Query(None),
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     retailers = crud.get_retailers(db, user.client, countries)
@@ -92,7 +92,9 @@ def get_retailers(
     response_model=ProductGrouping,
     response_model_exclude_none=True,
 )
-def get_groups(user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)):
+def get_groups(
+    user: AuthMetadata = Depends(get_auth_data), db: Session = Depends(get_db)
+):
     groups = crud.get_groups(db, user.client)
     return {"groups": groups}
 
@@ -104,7 +106,7 @@ def get_groups(user: TokenData = Depends(get_user_data), db: Session = Depends(g
     response_model_exclude_none=True,
 )
 def get_categories(
-    user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)
+    user: AuthMetadata = Depends(get_auth_data), db: Session = Depends(get_db)
 ):
     categories = crud.get_brand_categories(db, user.client)
     result_as_list = [
@@ -117,7 +119,9 @@ def get_categories(
 
 
 @router.get("/brands", tags=[TAG_OVERVIEW], response_model=List[NamedBrand])
-def get_brands(user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)):
+def get_brands(
+    user: TokenData = Depends(get_logged_in_user_data), db: Session = Depends(get_db)
+):
     if "developer" not in user.roles:
         raise HTTPException(
             status_code=403,
@@ -130,7 +134,7 @@ def get_brands(user: TokenData = Depends(get_user_data), db: Session = Depends(g
 @router.post("/brand", tags=[TAG_OVERVIEW], response_model=AuthenticationResponse)
 async def switch_brand(
     brand_change_request: Dict[str, str],
-    user: TokenData = Depends(get_user_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     postgres_db: Session = Depends(get_db),
 ):
     if "developer" not in user.roles:
@@ -150,7 +154,7 @@ async def switch_brand(
 @router.post("/stats", tags=[TAG_OVERVIEW], response_model=OverviewStatsResponse)
 def get_overview_stats(
     filters: GlobalFilter,
-    user: TokenData = Depends(get_user_data),
+    user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
     return crud.get_overview_stats(db, user.client, filters)
@@ -158,7 +162,7 @@ def get_overview_stats(
 
 @router.get("/currency", tags=[TAG_OVERVIEW], response_model=CurrencyResponse)
 def get_currencies(
-    user: TokenData = Depends(get_user_data), db: Session = Depends(get_db)
+    user: AuthMetadata = Depends(get_auth_data), db: Session = Depends(get_db)
 ):
     all_currencies = crud.get_currencies(db)
     default_currency = crud.get_default_currency(db, user.client)

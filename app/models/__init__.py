@@ -7,3 +7,4 @@ from .retailer import (
     Retailer,
 )
 from .features import *
+from .auth import *
