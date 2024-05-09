@@ -1,4 +1,5 @@
 import enum
+import uuid
 from typing import List
 
 from sqlalchemy import (
@@ -181,7 +182,9 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     in_stock = Column(Boolean)
     is_discounted = Column(Boolean)
     original_price = Column(BigInteger)
-    matched_brand_product_id = Column(String)
+    matched_brand_product_id = Column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     brand_in_stock = Column(Boolean)
     available_at_retailer = Column(Boolean)
     retailer_category_name = Column(String)
