@@ -15,7 +15,7 @@ router = APIRouter(prefix="/v2")
 
 
 @router.get(
-    "/products/retailers",
+    "/products/retailer_offers",
     tags=[TAG_DATA, TAG_EXTERNAL],
     response_model=ExternalRetailerOffersPage,
 )
