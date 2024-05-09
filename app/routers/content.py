@@ -8,12 +8,12 @@ from app.crud.utils import (
     process_historical_value_per_retailer,
 )
 from app.database import get_db
-from app.schemas.auth import AuthMetadata
+from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter
 from app.schemas.prices import HistoricalPerRetailerResponse
 from app.schemas.scores import ContentScorePerRetailer
 from app.schemas.scores import HistoricalScore
-from app.security import get_auth_data
+from app.security import get_logged_in_user_data
 from app.tags import TAG_CONTENT
 
 router = APIRouter(prefix="/content")
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/content")
 @router.post("/score/image", tags=[TAG_CONTENT], response_model=HistoricalScore)
 def get_image_score(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_image_score(db, user.client, global_filter)
@@ -36,7 +36,7 @@ def get_image_score(
 @router.post("/score/text", tags=[TAG_CONTENT], response_model=HistoricalScore)
 def get_text_score(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_text_score(db, user.client, global_filter)
@@ -50,7 +50,7 @@ def get_text_score(
 @router.post("/score", tags=[TAG_CONTENT], response_model=HistoricalScore)
 def get_content_score(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_content_score(db, user.client, global_filter)
@@ -68,7 +68,7 @@ def get_content_score(
 )
 def get_image_score_per_retailer(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_image_score_per_retailer(
@@ -84,7 +84,7 @@ def get_image_score_per_retailer(
 )
 def get_text_score_per_retailer(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_text_score_per_retailer(
@@ -100,7 +100,7 @@ def get_text_score_per_retailer(
 )
 def get_content_score_per_retailer(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     history = crud.get_historical_content_score_per_retailer(

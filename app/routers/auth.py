@@ -37,6 +37,7 @@ from app.schemas.auth import (
     AuthProbeRequest,
     CreateApiKeyResponse,
     ApiKeysListResponse,
+    ApiKeyUpdateRequest,
 )
 from app.security import (
     firebase_app,
@@ -307,3 +308,26 @@ def delete_api_key(
     crud.delete_api_key(db, api_key, user)
 
     return {"success": True}
+
+
+@router.get("/keys/{api_key_id}", tags=[TAG_AUTH], response_model=str)
+def get_readable_api_key(
+    api_key_id: str,
+    user: TokenData = Depends(get_logged_in_user_data),
+    db: Session = Depends(get_db),
+):
+    return crud.get_readable_api_key(db, api_key_id, user)
+
+
+@router.put("/keys/{api_key_id}", tags=[TAG_AUTH])
+def update_api_key(
+    api_key_id: str,
+    body: ApiKeyUpdateRequest,
+    user: TokenData = Depends(get_logged_in_user_data),
+    db: Session = Depends(get_db),
+):
+    crud.set_key_name(db, api_key_id, body.name, user)
+    return {
+        "success": True,
+        "name": body.name,
+    }

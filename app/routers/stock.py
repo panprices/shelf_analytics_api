@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 
 from app import crud
 from app.database import get_db
-from app.schemas.auth import TokenData, AuthMetadata
+from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter
 from app.schemas.scores import HistoricalScore
-from app.security import get_auth_data
+from app.security import get_logged_in_user_data
 from app.tags import TAG_OVERVIEW
 
 router = APIRouter(prefix="/stock")
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/stock")
 @router.post("", tags=[TAG_OVERVIEW], response_model=HistoricalScore)
 def get_historical_in_stock(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     """

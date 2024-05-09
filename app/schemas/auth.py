@@ -79,13 +79,17 @@ class CreateApiKeyResponse(BaseModel):
 
 class ApiKey(BaseModel):
     id: uuid.UUID
+    name: str
     masked_key: str
     created_at: datetime.datetime
-    expires_at: datetime.datetime
     last_used_at: datetime.datetime
 
     class Config:
         orm_mode = True
+
+
+class ApiKeyUpdateRequest(BaseModel):
+    name: str
 
 
 class ApiKeysListResponse(BaseModel):

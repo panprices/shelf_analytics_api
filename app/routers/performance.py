@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import crud
 from app.database import get_db
-from app.schemas.auth import TokenData, AuthMetadata
+from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter
 from app.schemas.performance import (
     RetailerCategoryPerformanceBrandShareHomepage,
@@ -16,7 +16,7 @@ from app.schemas.performance import (
     RetailerCategoryPerformanceTopN,
     HistoricalBrandShareHomepage,
 )
-from app.security import get_auth_data
+from app.security import get_logged_in_user_data
 from app.tags import TAG_PERFORMANCE, TAG_DATA
 
 router = APIRouter(prefix="/performance")
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/performance")
 @router.post("", tags=[TAG_PERFORMANCE], response_model=RetailerPerformance)
 async def get_category_performance(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     if len(global_filter.retailers) == 0:
@@ -69,7 +69,7 @@ async def get_category_performance(
 )
 async def get_performance_for_categories(
     categories: List[str],
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     categories_performance_details = crud.get_individual_category_performance_details(
@@ -92,7 +92,7 @@ async def get_performance_for_categories(
 )
 async def get_category_top_n(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     if len(global_filter.retailers) == 0:
@@ -137,7 +137,7 @@ async def get_category_top_n(
 )
 async def get_brand_share_homepage(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     if len(global_filter.retailers) == 0:
@@ -155,7 +155,7 @@ async def get_brand_share_homepage(
 )
 async def get_historical_brand_share_homepage(
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     if len(global_filter.retailers) == 0:

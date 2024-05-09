@@ -8,3 +8,5 @@ TAG_CONTENT = "content"
 TAG_MATCHING = "matching"
 TAG_GROUPS = "groups"
 TAG_PRICE = "price"
+
+TAG_EXTERNAL = "external"

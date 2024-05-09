@@ -13,7 +13,7 @@ from app.crud.utils import (
 )
 from app.database import get_db
 from app.models import ProductMatching
-from app.schemas.auth import AuthMetadata
+from app.schemas.auth import TokenData
 from app.schemas.filters import (
     PagedGlobalFilter,
     GlobalFilter,
@@ -29,7 +29,7 @@ from app.schemas.product import (
     BrandToRetailerProductMatchingScaffold,
     MatchedRetailerProductScaffold,
 )
-from app.security import get_auth_data
+from app.security import get_logged_in_user_data
 from app.service.screenshot import preprocess_retailer_offers
 from app.tags import TAG_DATA
 
@@ -59,7 +59,7 @@ async def __preprocess_retailer_product_matches(
 @router.post("", tags=[TAG_DATA], response_model=BrandProductsPage)
 def get_brand_products(
     page_global_filter: PagedGlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     products = crud.get_brand_products_data_grid(db, user.client, page_global_filter)
@@ -75,7 +75,7 @@ def get_brand_products(
 @router.post("/count", tags=[TAG_DATA], response_model=int)
 def get_brand_products_count(
     paged_global_filter: DataPageFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     return crud.count_brand_products(db, user.client, paged_global_filter)
@@ -84,7 +84,7 @@ def get_brand_products_count(
 @router.post("/export", tags=[TAG_DATA])
 async def export_products_to_csv(
     page_global_filter: PagedGlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     products = crud.export_full_brand_products_result(
@@ -97,7 +97,7 @@ async def export_products_to_csv(
 @router.get("/{brand_product_id}", tags=[TAG_DATA], response_model=BrandProductScaffold)
 def get_brand_product_details(
     brand_product_id: str,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     if not user:
@@ -122,7 +122,7 @@ def get_brand_product_details(
 async def get_matched_retailer_products_for_brand_product(
     brand_product_id: str,
     global_filter: GlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     """
@@ -155,7 +155,7 @@ async def get_matched_retailer_products_for_brand_product(
 def get_historical_prices_for_brand_product(
     brand_product_id: str,
     global_filter: PriceValuesFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     if not user:
@@ -205,7 +205,7 @@ def get_historical_prices_for_brand_product(
 def get_product_msrp(
     brand_product_id: str,
     global_filter: PriceValuesFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     if not user:

@@ -48,6 +48,8 @@ def __get_api_key_data(
         return None
 
     api_key_entry = crud.check_api_key(db, api_key_header)
+    if api_key_entry is None:
+        return None
 
     return AuthMetadata(client=api_key_entry.client_id)
 

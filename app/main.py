@@ -21,6 +21,7 @@ from app.routers import (
     groups,
     stock,
     price,
+    external_v2,
 )
 
 config_structlog()
@@ -90,6 +91,7 @@ app.include_router(matching.router)
 app.include_router(groups.router)
 app.include_router(stock.router)
 app.include_router(price.router)
+app.include_router(external_v2.router)
 
 
 if __name__ == "__main__":

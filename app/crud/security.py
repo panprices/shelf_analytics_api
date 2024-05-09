@@ -1,6 +1,7 @@
 from hashlib import pbkdf2_hmac
 
 from cachetools import cached, TTLCache
+from cryptography.fernet import Fernet
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -33,13 +34,41 @@ def hash_api_key(api_key: str) -> bytes:
     )
 
 
+def encrypt_api_key(api_key: str) -> bytes:
+    settings = get_settings()
+    encryption_key = settings.fernet_secret_key
+    return Fernet(encryption_key.encode()).encrypt(api_key.encode())
+
+
+def decrypt_api_key(api_key: bytes) -> str:
+    settings = get_settings()
+    encryption_key = settings.fernet_secret_key
+    return Fernet(encryption_key.encode()).decrypt(api_key).decode()
+
+
 def save_api_key(db: Session, key: str, user: TokenData):
+    keys_count_for_client = (
+        db.query(ApiKey).filter(ApiKey.client_id == user.client).count()
+    )
+
+    encrypted_api_key = crud.encrypt_api_key(key)
     hashed_api_key = crud.hash_api_key(key)
     masked_key = crud.mask_api_key(key)
     api_key_obj = ApiKey(
-        client_id=user.client, hashed_key=hashed_api_key, masked_key=masked_key
+        client_id=user.client,
+        hashed_key=hashed_api_key,
+        encrypted_key=encrypted_api_key,
+        masked_key=masked_key,
+        name=f"API Key {keys_count_for_client + 1}",
     )
     db.add(api_key_obj)
+    db.commit()
+
+
+def set_key_name(db: Session, key_id: str, name: str, user: TokenData):
+    db.query(ApiKey).filter(ApiKey.id == key_id).filter(
+        ApiKey.client_id == user.client
+    ).update({"name": name})
     db.commit()
 
 
@@ -58,6 +87,18 @@ def delete_api_key(db: Session, key_id: str, user: TokenData):
     return deleted_count
 
 
+def get_readable_api_key(db: Session, key_id: str, user: TokenData):
+    api_key_obj = (
+        db.query(ApiKey)
+        .filter(ApiKey.id == key_id)
+        .filter(ApiKey.client_id == user.client)
+        .first()
+    )
+    if not api_key_obj:
+        return None
+    return decrypt_api_key(api_key_obj.encrypted_key)
+
+
 @cached(cache=TTLCache(maxsize=128, ttl=600))
 def check_api_key(db: Session, api_key_header: str):
     """
@@ -70,12 +111,7 @@ def check_api_key(db: Session, api_key_header: str):
     :return:
     """
     hashed_key = hash_api_key(api_key_header)
-    api_key_entry = (
-        db.query(ApiKey)
-        .filter_by(hashed_key=hashed_key)
-        .filter(ApiKey.expires_at > func.current_date())
-        .first()
-    )
+    api_key_entry = db.query(ApiKey).filter_by(hashed_key=hashed_key).first()
     if not api_key_entry:
         return None
     # Good practice to keep track of the keys that are being used

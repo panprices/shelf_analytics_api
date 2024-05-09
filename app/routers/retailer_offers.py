@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from structlog import get_logger
@@ -13,9 +15,9 @@ from app.schemas.product import (
     RetailerOffersPage,
     MockRetailerProductGridItem,
 )
-from app.security import get_auth_data
+from app.security import get_logged_in_user_data, get_auth_data
 from app.service.screenshot import preprocess_retailer_offers
-from app.tags import TAG_DATA
+from app.tags import TAG_DATA, TAG_EXTERNAL
 
 router = APIRouter(prefix="/products/retailers")
 logger = get_logger()
@@ -24,7 +26,7 @@ logger = get_logger()
 @router.post("", tags=[TAG_DATA], response_model=RetailerOffersPage)
 async def get_retailer_offers(
     page_global_filter: PagedGlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     products = crud.get_retailer_offers(db, user.client, page_global_filter)
@@ -42,7 +44,7 @@ async def get_retailer_offers(
 @router.post("/export", tags=[TAG_DATA])
 async def export_products_to_csv(
     page_global_filter: PagedGlobalFilter,
-    user: AuthMetadata = Depends(get_auth_data),
+    user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     products = crud.export_full_retailer_offers_result(
