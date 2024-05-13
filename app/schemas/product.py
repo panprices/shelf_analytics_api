@@ -106,7 +106,7 @@ class MockRetailerProductGridItem(BaseModel):
         description="The price at which the client sells the item to the retailer (the value captured by the brand)",
         example=2602,
     )
-    in_stock: bool = Field(
+    in_stock: Optional[bool] = Field(
         default=True,
         description="Whether the product is in stock at the retailer",
         example=True,
