@@ -23,6 +23,8 @@ httpx = "*"
 cachetools = "*"
 
 [dev-packages]
+typer = "*"
+tqdm = "*"
 
 [requires]
 python_version = "3.9"
