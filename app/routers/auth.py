@@ -98,7 +98,7 @@ async def authenticate_verified_user(
     token_data = TokenData(uid=uid, **user_metadata.dict())
 
     token = jwt.encode(
-        {"data": token_data.dict(), "exp": datetime.utcnow() + timedelta(hours=3)},
+        {"data": token_data.dict(), "exp": datetime.utcnow() + timedelta(hours=48)},
         JWT_SECRET_KEY,
         JWT_ALGORITHM,
     )
