@@ -66,8 +66,9 @@ def get_categories_split(
     brand_category_filter = (
         f"""
         AND category_id in (
-            select rp.popularity_category_id 
-            from retailer_product rp 
+            select rpcm.retailer_category_id 
+            from retailer_product rp
+                JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id 
                 join product_matching pm on rp.id = pm.retailer_product_id 
                 join brand_product bp on bp.id = pm.brand_product_id
                 LEFT JOIN product_group_assignation pga on pga.product_id = bp.id 
@@ -257,12 +258,14 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
             FROM rp_brand_fixed_matview rp
                 JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
                 JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
-                {'JOIN product_group_assignation pga ON pga.pxroduct_id = bp.id' if global_filter.groups else ''}
+                {'JOIN product_group_assignation pga ON pga.product_id = brand_product_id' if global_filter.groups else ''}
             WHERE brand_id = :brand_id
                 AND rc.retailer_id = :retailer_id
-                {'-- AND bp.category_id IN :categories' if global_filter.categories else ''}
+                {'AND brand_category_id IN :categories' if global_filter.categories else ''}
                 {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
             GROUP BY rc.id
+            -- Sync the top-n charts with the bar chart where we only show categories if they have at least one match
+            HAVING COUNT(DISTINCT brand_product_id) FILTER (WHERE brand_product_id IS NOT NULL) > 0
         )
         SELECT brand_product_count.*,
             category_count.value AS full_category_count
