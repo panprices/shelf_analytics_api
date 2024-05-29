@@ -180,18 +180,21 @@ def get_matched_retailer_products_by_brand_product_id(
 
 
 def submit_product_matching_selection(
-    db: Session, brand_product_id: str, retailer_product_id: str, retailer_id: str
+    db: Session,
+    brand_product_id: str,
+    retailer_product_ids: list[str],
+    retailer_id: str,
 ):
     db.query(ProductMatching).filter(
         ProductMatching.brand_product_id == brand_product_id,
-        ProductMatching.retailer_product_id == retailer_product_id,
+        ProductMatching.retailer_product_id.in_(retailer_product_ids),
     ).update({"certainty": "manual_input"})
 
     db.query(ProductMatching).filter(
         ProductMatching.brand_product_id == brand_product_id,
         ProductMatching.retailer_product_id == RetailerProduct.id,
         RetailerProduct.retailer_id == retailer_id,
-        ProductMatching.retailer_product_id != retailer_product_id,
+        ProductMatching.retailer_product_id.notin_(retailer_product_ids),
     ).update({"certainty": "not_match"}, synchronize_session="fetch")
 
     db.commit()
@@ -206,6 +209,7 @@ def invalidate_product_matching_selection(
         ProductMatching.retailer_product_id == RetailerProduct.id,
         RetailerProduct.retailer_id == retailer_id,
         ProductMatching.certainty >= "auto_low_confidence_skipped",
+        ProductMatching.certainty <= "auto_low_confidence",
     ).update({"certainty": certainty}, synchronize_session="fetch")
 
     db.commit()

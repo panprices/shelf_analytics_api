@@ -30,8 +30,8 @@ class MatchingSolutionScaffold(BaseModel):
 
     brand_product_id: str = Field(description="The brand product id")
     retailer_id: str = Field(description="The retailer id")
-    retailer_product_id: Optional[str] = Field(
-        description="The retailer product id of the selected match"
+    retailer_product_ids: Optional[List[str]] = Field(
+        description="The retailer product ids of the selected matches"
     )
     url: Optional[str] = Field(description="The url of the retailer product")
     action: Literal["submit", "skip"] = Field(description="The action")

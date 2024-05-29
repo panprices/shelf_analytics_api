@@ -126,12 +126,12 @@ def submit_matching(
     )
 
     # On case of submission
-    if matching.retailer_product_id:
+    if matching.retailer_product_ids:
         crud.submit_product_matching_selection(
             db,
             brand_product_id=matching.brand_product_id,
             retailer_id=matching.retailer_id,
-            retailer_product_id=matching.retailer_product_id,
+            retailer_product_ids=matching.retailer_product_ids,
         )
     elif matching.url:
         crud.submit_product_matching_url(
