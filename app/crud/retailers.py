@@ -116,6 +116,12 @@ def get_categories_split(
         if "Louis Poulsen >" not in category["category_name"]
     ]
 
+    # HARD CODE to remove Unique Furniture brand from Ellos
+    if global_filter.retailers[0] == "3364215f-f068-4415-9aea-223519d9676b":  # ellos
+        result = [
+            category for category in result if category["category_name"] != "HÅUM"
+        ]
+
     return result
 
 
@@ -237,6 +243,7 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
         brand_product_count AS (
             SELECT 
                 rc.id,
+                rc.url,
                 COALESCE(
                     (
                         SELECT string_agg(value::json ->> 'name', ' > ') FROM json_array_elements_text(category_tree)
@@ -259,7 +266,11 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
                 JOIN retailer_product_category_mapping rpcm ON rpcm.retailer_product_id = rp.id
                 JOIN retailer_category rc ON rpcm.retailer_category_id = rc.id
                 {'JOIN product_group_assignation pga ON pga.product_id = brand_product_id' if global_filter.groups else ''}
-            WHERE brand_id = :brand_id
+            WHERE 
+                 -- Do not show popularity data of retailer brand pages
+                rc.url NOT IN (SELECT url FROM retailer_brand_page WHERE url IS NOT NULL)
+                
+                AND brand_id = :brand_id
                 AND rc.retailer_id = :retailer_id
                 {'AND brand_category_id IN :categories' if global_filter.categories else ''}
                 {'AND pga.product_group_id IN :groups' if global_filter.groups else ''}
@@ -294,6 +305,12 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
             category
             for category in result
             if "Louis Poulsen >" not in category["category_name"]
+        ]
+
+    # HARD CODE to remove Unique Furniture brand from Ellos
+    if global_filter.retailers[0] == "3364215f-f068-4415-9aea-223519d9676b":  # ellos
+        result = [
+            category for category in result if category["category_name"] != "HÅUM"
         ]
 
     return result
