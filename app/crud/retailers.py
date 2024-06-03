@@ -88,12 +88,16 @@ def get_categories_split(
             END as brand,     
             COALESCE(brand_id = :brand_id, False) AS is_current_customer
         FROM categories_split
+            JOIN retailer_category rc ON categories_split.category_id = rc.id
         WHERE category_id IN (
                 SELECT DISTINCT category_id 
                 FROM categories_split 
                 WHERE brand_id = :brand_id
-            ) 
-            AND retailer_id = :retailer_id
+            )
+            -- Do not show popularity data of retailer brand pages
+            AND rc.url NOT IN (SELECT url FROM retailer_brand_page WHERE url IS NOT NULL)
+
+            AND categories_split.retailer_id = :retailer_id
         {brand_category_filter}
         ORDER BY is_current_customer DESC NULLS LAST
     """
