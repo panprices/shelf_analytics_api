@@ -64,7 +64,7 @@ class MockRetailerProductGridItem(BaseModel):
     country: str = Field(
         description="The code representation of a country", example="SE"
     )
-    price_standard: Optional[float] = Field(
+    retailer_price: Optional[float] = Field(
         description="The price scraped at the retailer", example=3201
     )
     currency: Optional[str] = Field(
@@ -82,7 +82,7 @@ class MockRetailerProductGridItem(BaseModel):
     retailer_images_count: Optional[int] = Field(
         description="The number of images the retailer shows", example=6
     )
-    client_images_count: int = Field(
+    brand_images_count: int = Field(
         description="The number of images recommended by the client", example=9
     )
     title_matching_score: Optional[float] = Field(
@@ -154,7 +154,7 @@ class MockRetailerProductGridItem(BaseModel):
         description="Whether the product is discounted at the retailer",
         example=True,
     )
-    original_price_standard: Optional[float] = Field(
+    retailer_original_price: Optional[float] = Field(
         description="The original price of the product at the retailer",
         example=3201,
     )
@@ -169,7 +169,7 @@ class MockRetailerProductGridItem(BaseModel):
     brand_sku: Optional[str] = Field(
         description="The SKU assigned by the client", example="16052-101"
     )
-    msrp_standard: Optional[float] = Field(
+    msrp: Optional[float] = Field(
         description="The MSRP of the product at the retailer", example=320.15
     )
     msrp_currency: Optional[str] = Field(
@@ -179,7 +179,7 @@ class MockRetailerProductGridItem(BaseModel):
     price_deviation: Optional[float] = Field(
         description="The deviation of the price from the MSRP", example=0.1
     )
-    wholesale_price_standard: Optional[float] = Field(
+    wholesale_price: Optional[float] = Field(
         description="The price at which the client sells the item to the retailer (the value captured by the brand)",
         example=2602,
     )
@@ -212,8 +212,28 @@ class MockRetailerProductGridItem(BaseModel):
         example="https://storage.googleapis.com/b2b_shelf_analytics_images/screenshots/1f5b0a70762ffb441caf2c872531a541.jpg",
     )
 
+    # DEPRECATED. These fields are duplicated in order to not break the API for now.
+    price_standard: Optional[float]
+    original_price_standard: Optional[float]
+    client_images_count: Optional[int]
+    msrp_standard: Optional[float]
+    wholesale_price_standard: Optional[float]
+
     class Config:
         orm_mode = True
+
+    def dict_exclude_deprecated_fields(self):
+        """This is created to exclude deprecated fields in the export excel files,
+        but kept for the API to remain compatible."""
+        return self.dict(
+            exclude={
+                "price_standard",
+                "original_price_standard",
+                "client_images_count",
+                "msrp_standard",
+                "wholesale_price_standard",
+            }
+        )
 
 
 class MockBrandProductGridItem(BaseModel):

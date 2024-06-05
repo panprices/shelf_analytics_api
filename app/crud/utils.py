@@ -267,10 +267,13 @@ def duplicate_unique_points(grouped_history: dict) -> dict:
     return grouped_history
 
 
-def export_rows_to_xlsx(products: List[BaseModel]):
-    products_df = pandas.DataFrame([p.dict() for p in products])
-
+def export_dataframe_to_xlsx(df: pandas.DataFrame):
     buffer = io.BytesIO()
-    products_df.to_excel(buffer, index=False, engine="xlsxwriter")
+    df.to_excel(buffer, index=False, engine="xlsxwriter")
 
     return Response(buffer.getvalue())
+
+
+def export_rows_to_xlsx(products: List[BaseModel]):
+    products_df = pandas.DataFrame([p.dict() for p in products])
+    return export_dataframe_to_xlsx(products_df)

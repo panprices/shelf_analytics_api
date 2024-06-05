@@ -24,7 +24,7 @@ async def get_retailer_offers_no_filters(
     user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
 ):
-    page_size = 500
+    page_size = 5
     page_global_filter = PagedGlobalFilter(
         **{
             "page_number": page + 1,

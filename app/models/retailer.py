@@ -163,12 +163,14 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     country = Column(String)
     popularity_index = Column(Integer)
     availability = Column(Enum(AvailabilityStatus))
-    price_standard = Column(Float)
+    retailer_price = Column(Float)
     currency = Column(String)
+    is_discounted = Column(Boolean)
+    original_price = Column(BigInteger)
     review_average = Column(Float)
     number_of_reviews = Column(Integer)
     retailer_images_count = Column(Integer)
-    client_images_count = Column(Integer)
+    brand_images_count = Column(Integer)
     title_score = Column(Float)
     description_score = Column(Float)
     specs_score = Column(Float)
@@ -180,19 +182,16 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     environmental_images_count = Column(Integer)
     wholesale_price = Column(Float)
     in_stock = Column(Boolean)
-    is_discounted = Column(Boolean)
-    original_price = Column(BigInteger)
     matched_brand_product_id = Column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     brand_in_stock = Column(Boolean)
     available_at_retailer = Column(Boolean)
     retailer_category_name = Column(String)
-    original_price_standard = Column(Float)
     fetched_at = Column(DateTime)
     created_at = Column(DateTime)
     brand_sku = Column(String)
-    msrp_standard = Column(Float)
+    msrp = Column(Float)
     msrp_currency = Column(String)
     price_deviation = Column(Float)
     wholesale_price_standard = Column(Float)
@@ -202,6 +201,12 @@ class MockRetailerProductGridItem(Base, UUIDPrimaryKeyMixin):
     category_pages_count = Column(Integer)
     category_products_count = Column(Integer)
     product_retailer_status = Column(String)
+
+    # DEPRECATED. These fields are duplicated in order to not break the API for now.
+    original_price_standard = Column(Float)
+    msrp_standard = Column(Float)
+    client_images_count = Column(Integer)
+    price_standard = Column(Float)
 
 
 class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableMixin):

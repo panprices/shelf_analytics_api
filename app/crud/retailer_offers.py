@@ -30,7 +30,13 @@ def _create_query_for_retailer_offers_datapool(
     """
 
     statement = f"""
-        SELECT * 
+        SELECT 
+            *,
+            client_images_count AS brand_images_count,
+            price_standard AS retailer_price,
+            original_price_standard AS retailer_original_price,
+            msrp_standard AS msrp
+
         FROM retailer_product_including_unavailable_matview rp
         WHERE brand_id = :brand_id
             {"AND brand_category_id IN :categories" if global_filter.categories else ""}
@@ -81,7 +87,7 @@ def _get_full_product_list(
 
 def get_retailer_offers(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
-) -> List[RetailerProduct]:
+) -> List[MockRetailerProductGridItem]:
     """
     Returns the list of products from each retailer corresponding to the client currently using the application.
 
