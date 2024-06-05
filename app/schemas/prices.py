@@ -37,6 +37,7 @@ class RetailerProductPriceInMarket(BaseModel):
     price_msrp_currency: Optional[float]
     price_deviation: Optional[float]
     url: str
+    in_stock: Optional[bool]
 
 
 class PriceTableRowScaffold(BaseModel):

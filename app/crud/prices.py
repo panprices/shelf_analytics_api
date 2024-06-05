@@ -8,11 +8,9 @@ from app.models import (
     RetailerProductHistory,
     RetailerProduct,
     MockBrandProductWithMarketPrices,
-    MSRP,
 )
 from app.schemas.filters import (
     GlobalFilter,
-    PagedGlobalFilter,
     PagedPriceValuesFilter,
     PriceValuesFilter,
 )
@@ -113,6 +111,16 @@ def _create_price_table_data_query(
     well_defined_grid_filters = [
         i for i in global_filter.data_grid_filter.items if i.is_well_defined()
     ]
+
+    offers_in_stock_filter_arr = [
+        f for f in well_defined_grid_filters if f.column == "offer_in_stock"
+    ]
+    offers_in_stock_filter = None
+    if offers_in_stock_filter_arr:
+        offers_in_stock_obj = offers_in_stock_filter_arr[0]
+        offers_in_stock_filter = offers_in_stock_obj.value == "true"
+        well_defined_grid_filters.remove(offers_in_stock_obj)
+
     query = f"""
         SELECT 
             "brand_product_id", brand_product_msrp_view."name", "gtin", "sku", "category_id", "brand_id", "msrp_standard", "msrp_currency", "msrp_country", "image_id", "image_url", "offers",
@@ -146,6 +154,10 @@ def _create_price_table_data_query(
                 )
                 if well_defined_grid_filters else ""
             }
+            {
+             "AND EXISTS(SELECT 1 FROM unnest(offers) as o WHERE (o->>'in_stock')::bool = :in_stock_filter)" 
+             if offers_in_stock_filter is not None else ""
+            }
     """
 
     params = {
@@ -155,6 +167,7 @@ def _create_price_table_data_query(
         "groups": tuple(global_filter.groups),
         "retailers": tuple(global_filter.retailers),
         "selected_currency": global_filter.currency,
+        "in_stock_filter": offers_in_stock_filter,
         **{
             f"fv_{index}": i.get_safe_postgres_value()
             for index, i in enumerate(global_filter.data_grid_filter.items)
