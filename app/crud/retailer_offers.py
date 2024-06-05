@@ -32,10 +32,12 @@ def _create_query_for_retailer_offers_datapool(
     statement = f"""
         SELECT 
             *,
-            client_images_count AS brand_images_count,
-            price_standard AS retailer_price,
-            original_price_standard AS retailer_original_price,
-            msrp_standard AS msrp
+            -- Deprecated fields that has been renamed. Kept here for API compatibility
+            brand_images_count AS client_images_count,
+            retailer_price AS price_standard,
+            retailer_original_price AS original_price_standard,
+            msrp AS msrp_standard,
+            wholesale_price AS wholesale_price_standard
 
         FROM retailer_product_including_unavailable_matview rp
         WHERE brand_id = :brand_id
