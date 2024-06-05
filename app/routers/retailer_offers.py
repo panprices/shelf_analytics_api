@@ -1,11 +1,13 @@
 from typing import Optional
 
+import pandas
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from structlog import get_logger
 
 from app import crud
-from app.crud.utils import export_rows_to_xlsx
+from app.crud.utils import export_dataframe_to_xlsx, export_rows_to_xlsx
 from app.database import get_db
 from app.schemas.auth import TokenData, AuthMetadata
 from app.schemas.filters import (
@@ -53,4 +55,8 @@ async def export_products_to_csv(
     processed_products = await preprocess_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
     )
-    return export_rows_to_xlsx(processed_products)
+
+    products_df = pandas.DataFrame(
+        [p.dict_exclude_deprecated_fields() for p in processed_products]
+    )
+    return export_dataframe_to_xlsx(products_df)
