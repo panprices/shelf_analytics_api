@@ -247,7 +247,11 @@ class RetailerProduct(Base, UUIDPrimaryKeyMixin, GenericProductMixin, UpdatableM
 
     @hybrid_property
     def retailer_images_count(self):
-        return len(self.images)
+        return (
+            len(set([i.image_hash for i in self.images if i.image_hash is not None]))
+            if self.images
+            else 0
+        )
 
     @hybrid_property
     def in_stock(self) -> bool:
