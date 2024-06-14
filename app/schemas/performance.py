@@ -63,6 +63,15 @@ class RetailerCategoryPerformanceTopN(BaseModel):
     categories: List[IndividualRetailerCategoryTopNDetails]
 
 
+class HistoricalPerformanceTopNItem(BaseModel):
+    time: datetime.date
+    brackets: List[IndividualCategoryBracketDetails]
+
+
+class HistoricalPerformanceTopN(BaseModel):
+    history: List[HistoricalPerformanceTopNItem]
+
+
 class IndividualBrandShareHomepageUrl(BaseModel):
     type: str  # {product, brand}
     brand: str

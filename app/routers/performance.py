@@ -9,6 +9,7 @@ from app.database import get_db
 from app.schemas.auth import TokenData
 from app.schemas.filters import GlobalFilter
 from app.schemas.performance import (
+    HistoricalPerformanceTopN,
     RetailerCategoryPerformanceBrandShareHomepage,
     RetailerPerformance,
     RetailersCategoryPerformanceDetails,
@@ -128,6 +129,49 @@ async def get_category_top_n(
             for c in top_n_raw
         ]
     }
+
+
+@router.post(
+    "/top_n/history/{retailer_category_id}",
+    tags=[TAG_PERFORMANCE],
+    response_model=HistoricalPerformanceTopN,
+)
+async def get_historical_category_top_n(
+    global_filter: GlobalFilter,
+    retailer_category_id: str,
+    user: TokenData = Depends(get_logged_in_user_data),
+    db: Session = Depends(get_db),
+):
+    top_n_raw = crud.get_historical_top_n_performance(
+        db, retailer_category_id, user.client, global_filter
+    )
+
+    history = [
+        {
+            "time": c["time"],
+            "brackets": [
+                {
+                    "n": n,
+                    "customer_products_count": c[f"product_count_top_{n}"],
+                    "customer_products_percentage": c[f"product_count_top_{n}"]
+                    / min(n, c["full_category_count"]),
+                }
+                for n in [10, 20, 40, 100]
+            ]
+            + [
+                {
+                    "n": c["full_category_count"],
+                    "customer_products_count": c["product_count"],
+                    "customer_products_percentage": (
+                        c["product_count"] / c["full_category_count"]
+                    ),
+                }
+            ],
+        }
+        for c in top_n_raw
+    ]
+
+    return {"history": history}
 
 
 @router.post(

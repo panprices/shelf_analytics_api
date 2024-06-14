@@ -320,6 +320,58 @@ def get_top_n_performance(db: Session, brand_id: str, global_filter: GlobalFilte
     return result
 
 
+def get_historical_top_n_performance(
+    db: Session, retailer_category_id: str, brand_id: str, global_filter: GlobalFilter
+):
+    print(brand_id)
+    statement = """
+        WITH top_product_count AS (
+            SELECT 
+                rpcmts.retailer_category_id, 
+                date_trunc('week', rpcmts.time) AS time, 
+                COUNT(DISTINCT rpcmts.popularity_index) FILTER (WHERE rpcmts.popularity_index <= 10) 
+                    AS product_count_top_10,
+                COUNT(DISTINCT rpcmts.popularity_index) FILTER (WHERE rpcmts.popularity_index <= 20)
+                    AS product_count_top_20,
+                COUNT(DISTINCT rpcmts.popularity_index) FILTER (WHERE rpcmts.popularity_index <= 40)
+                    AS product_count_top_40,
+                COUNT(DISTINCT rpcmts.popularity_index) FILTER (WHERE rpcmts.popularity_index <= 100)
+                    AS product_count_top_100,
+                -- Special case: When we count the whole category, we count variants
+                -- instead. This is to match the numbers in the "Brand share of 
+                -- retailers categories" bar char.
+                COUNT(DISTINCT rpcmts.retailer_product_id) AS product_count
+            FROM retailer_product_category_mapping_time_series rpcmts
+                JOIN rp_brand_fixed_matview 
+                    ON rpcmts.retailer_product_id = rp_brand_fixed_matview.id
+            WHERE rpcmts.retailer_category_id = :retailer_category_id
+                AND rp_brand_fixed_matview.brand_id = :brand_id
+            GROUP BY rpcmts.retailer_category_id, date_trunc('week', rpcmts.time)
+        )
+        SELECT *
+        FROM top_product_count,
+        LATERAL (SELECT product_count AS full_category_count 
+            FROM retailer_category_time_series rcts
+            WHERE loupe_start_of_week(top_product_count.time) = loupe_start_of_week(rcts.time)
+                                            AND top_product_count.retailer_category_id = rcts.retailer_category_id
+                LIMIT 1) A;
+    """
+    result = convert_rows_to_dicts(
+        db.execute(
+            statement,
+            {
+                "retailer_category_id": retailer_category_id,
+                "brand_id": brand_id,
+                # "categories": tuple(global_filter.categories),
+                # "retailer_id": global_filter.retailers[0],
+                # "groups": tuple(global_filter.groups),
+            },
+        ).fetchall()
+    )
+
+    return result
+
+
 def _get_homepage_query(time_filter: str):
     return f"""
         SELECT 
