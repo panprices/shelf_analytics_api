@@ -324,7 +324,7 @@ def get_historical_top_n_performance(
     db: Session, retailer_category_id: str, brand_id: str, global_filter: GlobalFilter
 ):
     print(brand_id)
-    statement = """
+    statement = f"""
         WITH top_product_count AS (
             SELECT 
                 rpcmts.retailer_category_id, 
@@ -346,6 +346,12 @@ def get_historical_top_n_performance(
                     ON rpcmts.retailer_product_id = rp_brand_fixed_matview.id
             WHERE rpcmts.retailer_category_id = :retailer_category_id
                 AND rp_brand_fixed_matview.brand_id = :brand_id
+                {'AND brand_category_id IN :categories' if global_filter.categories else ''}
+                {'''AND rp_brand_fixed_matview.brand_product_id = ANY(
+                    SELECT product_id 
+                    FROM product_group_assignation 
+                    WHERE product_group_id IN :groups)
+                ''' if global_filter.groups else ''}
             GROUP BY rpcmts.retailer_category_id, date_trunc('week', rpcmts.time)
         )
         SELECT *
@@ -362,9 +368,8 @@ def get_historical_top_n_performance(
             {
                 "retailer_category_id": retailer_category_id,
                 "brand_id": brand_id,
-                # "categories": tuple(global_filter.categories),
-                # "retailer_id": global_filter.retailers[0],
-                # "groups": tuple(global_filter.groups),
+                "categories": tuple(global_filter.categories),
+                "groups": tuple(global_filter.groups),
             },
         ).fetchall()
     )
