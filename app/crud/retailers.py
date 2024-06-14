@@ -350,6 +350,7 @@ def get_historical_top_n_performance(
                 JOIN rp_brand_fixed_matview 
                     ON rpcmts.retailer_product_id = rp_brand_fixed_matview.id
             WHERE rpcmts.retailer_category_id = :retailer_category_id
+                AND time >= :start_date
                 AND rp_brand_fixed_matview.brand_id = :brand_id
                 {'AND rp_brand_fixed_matview.brand_category_id IN :categories' 
                     if global_filter.categories else ''}
@@ -363,15 +364,16 @@ def get_historical_top_n_performance(
         SELECT *
         FROM top_product_count,
         LATERAL (SELECT product_count AS full_category_count 
-            FROM retailer_category_time_series rcts
-            WHERE loupe_start_of_week(top_product_count.time) = loupe_start_of_week(rcts.time)
-                                            AND top_product_count.retailer_category_id = rcts.retailer_category_id
-                LIMIT 1) A;
+                FROM retailer_category_time_series rcts
+                WHERE top_product_count.retailer_category_id = rcts.retailer_category_id
+                    AND date_trunc('week', top_product_count.time) = date_trunc('week', rcts.time)
+                    LIMIT 1) A;
     """
     result = convert_rows_to_dicts(
         db.execute(
             statement,
             {
+                "start_date": global_filter.start_date,
                 "retailer_category_id": retailer_category_id,
                 "brand_id": brand_id,
                 "categories": tuple(global_filter.categories),
