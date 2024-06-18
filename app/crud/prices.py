@@ -78,8 +78,9 @@ def get_historical_prices_by_retailer_for_brand_product(
                 )::timestamp) as time
             from available_prices
             group by retailer_id, product_id
-        ) dates LEFT JOIN available_prices ap ON dates.retailer_id = ap.retailer_id 
+        ) dates JOIN available_prices ap ON dates.retailer_id = ap.retailer_id 
                                                 AND dates.time = date_trunc('week', ap.time)
+                                                
         order by time asc
     """
 
