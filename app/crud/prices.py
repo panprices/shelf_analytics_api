@@ -350,18 +350,11 @@ def get_retailer_pricing_overview(
                 r.id, 
                 r.name,
                 r.country,
-                count(*) AS nr_products
-            FROM retailer_product rp
-                JOIN product_matching pm ON rp.id = pm.retailer_product_id
-                JOIN brand_product bp ON bp.id = pm.brand_product_id
+                count(DISTINCT rp.matched_brand_product_id) AS nr_products
+            FROM retailer_pricing_overview_matview rp
                 JOIN retailer r ON r.id = rp.retailer_id
-                JOIN brand b ON b.id = bp.brand_id
-                JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id 
-                                                AND rtbm.brand_id = b.id
+                JOIN brand b ON b.id = rp.brand_id 
             WHERE b.id = :brand_id
-                AND bp.active = TRUE
-                AND pm.certainty >= 'auto_high_confidence'
-                AND fetched_at >= now()::date - interval '1 day'
                 {"AND r.country IN :countries" if global_filter.countries else ""}
                 {"AND r.id IN :retailers" if global_filter.retailers else ""}
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
@@ -371,72 +364,40 @@ def get_retailer_pricing_overview(
                 }
             GROUP BY r.id
         -- Nr of products with price changed last 7 days
-        ), product_price_changed AS (
-            SELECT 
-                rp.id,
-                rp.retailer_id
-            FROM retailer_product rp
-                JOIN product_matching pm ON rp.id = pm.retailer_product_id
-                JOIN brand_product bp ON bp.id = pm.brand_product_id
-                JOIN brand b ON b.id = bp.brand_id
-                JOIN retailer_product_time_series rpts ON rpts.product_id = rp.id
-                JOIN retailer r ON r.id = rp.retailer_id
-            WHERE b.id = :brand_id
-                AND bp.active = TRUE
-                AND pm.certainty >= 'auto_high_confidence'
-                AND time >= now()::date - interval '7 days'
-                {"AND r.country IN :countries" if global_filter.countries else ""}
-                {"AND r.id IN :retailers" if global_filter.retailers else ""}
-                {"AND bp.category_id IN :categories" if global_filter.categories else ""}
-                {"AND bp.id IN " +
-                    "(SELECT product_id FROM product_group_assignation pga WHERE pga.product_group_id IN :groups)"
-                    if global_filter.groups else ""
-                }
-            GROUP BY rp.id
-            HAVING count(DISTINCT rpts.price) > 1
         ), retailer_with_nr_products_price_changed AS (
             SELECT 
                 r.id AS retailer_id,
-                count(*) AS nr_products_with_price_changed
-            FROM product_price_changed
-                JOIN retailer r ON product_price_changed.retailer_id = r.id
+                count(DISTINCT rp.matched_brand_product_id) AS nr_products_with_price_changed
+            FROM retailer_pricing_overview_matview rp
+                JOIN retailer r ON rp.retailer_id = r.id
+            WHERE rp.price_changed = TRUE
             GROUP BY r.id
         ),
         -- Nr products with cheapest price per market (country)
         market_price AS (
             SELECT 
-                bp.id AS brand_product_id,
+                rp.matched_brand_product_id AS brand_product_id,
                 country,
                 currency,
                 min(rp.price) AS min_price,
                 avg(rp.price) AS average_price
-            FROM retailer_product rp
-                JOIN product_matching pm ON rp.id = pm.retailer_product_id
-                JOIN brand_product bp ON bp.id = pm.brand_product_id
+            FROM retailer_pricing_overview_matview rp
                 JOIN retailer r ON r.id = rp.retailer_id
-                JOIN brand b ON b.id = bp.brand_id
-                JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = b.id
+                JOIN brand b ON b.id = rp.brand_id
             WHERE b.id = :brand_id
-                AND fetched_at >= now()::date - interval '1 day'
-            GROUP BY bp.id, r.country, rp.currency
+            GROUP BY rp.matched_brand_product_id, r.country, rp.currency
         ), 
         retailer_with_nr_cheapest_price AS (
             SELECT 
                 r.id,
-                COUNT(*) AS nr_products_with_cheapest_price
-            FROM retailer_product rp
-                JOIN product_matching pm ON rp.id = pm.retailer_product_id
-                JOIN brand_product bp ON bp.id = pm.brand_product_id
+                COUNT(DISTINCT rp.matched_brand_product_id) AS nr_products_with_cheapest_price
+            FROM retailer_pricing_overview_matview rp
                 JOIN retailer r ON r.id = rp.retailer_id
-                JOIN brand b ON b.id = bp.brand_id
-                JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id AND rtbm.brand_id = b.id
-                JOIN market_price ON market_price.brand_product_id = bp.id
+                JOIN brand b ON b.id = rp.brand_id
+                JOIN market_price ON market_price.brand_product_id = rp.matched_brand_product_id
                                  AND market_price.country = r.country
                                  AND market_price.currency = rp.currency
             WHERE b.id = :brand_id
-                AND bp.active = TRUE
-                AND pm.certainty >= 'auto_high_confidence'
-                AND fetched_at >= now()::date - interval '1 day'
                 AND rp.price = market_price.min_price
                 {"AND r.country IN :countries" if global_filter.countries else ""}
                 {"AND r.id IN :retailers" if global_filter.retailers else ""}
@@ -453,21 +414,13 @@ def get_retailer_pricing_overview(
                 r.country,
                 count(*) AS nr_products,
                 100.0 * avg((rp.price - average_price) / average_price::double precision) AS average_market_price_deviation
-            FROM retailer_product rp
-                JOIN product_matching pm ON rp.id = pm.retailer_product_id
-                JOIN brand_product bp ON bp.id = pm.brand_product_id
+            FROM retailer_pricing_overview_matview rp
                 JOIN retailer r ON r.id = rp.retailer_id
-                JOIN brand b ON b.id = bp.brand_id
-                JOIN retailer_to_brand_mapping rtbm ON rtbm.retailer_id = r.id 
-                                                AND rtbm.brand_id = b.id
-                JOIN market_price mp ON mp.brand_product_id = bp.id
+                JOIN brand b ON b.id = rp.brand_id
+                JOIN market_price mp ON mp.brand_product_id = rp.matched_brand_product_id
                                  AND mp.country = r.country
                                  AND mp.currency = rp.currency
             WHERE b.id = :brand_id
-                AND bp.active = TRUE
-                AND pm.certainty >= 'auto_high_confidence'
-                AND fetched_at >= now()::date - interval '1 day'
-                -- AND market_price.time = (SELECT max(time) FROM market_price)
                 AND average_price > 0 -- to make sure, even though average_price should not be 0
                 {"AND r.country IN :countries" if global_filter.countries else ""}
                 {"AND r.id IN :retailers" if global_filter.retailers else ""}
