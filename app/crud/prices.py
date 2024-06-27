@@ -355,6 +355,7 @@ def get_retailer_pricing_overview(
                 JOIN retailer r ON r.id = rp.retailer_id
                 JOIN brand b ON b.id = rp.brand_id 
             WHERE b.id = :brand_id
+                AND rp.price IS NOT NULL AND rp.price <> 0 
                 {"AND r.country IN :countries" if global_filter.countries else ""}
                 {"AND r.id IN :retailers" if global_filter.retailers else ""}
                 {"AND bp.category_id IN :categories" if global_filter.categories else ""}
@@ -384,7 +385,7 @@ def get_retailer_pricing_overview(
             FROM retailer_pricing_overview_matview rp
                 JOIN retailer r ON r.id = rp.retailer_id
                 JOIN brand b ON b.id = rp.brand_id
-            WHERE b.id = :brand_id
+            WHERE b.id = :brand_id AND rp.price IS NOT NULL AND rp.price <> 0
             GROUP BY rp.matched_brand_product_id, r.country, rp.currency
         ), 
         retailer_with_nr_cheapest_price AS (
