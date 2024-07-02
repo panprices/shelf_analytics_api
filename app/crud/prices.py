@@ -371,7 +371,7 @@ def get_retailer_pricing_overview(
                 count(DISTINCT rp.matched_brand_product_id) AS nr_products_with_price_changed
             FROM retailer_pricing_overview_matview rp
                 JOIN retailer r ON rp.retailer_id = r.id
-            WHERE rp.price_changed = TRUE
+            WHERE rp.brand_id = :brand_id AND rp.price_changed = TRUE
             GROUP BY r.id
         ),
         -- Nr products with cheapest price per market (country)
