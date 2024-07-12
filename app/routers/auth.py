@@ -263,6 +263,7 @@ async def authenticate_with_magic_link(
         firebase_token = auth.create_custom_token(user.uid, app=firebase_app)
         return {**authentication_response.dict(), "firebase_token": firebase_token}
     except MagicError as e:
+        logger.error("Could not validate magic token", err=str(e))
         return AuthenticationResponse(success=False)
 
 
