@@ -2,10 +2,59 @@
 The middleware used in the digital shelf analytics solution. The product was originally developed for Venture Design,
 but the scope was defined to include multiple clients in the future. 
 
-# How to deploy 
 
-Careful! This command is missing the connexion to cloud SQL. 
+# How to run
+
+## 1. Make sure you are logger into the GCP CLI
+Run the following command:
 
 ```bash
-gcloud run deploy shelf-analytics-middleware --update-secrets=FIREBASE_API_KEY=firebase_api_key:latest,DB_NAME=POSTGRES_SANDBOX_SHELF_ANALYTICS_DB:latest,DB_USER=POSTGRES_SANDBOX_USER:latest,DB_PASS=POSTGRES_SANDBOX_PASSWORD:latest,DB_HOST=POSTGRES_SANDBOX_HOST:latest --add-cloudsql-instances=panprices:europe-west1:panprices-core-sandbox --source .
+gcloud config list project
+```
+
+You want the following result: `project = panprices`. If you are seeing something else you can just run this:
+
+```bash
+gcloud init
+```
+
+## 2. Create a .env file
+We have a .example_env file which you need to save as .env and replace the values with secrets from GCP's Secret Manager: https://console.cloud.google.com/security/secret-manager?project=panprices
+
+You can do this automatically by running the following script and specifying in a flag if you want the --sandbox or --production environment secrets.: 
+
+```bash
+chmod +x get_env_from_gcp.sh
+./get_env_from_gcp.sh --sandbox
+```
+
+## 3. Run the GCP Cloud SQL Proxy
+
+Download it here: https://cloud.google.com/sql/docs/postgres/sql-proxy
+
+Run it with the following for sandbox: 
+
+```bash
+./cloud_sql_proxy -instances=panprices:europe-west1:panprices-core-sandbox=tcp:5432
+```
+
+And for production:
+
+```bash
+./cloud_sql_proxy -instances=panprices:europe-west1:panprices-core=tcp:5432
+```
+
+## 4. Install the dependencies in a pipenv
+```bash
+pipenv install
+```
+
+## 5. Start a pipenv shell
+```bash
+pipenv shell
+```
+
+## 6. Run the app in the new shell
+```bash
+python -m uvicorn app.main:app --reload --log-level debug
 ```
