@@ -29,12 +29,6 @@ def test_export_products_to_csv():
     # Send the request with authentication headers
     response = client.post(f"{BASE_URL}/products/retailers/export", json=payload, headers=AUTH_HEADERS)
 
-    # Print the response status code and headers for debugging
-    print(f"Status Code: {response.status_code}")
-    print("Response Headers:")
-    for key, value in response.headers.items():
-        print(f"{key}: {value}")
-
     # Print the response content for debugging
     if response.status_code != 200:
         print("Response JSON:", response.json())
