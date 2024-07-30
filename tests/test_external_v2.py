@@ -5,12 +5,16 @@ from benchmark.config import BASE_URL
 
 client = TestClient(app)
 
+# This is an API key created for VD in sandbox environment.
+# TODO: Don't send an API key to GitHub. Since it is sandbox, it is fine for now.
+sandbox_api_key = "loupe_3dnXjnT4xc24KAoqFbiPKI0JjHhnuVyoY5098kZDGuwo40BP"
+
 def test_get_retailer_offers_no_filters():
     # Send the request with authentication headers
     response = client.get(
         f"{BASE_URL}/v2/products/retailer_offers",
         headers= {
-            "x-api-key": "loupe_3dnXjnT4xc24KAoqFbiPKI0JjHhnuVyoY5098kZDGuwo40BP",
+            "x-api-key": sandbox_api_key,
             "Accept": "application/json",
         }
     )
