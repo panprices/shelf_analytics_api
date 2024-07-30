@@ -354,6 +354,10 @@ def get_retailer_pricing_overview(
             FROM retailer_pricing_overview_matview rp
                 JOIN retailer r ON r.id = rp.retailer_id
                 JOIN brand b ON b.id = rp.brand_id 
+                {
+                    "JOIN brand_product bp ON bp.id = rp.matched_brand_product_id"
+                    if (global_filter.categories or global_filter.groups) else ""
+                }
             WHERE b.id = :brand_id
                 AND rp.price IS NOT NULL AND rp.price <> 0 
                 {"AND r.country IN :countries" if global_filter.countries else ""}
@@ -398,6 +402,10 @@ def get_retailer_pricing_overview(
                 JOIN market_price ON market_price.brand_product_id = rp.matched_brand_product_id
                                  AND market_price.country = r.country
                                  AND market_price.currency = rp.currency
+                {
+                    "JOIN brand_product bp ON bp.id = rp.matched_brand_product_id"
+                    if (global_filter.categories or global_filter.groups) else ""
+                }
             WHERE b.id = :brand_id
                 AND rp.price = market_price.min_price
                 {"AND r.country IN :countries" if global_filter.countries else ""}
@@ -421,6 +429,10 @@ def get_retailer_pricing_overview(
                 JOIN market_price mp ON mp.brand_product_id = rp.matched_brand_product_id
                                  AND mp.country = r.country
                                  AND mp.currency = rp.currency
+                {
+                    "JOIN brand_product bp ON bp.id = rp.matched_brand_product_id"
+                    if (global_filter.categories or global_filter.groups) else ""
+                }
             WHERE b.id = :brand_id
                 AND average_price > 0 -- to make sure, even though average_price should not be 0
                 {"AND r.country IN :countries" if global_filter.countries else ""}

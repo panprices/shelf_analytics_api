@@ -21,10 +21,13 @@ xlsxwriter = "*"
 jinja2 = "~=3.1"
 httpx = "*"
 cachetools = "*"
+numpy = "<2.0"
 
 [dev-packages]
 typer = "*"
 tqdm = "*"
+pytest = "*"
+pytest-benchmark = "*"
 
 [requires]
 python_version = "3.9"

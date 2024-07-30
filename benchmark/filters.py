@@ -1,20 +1,20 @@
 filters = {
     "none": {
-        "start_date": "15/10/2022",
+        "start_date": "2022-10-15",
         "countries": [],
         "retailers": [],
         "categories": [],
         "groups": [],
     },
     "countries": {
-        "start_date": "15/10/2022",
+        "start_date": "2022-10-15",
         "countries": ["SE", "DK"],
         "retailers": [],
         "categories": [],
         "groups": [],
     },
     "retailers": {
-        "start_date": "15/10/2022",
+        "start_date": "2022-10-15",
         "countries": [],
         "retailers": [
             "2ce31fbd-2cca-44df-ae40-5d7a607b5455",
@@ -24,7 +24,7 @@ filters = {
         "groups": [],
     },
     "categories": {
-        "start_date": "15/10/2022",
+        "start_date": "2022-10-15",
         "countries": [],
         "retailers": [],
         "categories": [
@@ -35,7 +35,7 @@ filters = {
         "groups": [],
     },
     "categories_many": {
-        "start_date": "15/10/2022",
+        "start_date": "2022-10-15",
         "countries": [],
         "retailers": [],
         "categories": [
@@ -107,7 +107,7 @@ filters = {
         "groups": [],
     },
     "groups": {
-        "start_date": "15/10/2022",
+        "start_date": "2022-10-15",
         "countries": [],
         "retailers": [],
         "categories": [],
