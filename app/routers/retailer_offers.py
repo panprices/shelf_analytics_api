@@ -12,6 +12,8 @@ from app.database import get_db
 from app.schemas.auth import TokenData, AuthMetadata
 from app.schemas.filters import (
     PagedGlobalFilter,
+    PagedPriceValuesFilter,
+    PriceValuesFilter,
 )
 from app.schemas.product import (
     RetailerOffersPage,
@@ -45,12 +47,14 @@ async def get_retailer_offers(
 
 @router.post("/export", tags=[TAG_DATA])
 async def export_products_to_csv(
-    page_global_filter: PagedGlobalFilter,
+    global_filter: PagedPriceValuesFilter,
     user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     products = crud.export_full_retailer_offers_result(
-        db, user.client, page_global_filter
+        db,
+        user.client,
+        global_filter,
     )
     processed_products = await preprocess_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
