@@ -45,7 +45,7 @@ And for production:
 
 ## 4. Install the dependencies in a pipenv
 ```bash
-pipenv install
+pipenv sync --dev
 ```
 
 ## 5. Start a pipenv shell
