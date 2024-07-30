@@ -23,8 +23,6 @@ def _create_query_for_retailer_offers_datapool(
         i for i in global_filter.data_grid_filter.items if i.is_well_defined()
     ]
 
-    print("global_filter.currency: ", global_filter.currency)
-
     filter_on_product_group_statement = """
         AND rp.matched_brand_product_id IN (
             SELECT product_id 

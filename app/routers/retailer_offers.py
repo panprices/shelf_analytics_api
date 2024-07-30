@@ -51,10 +51,14 @@ async def export_products_to_csv(
     user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
+    
+    print("global_filter.currency: ", global_filter.currency)
+
     products = crud.export_full_retailer_offers_result(
         db,
         user.client,
         global_filter,
+        # prices_filter
     )
     processed_products = await preprocess_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
