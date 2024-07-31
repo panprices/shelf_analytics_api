@@ -58,10 +58,23 @@ pipenv shell
 python -m uvicorn app.main:app --reload --log-level debug
 ```
 
-# Integration tests / benchmark 
+## How to test
 
+### Benchmarks 
 Make sure that: 
 1. The API is running on localhost:8000
 2. You are connected to the database through cloud-sql-proxy.
-3. You replaced the API JWT in [config](benchmark/config.py) with a valid one (can be grabbed from the local storage in
-your browser by visiting the [production website](https://app.getloupe.co))
+3. You replaced the API JWT in [config](benchmark/config.py) with a valid one (can be grabbed from the local storage in your browser by visiting the [production website](https://app.getloupe.co))
+
+Then open up the repo in another terminal window and run:
+```bash
+pipenv run benchmark
+```
+
+### Tests
+This is a work in progress and at the time of writing we only have tests for the external API endpoint. One of the tests relies on the API JWT which is referred to in #3 in Benchmarks above.
+
+Then open up the repo in another terminal window and run:
+```bash
+pipenv run test
+```
