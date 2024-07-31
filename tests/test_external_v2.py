@@ -12,7 +12,7 @@ client = TestClient(app)
 SANDBOX_API_KEY = "loupe_3dnXjnT4xc24KAoqFbiPKI0JjHhnuVyoY5098kZDGuwo40BP"
 # We want to test the iteration of pages in the API
 # Therefore we will randomly select a number of pages to test
-MAX_PAGES = random.randint(1, 7)
+MAX_PAGES = random.randint(2, 7)
 
 def make_request(page, api_version, user_currency):
     # Construct the parameters for the request
