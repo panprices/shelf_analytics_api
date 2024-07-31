@@ -12,17 +12,15 @@ from app.models import (
     RetailerProduct,
 )
 from app.models.retailer import MockRetailerProductGridItem
-from app.schemas.filters import PagedGlobalFilter, GlobalFilter, DataPageFilter, PriceValuesFilter
+from app.schemas.filters import PagedGlobalFilter, GlobalFilter, DataPageFilter
 
 
 def _create_query_for_retailer_offers_datapool(
-    brand_id, 
-    global_filter: DataPageFilter
+    brand_id, global_filter: DataPageFilter
 ) -> Tuple[str, Dict]:
     well_defined_grid_filters = [
         i for i in global_filter.data_grid_filter.items if i.is_well_defined()
     ]
-
     filter_on_product_group_statement = """
         AND rp.matched_brand_product_id IN (
             SELECT product_id 

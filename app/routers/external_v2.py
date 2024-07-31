@@ -23,6 +23,7 @@ async def get_retailer_offers_no_filters(
     page: Optional[int] = 0,
     user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
+    user_currency: Optional[str] = None,
 ):
     page_size = 500
     page_global_filter = PagedGlobalFilter(
@@ -40,10 +41,15 @@ async def get_retailer_offers_no_filters(
             "retailers": [],
             "categories": [],
             "groups": [],
+            "currency": user_currency,
         }
     )
 
-    products = crud.get_retailer_offers(db, user.client, page_global_filter)
+    products = crud.get_retailer_offers(
+        db,
+        user.client,
+        page_global_filter,
+    )
     total_number_of_pages = (
         crud.count_retailer_offers(db, user.client, page_global_filter) // page_size + 1
     )
@@ -65,6 +71,7 @@ async def get_retailer_offers_no_filters_v2_1(
     page: Optional[int] = 0,
     user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
+    user_currency: Optional[str] = None,
 ):
     # Reuse the same logic as v2
-    return await get_retailer_offers_no_filters(page, user, db)
+    return await get_retailer_offers_no_filters(page, user, db, user_currency)

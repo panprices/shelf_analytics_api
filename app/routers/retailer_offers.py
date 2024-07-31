@@ -58,7 +58,6 @@ async def export_products_to_csv(
         db,
         user.client,
         global_filter,
-        # prices_filter
     )
     processed_products = await preprocess_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
