@@ -11,11 +11,11 @@ from app.schemas.filters import PagedGlobalFilter
 from app.security import get_auth_data
 from app.tags import TAG_EXTERNAL, TAG_DATA
 
-router = APIRouter(prefix="/v2")
+router = APIRouter()
 
 
 @router.get(
-    "/products/retailer_offers",
+    "/v2/products/retailer_offers",
     tags=[TAG_DATA, TAG_EXTERNAL],
     response_model=ExternalRetailerOffersPage,
 )
@@ -54,3 +54,17 @@ async def get_retailer_offers_no_filters(
         "page": page,
         "pages_count": total_number_of_pages,
     }
+
+# Define routes for router_v2_1
+@router.get(
+    "/v2.1/products/retailer_offers",
+    tags=[TAG_DATA, TAG_EXTERNAL],
+    response_model=ExternalRetailerOffersPage,
+)
+async def get_retailer_offers_no_filters_v2_1(
+    page: Optional[int] = 0,
+    user: AuthMetadata = Depends(get_auth_data),
+    db: Session = Depends(get_db),
+):
+    # Reuse the same logic as v2
+    return await get_retailer_offers_no_filters(page, user, db)

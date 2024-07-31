@@ -76,7 +76,10 @@ def check_fields(data, api_version):
         "wholesale_price_standard"
     ]
     if api_version == "v2.1":
-        expected_fields.extend("retailer_price_in_user_currency", "user_currency")
+        expected_fields.extend([
+            "retailer_price_in_user_currency",
+            "user_currency"
+        ])
     # Check that all the fields we expect are in the response
     for row in data["rows"]:
         for field in expected_fields:
