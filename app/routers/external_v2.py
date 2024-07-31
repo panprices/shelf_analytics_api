@@ -1,15 +1,17 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from grpc import Status
 from requests import Session
 
 from app import crud
 from app.database import get_db
 from app.schemas.auth import AuthMetadata
-from app.schemas.external_v2 import ExternalRetailerOffersPage
+from app.schemas.external_v2 import ExternalRetailerOffersPage, ExternalRetailerOffersPagev21
 from app.schemas.filters import PagedGlobalFilter
 from app.security import get_auth_data
 from app.tags import TAG_EXTERNAL, TAG_DATA
+from app.service.currency import add_user_currency_to_retailer_offers
 
 router = APIRouter()
 
@@ -41,7 +43,6 @@ async def get_retailer_offers_no_filters(
             "retailers": [],
             "categories": [],
             "groups": [],
-            "currency": user_currency,
         }
     )
 
@@ -50,6 +51,12 @@ async def get_retailer_offers_no_filters(
         user.client,
         page_global_filter,
     )
+    if user_currency :
+        products = add_user_currency_to_retailer_offers(
+            products,
+            user_currency,
+            db
+        )
     total_number_of_pages = (
         crud.count_retailer_offers(db, user.client, page_global_filter) // page_size + 1
     )
@@ -65,7 +72,7 @@ async def get_retailer_offers_no_filters(
 @router.get(
     "/v2.1/products/retailer_offers",
     tags=[TAG_DATA, TAG_EXTERNAL],
-    response_model=ExternalRetailerOffersPage,
+    response_model=ExternalRetailerOffersPagev21,
 )
 async def get_retailer_offers_no_filters_v2_1(
     page: Optional[int] = 0,
@@ -73,5 +80,13 @@ async def get_retailer_offers_no_filters_v2_1(
     db: Session = Depends(get_db),
     user_currency: Optional[str] = None,
 ):
+    # Get the currencies that we support
+    valid_currencies = crud.get_currencies(db)
+    # Check if user_currency is provided and valid
+    if user_currency and user_currency not in valid_currencies:
+        raise HTTPException(
+            status_code=Status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid currency: {user_currency}. Valid currencies are: {', '.join(valid_currencies)}"
+        )
     # Reuse the same logic as v2
     return await get_retailer_offers_no_filters(page, user, db, user_currency)

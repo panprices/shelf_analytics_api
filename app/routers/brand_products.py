@@ -30,7 +30,7 @@ from app.schemas.product import (
     MatchedRetailerProductScaffold,
 )
 from app.security import get_logged_in_user_data
-from app.service.screenshot import preprocess_retailer_offers
+from app.service.screenshot import add_screenshots_to_retailer_offers
 from app.tags import TAG_DATA
 
 router = APIRouter(prefix="/products/brand")
@@ -41,7 +41,7 @@ async def __preprocess_retailer_product_matches(
 ) -> List[BrandToRetailerProductMatchingScaffold]:
     retailer_products = [m.retailer_product for m in matches]
 
-    retailer_products_processed = await preprocess_retailer_offers(
+    retailer_products_processed = await add_screenshots_to_retailer_offers(
         retailer_products, MatchedRetailerProductScaffold
     )
     matches_processed = [

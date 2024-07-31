@@ -94,7 +94,7 @@ def check_user_currency(data, user_currency):
         return
     for row in data["rows"]:
         # Verify that the currency in the response matches the requested currency
-        response_currency = row.get("currency")
+        response_currency = row.get("user_currency")
         assert response_currency == user_currency, (
             f"Expected currency '{user_currency}' but found '{response_currency}' in row with id {row.get('id')}"
         )
@@ -108,7 +108,7 @@ def get_retailer_offers_no_filters_in_test(
     check_http_status(response)
     data = response.json()
     check_basics(data)
-    check_fields(data, api_version)
+    check_fields(data, api_version) 
     if api_version == "v2.1":
         check_user_currency(data, user_currency)
     return {
@@ -146,8 +146,5 @@ def test_get_retailer_offers_no_filters_v21(page=None):
         return
     # Continue the recursion if we have not reached the last page
     else:
-        test_get_retailer_offers_no_filters_v2(
-            page=response["page"] + 1,
-            api_version="v2.1",
-            user_currency=user_currency
-        )
+        test_get_retailer_offers_no_filters_v21(
+            page=response["page"] + 1)

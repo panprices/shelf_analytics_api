@@ -20,7 +20,8 @@ from app.schemas.product import (
     MockRetailerProductGridItem,
 )
 from app.security import get_logged_in_user_data, get_auth_data
-from app.service.screenshot import preprocess_retailer_offers
+from app.service.currency import add_user_currency_to_retailer_offers
+from app.service.screenshot import add_screenshots_to_retailer_offers
 from app.tags import TAG_DATA, TAG_EXTERNAL
 
 router = APIRouter(prefix="/products/retailers")
@@ -34,11 +35,11 @@ async def get_retailer_offers(
     db: Session = Depends(get_db),
 ):
     products = crud.get_retailer_offers(db, user.client, page_global_filter)
-    processed_products = await preprocess_retailer_offers(
+    products_with_screenshots = await add_screenshots_to_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
     )
     return {
-        "rows": processed_products,
+        "rows": products_with_screenshots,
         "count": len(products),
         "offset": page_global_filter.get_products_offset(),
         "total_count": crud.count_retailer_offers(db, user.client, page_global_filter),
@@ -51,19 +52,20 @@ async def export_products_to_csv(
     user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
-    
-    print("global_filter.currency: ", global_filter.currency)
-
     products = crud.export_full_retailer_offers_result(
         db,
         user.client,
         global_filter,
     )
-    processed_products = await preprocess_retailer_offers(
+    products_with_screenshots = await add_screenshots_to_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
     )
-
+    products_with_currency = add_user_currency_to_retailer_offers(
+        products_with_screenshots,
+        global_filter.currency,
+        db
+    )
     products_df = pandas.DataFrame(
-        [p.dict_exclude_deprecated_fields() for p in processed_products]
+        [p.dict_exclude_deprecated_fields() for p in products_with_currency]
     )
     return export_dataframe_to_xlsx(products_df)

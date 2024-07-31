@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from app.schemas.product import MockRetailerProductGridItem
+from app.schemas.product import MockRetailerProductGridItem, MockRetailerProductGridItemV21
 
 
 class ExternalPagedResponse(BaseModel):
@@ -22,5 +22,14 @@ class ExternalRetailerOffersPage(ExternalPagedResponse):
     """
 
     rows: List[MockRetailerProductGridItem] = Field(
+        description="The list of retailer offers",
+    )
+
+class ExternalRetailerOffersPagev21(ExternalPagedResponse):
+    """
+    Holds the data for a page of products as showed on the retailer offers table.
+    """
+
+    rows: List[MockRetailerProductGridItemV21] = Field(
         description="The list of retailer offers",
     )
