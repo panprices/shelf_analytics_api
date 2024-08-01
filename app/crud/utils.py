@@ -2,6 +2,7 @@ import io
 from datetime import datetime, timedelta
 from functools import reduce
 from typing import List, Dict, Optional, TypeVar, Callable, Type, Literal, Union
+from cachetools import cached, TTLCache
 
 import pandas
 from pydantic import BaseModel
@@ -278,6 +279,7 @@ def export_rows_to_xlsx(products: List[BaseModel]):
     products_df = pandas.DataFrame([p.dict() for p in products])
     return export_dataframe_to_xlsx(products_df)
 
+@cached(cache=TTLCache(maxsize=512, ttl=3600)) # Cache for 1 hour
 def get_currency_exchange_rates(
         db: Session,
         user_currency: str,
