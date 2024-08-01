@@ -1,7 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from grpc import Status
+from fastapi import APIRouter, Depends, HTTPException, status
 from requests import Session
 
 from app import crud
@@ -85,7 +84,7 @@ async def get_retailer_offers_no_filters_v2_1(
     # Check if user_currency is provided and valid
     if user_currency and user_currency not in valid_currencies:
         raise HTTPException(
-            status_code=Status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Invalid currency: {user_currency}. Valid currencies are: {', '.join(valid_currencies)}"
         )
     # Reuse the same logic as v2
