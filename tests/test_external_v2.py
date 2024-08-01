@@ -1,3 +1,4 @@
+import os
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app  # Import the FastAPI app instance
@@ -7,9 +8,8 @@ import http.client
 
 client = TestClient(app)
 
-# This is an API key created for VD in sandbox environment.
-# TODO: Don't send an API key to GitHub. Since it is sandbox, it is fine for now.
-SANDBOX_API_KEY = "loupe_3dnXjnT4xc24KAoqFbiPKI0JjHhnuVyoY5098kZDGuwo40BP"
+# Get an example sandbox API key
+SANDBOX_API_KEY = os.getenv("SANDBOX_API_KEY")
 # We want to test the iteration of pages in the API
 # Therefore we will randomly select a number of pages to test
 MAX_PAGES = random.randint(2, 7)
