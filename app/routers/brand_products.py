@@ -82,7 +82,7 @@ def get_brand_products_count(
 
 
 @router.post("/export", tags=[TAG_DATA])
-async def export_products_to_csv(
+async def export_products_to_xlsx(
     page_global_filter: PagedGlobalFilter,
     user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),

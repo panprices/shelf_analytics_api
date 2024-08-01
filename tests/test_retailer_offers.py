@@ -5,7 +5,7 @@ from benchmark.config import BASE_URL, AUTH_HEADERS
 
 client = TestClient(app)
 
-def test_export_products_to_csv():
+def test_export_products_to_xlsx():
     # Prepare the request payload
     payload = {
         "start_date": "2024-04-30",
