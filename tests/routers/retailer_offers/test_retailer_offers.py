@@ -1,4 +1,3 @@
-import pytest
 from fastapi.testclient import TestClient
 from app.main import app  # Import the FastAPI app instance
 from benchmark.config import BASE_URL, AUTH_HEADERS
