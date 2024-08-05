@@ -20,7 +20,7 @@ def add_user_currency_to_retailer_offers(
         conversion_rate = currencies[product_currency]
         
         # Convert prices and limit to 1 decimal point
-        converted_retailer_price = round(product.retailer_price * conversion_rate, 1)
+        converted_retailer_price = round(product.retailer_price / conversion_rate, 1)
         
         # Convert the product to a dictionary, then update it with new fields
         product_dict = product.__dict__.copy()
