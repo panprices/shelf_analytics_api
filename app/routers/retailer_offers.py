@@ -16,6 +16,7 @@ from app.schemas.filters import (
     PriceValuesFilter,
 )
 from app.schemas.product import (
+    MockRetailerProductGridItemV21,
     RetailerOffersPage,
     MockRetailerProductGridItem,
 )
@@ -30,7 +31,7 @@ logger = get_logger()
 
 @router.post("", tags=[TAG_DATA], response_model=RetailerOffersPage)
 async def get_retailer_offers(
-    page_global_filter: PagedGlobalFilter,
+    page_global_filter: PagedPriceValuesFilter,
     user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
@@ -38,6 +39,12 @@ async def get_retailer_offers(
     products_with_screenshots = await add_screenshots_to_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
     )
+    if page_global_filter.currency :
+        products_with_screenshots = add_user_currency_to_retailer_offers(
+            products,
+            page_global_filter.currency,
+            db
+        )
     return {
         "rows": products_with_screenshots,
         "count": len(products),
@@ -60,12 +67,13 @@ async def export_products_to_xlsx(
     products_with_screenshots = await add_screenshots_to_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
     )
-    products_with_currency = add_user_currency_to_retailer_offers(
-        products_with_screenshots,
-        global_filter.currency,
-        db
-    )
+    if global_filter.currency :
+        products_with_screenshots = add_user_currency_to_retailer_offers(
+            products,
+            global_filter.currency,
+            db
+        )
     products_df = pandas.DataFrame(
-        [p.dict_exclude_deprecated_fields() for p in products_with_currency]
+        [p.dict_exclude_deprecated_fields() for p in products_with_screenshots]
     )
     return export_dataframe_to_xlsx(products_df)

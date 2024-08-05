@@ -1,36 +1,22 @@
 from fastapi.testclient import TestClient
 from app.main import app  # Import the FastAPI app instance
 from benchmark.config import BASE_URL, AUTH_HEADERS
+from tests.routers.retailer_offers.helpers import (
+    PAYLOAD,
+    check_http_status,
+    check_fields
+)
 
 client = TestClient(app)
 
 def test_export_products_to_xlsx():
-    # Prepare the request payload
-    payload = {
-        "start_date": "2024-04-30",
-        "countries": [],
-        "retailers": [],
-        "categories": [],
-        "groups": [],
-        "search_text": "",
-        "page_number": 0,
-        "page_size": 0,
-        "data_grid_filter": {
-            "operator": "and",
-            "items": [
-                {"column": "name", "value": "ab", "operator": "contains"},
-                {"column": "available_at_retailer", "operator": "is", "value": "true"}
-            ]
-        },
-        "currency": "SEK"
-    }
-
     # Send the request with authentication headers
-    response = client.post(f"{BASE_URL}/products/retailers/export", json=payload, headers=AUTH_HEADERS)
-
-    # Print the response content for debugging
-    if response.status_code != 200:
-        print("Response JSON:", response.json())
+    response = client.post(
+        f"{BASE_URL}/products/retailers/export",
+        json=PAYLOAD,
+        headers=AUTH_HEADERS
+    )
+    check_http_status(response)
 
     # Check the response status code
     assert response.status_code == 200
@@ -41,3 +27,15 @@ def test_export_products_to_xlsx():
         assert content_type == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     else:
         print("Content-Type header is missing.")
+
+def test_retailer_offers():
+    # Send the request with authentication headers
+    response = client.post(
+        f"{BASE_URL}/products/retailers",
+        json=PAYLOAD,
+        headers=AUTH_HEADERS
+    )
+    check_http_status(response)
+    data = response.json()
+    # Check that we get the fields we expect
+    check_fields(data)

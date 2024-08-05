@@ -353,7 +353,7 @@ class RetailerOffersPage(PagedResponse):
     Holds the data for a page of products as showed on the retailer offers table.
     """
 
-    rows: List[MockRetailerProductGridItem] = Field(
+    rows: List[MockRetailerProductGridItemV21] = Field(
         description="The list of retailer offers",
     )
 

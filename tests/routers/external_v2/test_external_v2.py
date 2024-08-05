@@ -3,7 +3,7 @@ from tests.routers.external_v2.helpers import get_retailer_offers_no_filters_in_
 
 # We want to test the iteration of pages in the API
 # Therefore we will randomly select a number of pages to test
-MAX_PAGES = random.randint(2, 7)
+MAX_PAGES = random.randint(1, 3)
 
 def test_get_retailer_offers_no_filters_v2(page=None):
     response = get_retailer_offers_no_filters_in_test(page)

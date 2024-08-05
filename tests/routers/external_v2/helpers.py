@@ -2,7 +2,6 @@ import os
 import http.client
 from app.main import app  # Import the FastAPI app instance
 from fastapi.testclient import TestClient
-import random
 from benchmark.config import BASE_URL
 
 client = TestClient(app)
@@ -87,7 +86,7 @@ def get_retailer_offers_no_filters_in_test(page=None, api_version="v2", user_cur
     check_http_status(response)
     data = response.json()
     check_basics(data)
-    check_fields(data, api_version) 
+    check_fields(data, api_version)
     if api_version == "v2.1":
         check_user_currency(data, user_currency)
     return {

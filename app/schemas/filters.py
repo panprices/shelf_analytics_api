@@ -152,7 +152,7 @@ class PricingChangesFilter(GlobalFilter, PaginationMixin):
 
 
 class PriceValuesFilter(GlobalFilter):
-    currency: str
+    currency: Optional[str] = None
 
 
 class PagedPriceValuesFilter(PriceValuesFilter, PagedGlobalFilter):
