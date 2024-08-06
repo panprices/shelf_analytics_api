@@ -1,21 +1,22 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from requests import Session
 
 from app import crud
 from app.database import get_db
 from app.schemas.auth import AuthMetadata
-from app.schemas.external_v2 import ExternalRetailerOffersPage
+from app.schemas.external_v2 import ExternalRetailerOffersPage, ExternalRetailerOffersPagev21
 from app.schemas.filters import PagedGlobalFilter
 from app.security import get_auth_data
 from app.tags import TAG_EXTERNAL, TAG_DATA
+from app.service.currency import add_user_currency_to_retailer_offers
 
-router = APIRouter(prefix="/v2")
+router = APIRouter()
 
 
 @router.get(
-    "/products/retailer_offers",
+    "/v2/products/retailer_offers",
     tags=[TAG_DATA, TAG_EXTERNAL],
     response_model=ExternalRetailerOffersPage,
 )
@@ -23,6 +24,7 @@ async def get_retailer_offers_no_filters(
     page: Optional[int] = 0,
     user: AuthMetadata = Depends(get_auth_data),
     db: Session = Depends(get_db),
+    user_currency_fromv21: Optional[str] = None,
 ):
     page_size = 500
     page_global_filter = PagedGlobalFilter(
@@ -42,8 +44,17 @@ async def get_retailer_offers_no_filters(
             "groups": [],
         }
     )
-
-    products = crud.get_retailer_offers(db, user.client, page_global_filter)
+    products = crud.get_retailer_offers(
+        db,
+        user.client,
+        page_global_filter,
+    )
+    if user_currency_fromv21 :
+        products = add_user_currency_to_retailer_offers(
+            products,
+            user_currency_fromv21,
+            db
+        )
     total_number_of_pages = (
         crud.count_retailer_offers(db, user.client, page_global_filter) // page_size + 1
     )
@@ -54,3 +65,26 @@ async def get_retailer_offers_no_filters(
         "page": page,
         "pages_count": total_number_of_pages,
     }
+
+# Define routes for router_v2_1
+@router.get(
+    "/v2.1/products/retailer_offers",
+    tags=[TAG_DATA, TAG_EXTERNAL],
+    response_model=ExternalRetailerOffersPagev21,
+)
+async def get_retailer_offers_no_filters_v2_1(
+    page: Optional[int] = 0,
+    user: AuthMetadata = Depends(get_auth_data),
+    db: Session = Depends(get_db),
+    user_currency: Optional[str] = None,
+):
+    # Get the currencies that we support
+    valid_currencies = crud.get_currencies(db)
+    # Check if user_currency is provided and valid
+    if user_currency and user_currency not in valid_currencies:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid currency: '{user_currency}'. Valid currencies in >=2.1 are: {', '.join(valid_currencies)}"
+        )
+    # Reuse the same logic as v2
+    return await get_retailer_offers_no_filters(page, user, db, user_currency)

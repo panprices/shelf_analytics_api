@@ -43,7 +43,7 @@ async def assign_screenshot_url(
         return result
 
 
-async def preprocess_retailer_offers(
+async def add_screenshots_to_retailer_offers(
     products: List[TRetailerProductModel],
     output_model_class: Type[TRetailerProductSchema],
 ) -> List[TRetailerProductSchema]:

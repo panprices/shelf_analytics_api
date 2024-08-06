@@ -12,13 +12,17 @@ from app.database import get_db
 from app.schemas.auth import TokenData, AuthMetadata
 from app.schemas.filters import (
     PagedGlobalFilter,
+    PagedPriceValuesFilter,
+    PriceValuesFilter,
 )
 from app.schemas.product import (
+    MockRetailerProductGridItemV21,
     RetailerOffersPage,
     MockRetailerProductGridItem,
 )
 from app.security import get_logged_in_user_data, get_auth_data
-from app.service.screenshot import preprocess_retailer_offers
+from app.service.currency import add_user_currency_to_retailer_offers
+from app.service.screenshot import add_screenshots_to_retailer_offers
 from app.tags import TAG_DATA, TAG_EXTERNAL
 
 router = APIRouter(prefix="/products/retailers")
@@ -27,16 +31,22 @@ logger = get_logger()
 
 @router.post("", tags=[TAG_DATA], response_model=RetailerOffersPage)
 async def get_retailer_offers(
-    page_global_filter: PagedGlobalFilter,
+    page_global_filter: PagedPriceValuesFilter,
     user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     products = crud.get_retailer_offers(db, user.client, page_global_filter)
-    processed_products = await preprocess_retailer_offers(
+    products_with_screenshots = await add_screenshots_to_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
     )
+    if page_global_filter.currency :
+        products_with_screenshots = add_user_currency_to_retailer_offers(
+            products,
+            page_global_filter.currency,
+            db
+        )
     return {
-        "rows": processed_products,
+        "rows": products_with_screenshots,
         "count": len(products),
         "offset": page_global_filter.get_products_offset(),
         "total_count": crud.count_retailer_offers(db, user.client, page_global_filter),
@@ -44,19 +54,26 @@ async def get_retailer_offers(
 
 
 @router.post("/export", tags=[TAG_DATA])
-async def export_products_to_csv(
-    page_global_filter: PagedGlobalFilter,
+async def export_products_to_xlsx(
+    global_filter: PagedPriceValuesFilter,
     user: TokenData = Depends(get_logged_in_user_data),
     db: Session = Depends(get_db),
 ):
     products = crud.export_full_retailer_offers_result(
-        db, user.client, page_global_filter
+        db,
+        user.client,
+        global_filter,
     )
-    processed_products = await preprocess_retailer_offers(
+    products_with_screenshots = await add_screenshots_to_retailer_offers(
         products, output_model_class=MockRetailerProductGridItem
     )
-
+    if global_filter.currency :
+        products_with_screenshots = add_user_currency_to_retailer_offers(
+            products,
+            global_filter.currency,
+            db
+        )
     products_df = pandas.DataFrame(
-        [p.dict_exclude_deprecated_fields() for p in processed_products]
+        [p.dict_exclude_deprecated_fields() for p in products_with_screenshots]
     )
     return export_dataframe_to_xlsx(products_df)

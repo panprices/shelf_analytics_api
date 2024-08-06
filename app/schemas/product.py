@@ -42,7 +42,6 @@ class RetailerToBrandProductMatchScaffold(BaseModel):
         orm_mode = True
         use_enum_values = True
 
-
 class MockRetailerProductGridItem(BaseModel):
     id: Union[str, uuid.UUID]
     url: Optional[str] = Field(
@@ -235,6 +234,15 @@ class MockRetailerProductGridItem(BaseModel):
             }
         )
 
+class MockRetailerProductGridItemV21(MockRetailerProductGridItem) :
+    retailer_price_in_user_currency: Optional[float] = Field(
+        description="The retailer_price converted to the currency choosen by the user.",
+        example=3202,
+    )
+    user_currency: Optional[str] = Field(
+        description="The valid currency choosen by the user.",
+        example="USD",
+    )
 
 class MockBrandProductGridItem(BaseModel):
     id: Union[str, uuid.UUID] = Field(
@@ -345,7 +353,7 @@ class RetailerOffersPage(PagedResponse):
     Holds the data for a page of products as showed on the retailer offers table.
     """
 
-    rows: List[MockRetailerProductGridItem] = Field(
+    rows: List[MockRetailerProductGridItemV21] = Field(
         description="The list of retailer offers",
     )
 

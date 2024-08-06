@@ -2,6 +2,7 @@ import io
 from datetime import datetime, timedelta
 from functools import reduce
 from typing import List, Dict, Optional, TypeVar, Callable, Type, Literal, Union
+from cachetools import cached, TTLCache
 
 import pandas
 from pydantic import BaseModel
@@ -277,3 +278,28 @@ def export_dataframe_to_xlsx(df: pandas.DataFrame):
 def export_rows_to_xlsx(products: List[BaseModel]):
     products_df = pandas.DataFrame([p.dict() for p in products])
     return export_dataframe_to_xlsx(products_df)
+
+@cached(cache=TTLCache(maxsize=512, ttl=3600)) # Cache for 1 hour
+def get_currency_exchange_rates(
+        db: Session,
+        user_currency: str,
+    ):
+    statement = text("""
+        SELECT
+            name,
+            CASE
+                WHEN name = :user_currency THEN 1
+                ELSE (
+                    SELECT to_eur
+                    FROM currency
+                    WHERE name = :user_currency
+                    LIMIT 1
+                ) / to_eur
+            END AS conversion_rate
+        FROM currency;
+    """)
+    # Execute the query with the parameter
+    result = db.execute(statement, {'user_currency': user_currency})
+    # Convert rows to a flat dictionary like this {'USD': 1.2, 'EUR': 0.8...}
+    result_as_dict = {row['name']: row['conversion_rate'] for row in result}
+    return result_as_dict
