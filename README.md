@@ -80,3 +80,32 @@ pipenv run test
 ```
 
 This is a work in progress and at the time of writing we only have tests for the external API endpoint.
+
+## Using Swagger / OpenAPI
+When you run the project you can access the docs of the API at: http://localhost:8000/docs
+
+I find the UI helpful for testing my endpoints, as they are aware of the *example* values from the pydantic models, 
+which makes it very easy to create a quick JSON test. 
+
+For the authenticated endpoints: 
+1. Click on **Authorize**
+2. Notice there are 2 different authentication methods 
+    - API keys: for the public API endpoints
+    - Bearer token: for the API touched by the frontend project
+
+For the API key: 
+1. go to dashboard, logged in with a user account 
+2. go to settings and copy an existing API key
+
+For the bearer token: 
+1. Open https://app.getloupe.co/ in a browser where you are logged in
+2. Open the developer console in the browser (F12)
+3. Go to storage (Firefox) or Application (Chrome) 
+4. Go to local storage 
+5. Copy the value of `api_token`
+
+Now you can: 
+1. Click on and endpoint
+2. Click on **Try it out**
+3. Fill in the required parameters
+4. Click on **Execute** to test your endpoint
