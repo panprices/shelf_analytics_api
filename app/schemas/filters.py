@@ -74,7 +74,7 @@ class DataGridFilterItem(BaseModel):
         elif self.operator == "isEmpty":
             return f"{full_column_name} IS NULL"
         elif self.operator == "isNotEmpty":
-            return f"{full_column_name} IS NOT NULL"
+            return f"({full_column_name} IS NOT NULL AND {full_column_name} <> '')"
         elif self.operator == "isAnyOf":
             return f"{full_column_name} IN :fv_{index}"
         elif self.operator == "!=":

@@ -22,7 +22,7 @@ def _get_full_product_list(
     )
 
 
-def _create_query_for_retailer_offers_datapool(global_filter: DataPageFilter) -> str:
+def _create_query_for_brand_products_datapool(global_filter: DataPageFilter) -> str:
     well_defined_grid_filters = [
         i for i in global_filter.data_grid_filter.items if i.is_well_defined()
     ]
@@ -44,11 +44,10 @@ def _create_query_for_retailer_offers_datapool(global_filter: DataPageFilter) ->
                         / (SELECT * FROM retailers_count_for_client LIMIT 1)::float as retailer_coverage_rate,
                     COALESCE(STRING_AGG(DISTINCT retailer_name  || ' ' || country, ', ' ORDER BY retailer_name  || ' ' || country) 
                         FILTER (WHERE available_at_retailer = TRUE), '') as retailers
-                FROM retailer_product_including_unavailable_matview rpm
-                    JOIN brand_product bp ON bp.id = rpm.matched_brand_product_id
+                FROM brand_product bp
+                    LEFT JOIN retailer_product_including_unavailable_matview rpm ON bp.id = rpm.matched_brand_product_id AND rpm.available_at_retailer = TRUE
                 WHERE bp.brand_id = :brand_id
                     AND bp.active = TRUE
-                    AND rpm.available_at_retailer = TRUE
                     {"AND bp.category_id IN :categories" if global_filter.categories else ""}
                     {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
                     {"AND country IN :countries" if global_filter.countries else ""}
@@ -79,7 +78,7 @@ def _create_query_for_retailer_offers_datapool(global_filter: DataPageFilter) ->
 def get_brand_products_data_grid(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
 ):
-    statement = _create_query_for_retailer_offers_datapool(global_filter)
+    statement = _create_query_for_brand_products_datapool(global_filter)
 
     paged_statement = f"""
         {statement}
@@ -101,7 +100,7 @@ def get_brand_products_data_grid(
 def export_full_brand_products_result(
     db: Session, brand_id: str, global_filter: PagedGlobalFilter
 ):
-    statement = _create_query_for_retailer_offers_datapool(global_filter)
+    statement = _create_query_for_brand_products_datapool(global_filter)
     return _get_full_product_list(
         db,
         brand_id,
@@ -114,7 +113,7 @@ def export_full_brand_products_result(
 def count_brand_products(
     db: Session, brand_id: str, global_filter: DataPageFilter
 ) -> int:
-    query = _create_query_for_retailer_offers_datapool(global_filter)
+    query = _create_query_for_brand_products_datapool(global_filter)
 
     result = get_result_entities_from_statement_with_paged_filters(
         db, "count", brand_id, global_filter, query, ignore_pagination=True
