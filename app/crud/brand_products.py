@@ -84,7 +84,7 @@ def get_brand_products_data_grid(
         {statement}
         {
             "ORDER BY " + global_filter.sorting.column + " " + global_filter.sorting.direction
-            if global_filter.sorting else "ORDER BY name ASC"
+            if global_filter.sorting else "ORDER BY retailer_coverage_rate DESC"
         }
         LIMIT :limit OFFSET :offset
     """
