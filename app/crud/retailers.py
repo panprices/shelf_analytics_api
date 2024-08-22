@@ -1,16 +1,14 @@
 from typing import List, Dict, Optional
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session, selectinload, subqueryload
+from sqlalchemy.orm import Session, selectinload
 
 from app.crud.utils import convert_rows_to_dicts
 from app.models import (
     retailer,
-    brand,
     RetailerProduct,
     ProductMatching,
     BrandProduct,
-    BrandImage,
 )
 from app.models.mappings import RetailerBrandAssociation
 from app.models.retailer import RetailerImage, CountryToLanguage
@@ -129,8 +127,11 @@ def get_categories_split(
     return result
 
 
-def get_retailer_products_for_brand_product(
-    db: Session, global_filter: GlobalFilter, brand_product_id: str, brand_id: str
+def get_deep_retailer_offers_for_brand_product(
+    db: Session,
+    global_filter: GlobalFilter,
+    brand_product_id: str,
+    brand_id: str,
 ) -> List[ProductMatching]:
     """
     Get retailer products for a brand product
@@ -142,14 +143,13 @@ def get_retailer_products_for_brand_product(
     :param brand_id:
     :return:
     """
-
     filter_on_product_group_statement = """
-        AND matched_brand_product_id IN (
-            SELECT product_id 
-            FROM product_group_assignation pga 
-            WHERE pga.product_group_id IN :groups
-        )
-    """
+            AND matched_brand_product_id IN (
+                SELECT product_id 
+                FROM product_group_assignation pga 
+                WHERE pga.product_group_id IN :groups
+            )
+        """
 
     statement = f"""
         select DISTINCT pm.*
@@ -199,6 +199,45 @@ def get_retailer_products_for_brand_product(
             .selectinload(BrandProduct.images),
         )
         .all()
+    )
+
+
+def get_all_retailer_offers_for_brand_product(
+    db: Session,
+    global_filter: GlobalFilter,
+    brand_product_id: str,
+    brand_id: str,
+):
+    statement = f"""
+        SELECT DISTINCT pm.id as product_matching_id, 
+            rp.id as retailer_product_id, 
+            rp.name, rp.price / 100 AS retailer_price, 
+            rp.currency, r.country, 
+            r.name as retailer_name, rp.url
+        FROM brand_product bp 
+            JOIN (
+                SELECT * FROM product_matching WHERE brand_product_id = :brand_product_id
+            ) pm ON bp.id = pm.brand_product_id AND pm.certainty >= 'auto_high_confidence'
+            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+            JOIN retailer r ON rp.retailer_id = r.id
+        WHERE brand_id = :brand_id
+            AND brand_product_id = :brand_product_id
+            AND rp.currency IS NOT NULL 
+            AND rp.price IS NOT NULL 
+            {"AND retailer_id IN :retailers" if global_filter.retailers else ""}
+            {"AND country IN :countries" if global_filter.countries else ""}
+    """
+
+    return convert_rows_to_dicts(
+        db.execute(
+            statement,
+            {
+                "brand_product_id": brand_product_id,
+                "retailers": tuple(global_filter.retailers),
+                "countries": tuple(global_filter.countries),
+                "brand_id": brand_id,
+            },
+        ).fetchall()
     )
 
 

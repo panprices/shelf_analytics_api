@@ -166,3 +166,22 @@ def get_task_deterministically(
 
     # By default we don't filter by global filters when getting a task deterministically
     return fill_matching_task(db, user, identifier, global_filter=request.global_filter)
+
+
+@router.delete("/{product_matching_id}", tags=[TAG_MATCHING])
+def remove_match(
+    product_matching_id: str,
+    user: TokenData = Depends(get_logged_in_user_data),
+    db: Session = Depends(get_db),
+):
+    if not user:
+        return HTTPException(status_code=401, detail="Must be authenticated")
+
+    if not crud.check_user_has_rights_over_match(db, product_matching_id, user.client):
+        return {
+            "message": "Missing permissions to delete resource",
+            "status": "error",
+        }
+
+    crud.invalidate_single_match(db, product_matching_id=product_matching_id)
+    return {"status": "success"}

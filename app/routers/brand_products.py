@@ -23,29 +23,32 @@ from app.schemas.filters import (
 from app.schemas.prices import HistoricalPerRetailerResponse, MSRPValueItem
 from app.schemas.product import (
     BrandProductScaffold,
-    BrandProductMatchesScaffold,
+    BrandProductDeepMatchesScaffold,
     BrandProductsPage,
     MockBrandProductGridItem,
-    BrandToRetailerProductMatchingScaffold,
+    BrandToDeepRetailerProductMatchingScaffold,
     MatchedRetailerProductScaffold,
+    AnyMatchingOfferScaffold,
+    BrandProductAllOffersScaffold,
 )
 from app.security import get_logged_in_user_data
+from app.service.currency import add_user_currency_to_retailer_offers
 from app.service.screenshot import add_screenshots_to_retailer_offers
 from app.tags import TAG_DATA
 
 router = APIRouter(prefix="/products/brand")
 
 
-async def __preprocess_retailer_product_matches(
+async def __preprocess_retailer_product_deep_matches(
     matches: List[ProductMatching],
-) -> List[BrandToRetailerProductMatchingScaffold]:
+) -> List[BrandToDeepRetailerProductMatchingScaffold]:
     retailer_products = [m.retailer_product for m in matches]
 
     retailer_products_processed = await add_screenshots_to_retailer_offers(
         retailer_products, MatchedRetailerProductScaffold
     )
     matches_processed = [
-        BrandToRetailerProductMatchingScaffold.from_orm(m) for m in matches
+        BrandToDeepRetailerProductMatchingScaffold.from_orm(m) for m in matches
     ]
 
     for (match, retailer_product) in zip(
@@ -117,9 +120,9 @@ def get_brand_product_details(
 @router.post(
     "/{brand_product_id}/matches",
     tags=[TAG_DATA],
-    response_model=BrandProductMatchesScaffold,
+    response_model=BrandProductDeepMatchesScaffold,
 )
-async def get_matched_retailer_products_for_brand_product(
+async def get_deep_matched_retailer_offers_for_brand_product(
     brand_product_id: str,
     global_filter: GlobalFilter,
     user: TokenData = Depends(get_logged_in_user_data),
@@ -140,10 +143,38 @@ async def get_matched_retailer_products_for_brand_product(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Must be authenticated"
         )
 
-    matches = crud.get_retailer_products_for_brand_product(
+    matches = crud.get_deep_retailer_offers_for_brand_product(
         db, global_filter, brand_product_id, user.client
     )
-    processed_matches = await __preprocess_retailer_product_matches(matches)
+    processed_matches = await __preprocess_retailer_product_deep_matches(matches)
+    return {"matches": processed_matches}
+
+
+@router.post(
+    "/{brand_product_id}/all_offers",
+    tags=[TAG_DATA],
+    response_model=BrandProductAllOffersScaffold,
+)
+async def get_all_retailer_offers_for_brand_product(
+    brand_product_id: str,
+    global_filter: PriceValuesFilter,
+    user: TokenData = Depends(get_logged_in_user_data),
+    db: Session = Depends(get_db),
+):
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Must be authenticated"
+        )
+
+    matches = crud.get_all_retailer_offers_for_brand_product(
+        db, global_filter, brand_product_id, user.client
+    )
+    processed_matches = add_user_currency_to_retailer_offers(
+        [AnyMatchingOfferScaffold(**d) for d in matches],
+        global_filter.currency,
+        db,
+        output_model_class=AnyMatchingOfferScaffold,
+    )
     return {"matches": processed_matches}
 
 

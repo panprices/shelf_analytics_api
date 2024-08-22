@@ -215,6 +215,48 @@ def invalidate_product_matching_selection(
     db.commit()
 
 
+def invalidate_single_match(db: Session, product_matching_id: str):
+    (
+        db.query(ProductMatching)
+        .filter(ProductMatching.id == product_matching_id)
+        .update({"certainty": "not_match"}, synchronize_session="fetch")
+    )
+
+    time_series_statement = f"""
+        DELETE FROM product_matching_time_series
+        WHERE product_matching_id = :product_matching_id
+    """
+
+    db.execute(
+        text(time_series_statement), params={"product_matching_id": product_matching_id}
+    )
+
+    db.commit()
+
+
+def check_user_has_rights_over_match(
+    db: Session, product_matching_id: str, user_brand_id: str
+):
+    statement = """
+        SELECT COUNT(*)
+        FROM (
+            SELECT * FROM product_matching WHERE id = :product_matching_id
+        ) pm 
+            JOIN brand_product bp ON bp.id = pm.brand_product_id
+        WHERE bp.brand_id = :user_brand_id 
+    """
+
+    has_access = db.execute(
+        text(statement),
+        params={
+            "product_matching_id": product_matching_id,
+            "user_brand_id": user_brand_id,
+        },
+    ).scalar()
+
+    return has_access > 0
+
+
 def submit_product_matching_url(
     db: Session, user_id: str, brand_product_id: str, retailer_id: str, url: str
 ):

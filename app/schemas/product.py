@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from typing import List, Optional, Union
+from typing import List, Optional, Union, TypeVar
 
 from pydantic import BaseModel, Field, validator
 
@@ -41,6 +41,7 @@ class RetailerToBrandProductMatchScaffold(BaseModel):
     class Config:
         orm_mode = True
         use_enum_values = True
+
 
 class MockRetailerProductGridItem(BaseModel):
     id: Union[str, uuid.UUID]
@@ -234,7 +235,8 @@ class MockRetailerProductGridItem(BaseModel):
             }
         )
 
-class MockRetailerProductGridItemV21(MockRetailerProductGridItem) :
+
+class MockRetailerProductGridItemV21(MockRetailerProductGridItem):
     retailer_price_in_user_currency: Optional[float] = Field(
         description="The retailer_price converted to the currency choosen by the user.",
         example=3202,
@@ -243,6 +245,7 @@ class MockRetailerProductGridItemV21(MockRetailerProductGridItem) :
         description="The valid currency choosen by the user.",
         example="USD",
     )
+
 
 class MockBrandProductGridItem(BaseModel):
     id: Union[str, uuid.UUID] = Field(
@@ -457,7 +460,7 @@ class MatchedRetailerProductScaffold(BaseRetailerProductScaffold):
         orm_mode = True
 
 
-class BrandToRetailerProductMatchingScaffold(BaseModel):
+class BrandToDeepRetailerProductMatchingScaffold(BaseModel):
     retailer_product: MatchedRetailerProductScaffold
     image_score: Optional[float] = Field(description="Image score up to 100", default=0)
     title_score: Optional[float] = Field(description="Title score up to 100", default=0)
@@ -475,11 +478,44 @@ class BrandToRetailerProductMatchingScaffold(BaseModel):
         orm_mode = True
 
 
-class BrandProductMatchesScaffold(BaseModel):
-    matches: List[BrandToRetailerProductMatchingScaffold]
+class AnyMatchingOfferScaffold(BaseModel):
+    """
+    This is a simpler model of a match that works for both deep indexed products and shallow matches
+    (from google shopping and/or price lite fetching)
+    """
+
+    product_matching_id: Union[uuid.UUID, str] = Field(
+        description="The id of the match"
+    )
+    retailer_product_id: Union[uuid.UUID, str] = Field(
+        description="The id of the retailer product"
+    )
+    name: str = Field(description="The name of the retailer offer")
+    retailer_price: float = Field(
+        description="The price of the offer (standard format)"
+    )
+    currency: str = Field(description="The currency of the offer")
+    country: str = Field(description="The country of the retailer")
+    retailer_name: str = Field(description="The name of the retailer")
+    url: str = Field(description="The url of the retailer offer")
+    retailer_price_in_user_currency: Optional[float] = Field(
+        description="The price of the offer converted to the user currency"
+    )
+    user_currency: Optional[str] = Field(description="The user currency")
 
     class Config:
         orm_mode = True
+
+
+class BrandProductDeepMatchesScaffold(BaseModel):
+    matches: List[BrandToDeepRetailerProductMatchingScaffold]
+
+    class Config:
+        orm_mode = True
+
+
+class BrandProductAllOffersScaffold(BaseModel):
+    matches: List[AnyMatchingOfferScaffold]
 
 
 class BrandKeywordsScaffold(BaseModel):
