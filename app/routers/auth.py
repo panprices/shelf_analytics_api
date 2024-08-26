@@ -58,6 +58,19 @@ SHELF_ANALYTICS_ROLE_ADMIN = "admin"
 
 
 async def get_user_metadata(postgres_db: Session, uid: str) -> Optional[UserMetadata]:
+    """
+    Collect all the relevant metadata for the user:
+
+    From firestore:
+    - roles
+    - full name
+    - email address
+    - id of the corresponding brand (client)
+
+    From postgres:
+    - brand name
+    - access to extra features (`extra_features_registry` table)
+    """
     db = firestore.AsyncClient()
     user_metadata = (
         await db.collection(SHELF_ANALYTICS_USER_METADATA_COLLECTION)
@@ -85,7 +98,7 @@ async def authenticate_verified_user(
 ) -> AuthenticationResponse:
     """
     This method should only be called once the user has verified that they are who they pretend to be either by
-    providing a password or a valid firebase token.
+    providing a valid firebase token or a valid magic did token
     """
     user_metadata = await get_user_metadata(postgres_db, uid)
     if not user_metadata:
@@ -97,6 +110,7 @@ async def authenticate_verified_user(
 
     token_data = TokenData(uid=uid, **user_metadata.dict())
 
+    # The token encodes user specific data, such as: brand name, roles etc.
     token = jwt.encode(
         {"data": token_data.dict(), "exp": datetime.utcnow() + timedelta(hours=48)},
         JWT_SECRET_KEY,
@@ -104,43 +118,6 @@ async def authenticate_verified_user(
     )
 
     return AuthenticationResponse(jwt=token, success=True)
-
-
-@router.post(
-    "/withEmailAndPassword", tags=[TAG_AUTH], response_model=AuthenticationResponse
-)
-async def authenticate(
-    user: AuthenticationRequest,
-    response: Response,
-    postgres_db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
-):
-    """
-    This endpoint can be directly used with the credentials (email + password)
-
-    We generate our own JWT token as opposed to simply using the one provided by firebase because we want to be able to
-    include other information in the token, such as the client that the user works for, and the roles they have.
-    Firebase has some documentation on creating custom tokens:
-    https://firebase.google.com/docs/auth/admin/create-custom-tokens#using_a_service_account_json_file but there is no
-    easy way to later check if those tokens are valid later, when we receive them in the backend. It seems like the
-    purpose of these custom tokens is to allow for custom fields when writing rules for firestore (what a user can and
-    can not do over there).
-    """
-
-    firebase_response = requests.post(
-        rest_api_url + "?key=" + settings.firebase_api_key,
-        data={
-            "email": user.email,
-            "password": user.password,
-            "returnSecureToken": True,
-        },
-    )
-    if firebase_response.status_code != 200:
-        response.status_code = firebase_response.status_code
-        return AuthenticationResponse(success=False)
-
-    uid = auth.get_user_by_email(user.email, app=firebase_app).uid
-    return await authenticate_verified_user(postgres_db, uid)
 
 
 @router.post(
@@ -188,10 +165,26 @@ def invite_user_by_mail(
     postgres_db=Depends(get_db),
 ):
     if SHELF_ANALYTICS_ROLE_ADMIN not in inviting_user.roles:
+        """
+        Only admins are allowed to send out invitation.
+
+        The ADMIN role is stored in the JWT token, so it might take up to 48 hours for the role to be reflected in
+        the actual token. If the user wants to access this feature ASAP, they should log out and back into the loupe
+        dashboard.
+        """
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {"success": False}
 
     alphabet = string.ascii_letters + string.digits
+    """
+    Each firebase user is required to have a password. 
+    
+    We generate a random password that we don't store anywhere, and we never see it. In theory a user can be 
+    authenticated using their email and this password, but since no one actually knows the password it's practically 
+    impossible to use this authentication method. 
+    
+    This was done on purpose, since we want users to authenticate using Magic links or one time passwords.
+    """
     password = "".join(secrets.choice(alphabet) for _ in range(20))
 
     try:
@@ -251,8 +244,21 @@ def invite_user_by_mail(
 async def authenticate_with_magic_link(
     magic_request: MagicAuthRequest, postgres_db: Session = Depends(get_db)
 ):
+    """
+    Authenticate using a magic did token.
+
+    In the frontend we created a special Microsoft Outlook login case. This was triggered by the fact that Outlook has a
+    checking function for URLs embedded in emails, so the Mail Server would open up the log in URL, which in turn logs
+    the user in on the Mail Server.
+
+    We detect this problem happening and route the user through a back-up log in flow based on One Time Passwords (OTP).
+
+    All of this flow is defined on the front-end, the back-end Magic Auth is agnostic to this flow. It only cares about
+    getting a valid magic did token which can be generated by either Magic Link or Magic OTP.
+    """
     magic = Magic(api_secret_key=get_settings().magic_api_secret_key)
     try:
+        # Validate the token using Magic's API. If the token is invalid, this invocation throws an error
         magic.Token.validate(magic_request.did_token)
         metadata = magic.User.get_metadata_by_token(magic_request.did_token)
         email = metadata.data["email"]
