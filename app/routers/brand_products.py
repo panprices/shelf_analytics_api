@@ -10,6 +10,8 @@ from app.crud.utils import (
     create_append_to_history_reducer,
     extract_minimal_values,
     export_rows_to_xlsx,
+    process_historical_value_per_retailer,
+    duplicate_unique_points,
 )
 from app.database import get_db
 from app.models import ProductMatching
@@ -176,6 +178,27 @@ async def get_all_retailer_offers_for_brand_product(
         output_model_class=AnyMatchingOfferScaffold,
     )
     return {"matches": processed_matches}
+
+
+@router.post(
+    "/{brand_product_id}/msrp_deviation",
+    tags=[TAG_DATA],
+    response_model=HistoricalPerRetailerResponse,
+)
+def get_historical_msrp_deviation_per_retailer_for_product(
+    brand_product_id: str,
+    global_filter: GlobalFilter,
+    user: TokenData = Depends(get_logged_in_user_data),
+    db: Session = Depends(get_db),
+):
+    history = crud.get_historical_msrp_deviation_per_retailer_for_product(
+        db, global_filter, user.client, brand_product_id
+    )
+    grouped_history = process_historical_value_per_retailer(
+        history, "average_price_deviation", False
+    )
+
+    return duplicate_unique_points(grouped_history)
 
 
 @router.post(
