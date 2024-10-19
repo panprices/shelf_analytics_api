@@ -24,6 +24,10 @@ def add_user_currency_to_retailer_offers(
     currencies = get_currency_exchange_rates(db, user_currency)
     updated_products = []
     for product in products:
+        # Skip product if the retailer_price is None
+        if product.retailer_price is None:
+            continue
+
         # Grab the conversion rate for the product's currency
         product_currency = product.currency
         if product_currency not in currencies:
