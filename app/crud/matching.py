@@ -1,0 +1,303 @@
+from sqlalchemy import text
+from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm.attributes import set_committed_value
+
+from app.crud import convert_rows_to_dicts
+from app.models import RetailerProduct, ProductMatching, ManualUrlMatching, MatchingTask
+from app.models.retailer import RetailerImage
+from app.schemas.filters import GlobalFilter
+
+
+def _compose_product_matching_tasks_query(global_filters: GlobalFilter):
+    return f"""
+        SELECT brand_product_id, retailer_id, skip_count
+        FROM matching_task mt
+            JOIN brand_product bp ON bp.id = mt.brand_product_id
+            JOIN retailer r ON mt.retailer_id = r.id
+        WHERE mt.status = 'pending' 
+            AND bp.brand_id = :brand_id
+            AND bp.active = TRUE
+            {"AND retailer_id IN :retailers" if global_filters.retailers else ""}
+            {"AND r.country IN :countries" if global_filters.countries else ""}
+            {"AND bp.category_id IN :categories" if global_filters.categories else ""}
+            {'''
+                AND brand_product_id IN (
+                    SELECT product_id 
+                    FROM product_group_assignation pga 
+                    WHERE pga.product_group_id IN :groups
+                )
+            ''' if global_filters.groups else ""}
+    """
+
+
+def get_next_brand_product_to_match(
+    db: Session, brand_id: str, global_filters: GlobalFilter, index: int
+):
+    """
+    We order the tasks randomly to allow multiple users to work on the same brand at the same time.
+    This reduces the risk of task collision.
+
+    :param db:
+    :param brand_id:
+    :param global_filters:
+    :param index:
+    :return:
+    """
+    statement = f"""
+        {_compose_product_matching_tasks_query(global_filters)}
+        ORDER BY skip_count ASC, RANDOM() DESC
+        LIMIT 1 
+    """
+
+    result = db.execute(
+        text(statement),
+        params={
+            "brand_id": brand_id,
+            "index": index,
+            "retailers": tuple(global_filters.retailers),
+            "countries": tuple(global_filters.countries),
+            "categories": tuple(global_filters.categories),
+            "groups": tuple(global_filters.groups),
+        },
+    ).all()
+
+    return convert_rows_to_dicts(result)[0] if len(result) > 0 else None
+
+
+def count_product_matching_tasks(
+    db: Session, brand_id: str, global_filters: GlobalFilter
+):
+    statement = f"""
+        SELECT COUNT(*) 
+        FROM ({_compose_product_matching_tasks_query(global_filters)}) AS subquery
+    """
+
+    return db.execute(
+        text(statement),
+        params={
+            "brand_id": brand_id,
+            "retailers": tuple(global_filters.retailers),
+            "countries": tuple(global_filters.countries),
+            "categories": tuple(global_filters.categories),
+            "groups": tuple(global_filters.groups),
+        },
+    ).scalar()
+
+
+def get_brand_product_to_match_deterministically(
+    db: Session, brand_product_id: str, retailer_id: str
+):
+    statement = f"""
+        SELECT bp.id, rp.retailer_id 
+        FROM brand_product bp
+            JOIN product_matching pm ON bp.id = pm.brand_product_id
+            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+        WHERE bp.id = :brand_product_id AND rp.retailer_id = :retailer_id
+        GROUP BY bp.id, rp.retailer_id
+    """
+
+    result = db.execute(
+        text(statement),
+        params={
+            "brand_product_id": brand_product_id,
+            "retailer_id": retailer_id,
+        },
+    ).all()
+
+    return convert_rows_to_dicts(result)[0]
+
+
+def get_matched_retailer_products_by_brand_product_id(
+    db: Session, brand_product_id: str, retailer_id: str
+):
+    statement = f"""
+        SELECT rp.*
+        FROM (
+            SELECT * FROM retailer_product
+            WHERE retailer_id = :retailer_id
+        ) rp JOIN (
+            SELECT * FROM product_matching
+            WHERE brand_product_id = :brand_product_id
+                AND temp_wrong = FALSE
+        ) pm ON rp.id = pm.retailer_product_id
+            JOIN retailer_to_brand_mapping rbm ON rbm.retailer_id = rp.retailer_id;
+    """
+
+    matched_images_statement = f"""
+        SELECT im.*
+        FROM image_matching im     
+            JOIN product_matching pm ON im.product_matching_id = pm.id
+            JOIN retailer_product rp ON rp.id = pm.retailer_product_id
+        WHERE pm.brand_product_id = :brand_product_id
+            AND rp.retailer_id = :retailer_id;
+    """
+
+    result = (
+        db.query(RetailerProduct)
+        .from_statement(text(statement))
+        .params(brand_product_id=brand_product_id, retailer_id=retailer_id)
+        .options(
+            selectinload(RetailerProduct.category),
+            selectinload(RetailerProduct.images),
+            selectinload(RetailerProduct.retailer),
+            selectinload(RetailerProduct.images).selectinload(
+                RetailerImage.type_predictions
+            ),
+            selectinload(RetailerProduct.matched_brand_products),
+            selectinload(RetailerProduct.matched_brand_products).selectinload(
+                ProductMatching.image_matches
+            ),
+            selectinload(RetailerProduct.images).selectinload(
+                RetailerImage.matched_brand_images
+            ),
+        )
+        .all()
+    )
+
+    matched_images = db.execute(
+        text(matched_images_statement),
+        params={
+            "brand_product_id": brand_product_id,
+            "retailer_id": retailer_id,
+        },
+    ).all()
+
+    matched_images = convert_rows_to_dicts(matched_images)
+
+    for retailer_product in result:
+        for image in retailer_product.processed_images:
+            set_committed_value(
+                image,
+                "matched_brand_images",
+                [
+                    matched_image
+                    for matched_image in matched_images
+                    if matched_image["retailer_image_id"] == image.id
+                ],
+            )
+
+    return result
+
+
+def submit_product_matching_selection(
+    db: Session,
+    brand_product_id: str,
+    retailer_product_ids: list[str],
+    retailer_id: str,
+):
+    db.query(ProductMatching).filter(
+        ProductMatching.brand_product_id == brand_product_id,
+        ProductMatching.retailer_product_id.in_(retailer_product_ids),
+    ).update({"certainty": "manual_input"})
+
+    db.query(ProductMatching).filter(
+        ProductMatching.brand_product_id == brand_product_id,
+        ProductMatching.retailer_product_id == RetailerProduct.id,
+        RetailerProduct.retailer_id == retailer_id,
+        ProductMatching.retailer_product_id.notin_(retailer_product_ids),
+    ).update({"certainty": "not_match"}, synchronize_session="fetch")
+
+    db.commit()
+
+
+def invalidate_product_matching_selection(
+    db: Session, brand_product_id: str, retailer_id: str, certainty: str = "not_match"
+):
+    # Invalidate all other potential matches
+    db.query(ProductMatching).filter(
+        ProductMatching.brand_product_id == brand_product_id,
+        ProductMatching.retailer_product_id == RetailerProduct.id,
+        RetailerProduct.retailer_id == retailer_id,
+        ProductMatching.certainty >= "auto_low_confidence_skipped",
+        ProductMatching.certainty <= "auto_low_confidence",
+    ).update({"certainty": certainty}, synchronize_session="fetch")
+
+    db.commit()
+
+
+def invalidate_single_match(db: Session, product_matching_id: str):
+    (
+        db.query(ProductMatching)
+        .filter(ProductMatching.id == product_matching_id)
+        .update({"certainty": "not_match"}, synchronize_session="fetch")
+    )
+
+    time_series_statement = f"""
+        DELETE FROM product_matching_time_series
+        WHERE product_matching_id = :product_matching_id
+    """
+
+    db.execute(
+        text(time_series_statement), params={"product_matching_id": product_matching_id}
+    )
+
+    db.commit()
+
+
+def check_user_has_rights_over_match(
+    db: Session, product_matching_id: str, user_brand_id: str
+):
+    statement = """
+        SELECT COUNT(*)
+        FROM (
+            SELECT * FROM product_matching WHERE id = :product_matching_id
+        ) pm 
+            JOIN brand_product bp ON bp.id = pm.brand_product_id
+        WHERE bp.brand_id = :user_brand_id 
+    """
+
+    has_access = db.execute(
+        text(statement),
+        params={
+            "product_matching_id": product_matching_id,
+            "user_brand_id": user_brand_id,
+        },
+    ).scalar()
+
+    return has_access > 0
+
+
+def submit_product_matching_url(
+    db: Session, user_id: str, brand_product_id: str, retailer_id: str, url: str
+):
+    # Insert a new ManualUrlMatching object
+    manual_url_matching = ManualUrlMatching(
+        user_id=user_id,
+        brand_product_id=brand_product_id,
+        url=url,
+        status="pending",
+        retailer_id=retailer_id,
+    )
+    db.add(manual_url_matching)
+    db.commit()
+
+    invalidate_product_matching_selection(db, brand_product_id, retailer_id)
+
+
+def mark_task_skipped(db: Session, brand_product_id: str, retailer_id: str):
+    db.query(MatchingTask).filter(
+        MatchingTask.brand_product_id == brand_product_id,
+        MatchingTask.retailer_id == retailer_id,
+    ).update({"skip_count": MatchingTask.skip_count + 1}, synchronize_session="fetch")
+
+    db.commit()
+
+
+def mark_task_completed(db: Session, brand_product_id: str, retailer_id: str):
+    db.query(MatchingTask).filter(
+        MatchingTask.brand_product_id == brand_product_id,
+        MatchingTask.retailer_id == retailer_id,
+    ).update({"status": "completed"}, synchronize_session="fetch")
+
+    db.commit()
+
+
+def get_task_solution(db: Session, brand_product_id: str, retailer_id: str):
+    return (
+        db.query(MatchingTask.solutions, MatchingTask.llm_solution)
+        .filter(
+            MatchingTask.retailer_id == retailer_id,
+            MatchingTask.brand_product_id == brand_product_id,
+        )
+        .first()
+    )

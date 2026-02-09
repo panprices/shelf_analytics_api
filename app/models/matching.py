@@ -1,0 +1,92 @@
+import enum
+
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import ForeignKey, Column, Enum, Float, String, Integer
+from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship
+
+from app.database import Base
+from app.models.mixins import UpdatableMixin, UUIDPrimaryKeyMixin
+
+
+class MatchingType(enum.Enum):
+    gtin_join = object()
+    gtin_search = object()
+    image = object()
+
+
+class MatchingCertaintyType(enum.Enum):
+    manual_input = "manual_input"
+    auto_high_confidence = "auto_high_confidence"
+    auto_low_confidence = "auto_low_confidence"
+    auto_low_confidence_skipped = "auto_low_confidence_skipped"
+    brand_mismatch = "brand_mismatch"
+    not_match = "not_match"
+
+
+class ProductMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
+    __tablename__ = "product_matching"
+
+    brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
+    retailer_product_id = Column(UUID(as_uuid=True), ForeignKey("retailer_product.id"))
+    type = Column(Enum(MatchingType))
+    image_score = Column(Float)
+    title_score = Column(Float)
+    description_score = Column(Float)
+    specs_score = Column(Float)
+    text_score = Column(Float)
+    certainty = Column(Enum(MatchingCertaintyType))
+
+    brand_product = relationship(
+        "BrandProduct", back_populates="matched_retailer_products"
+    )
+    retailer_product = relationship(
+        "RetailerProduct", back_populates="matched_brand_products"
+    )
+    image_matches = relationship("ImageMatching", back_populates="product_matching")
+
+    @hybrid_property
+    def is_matched(self):
+        return self.certainty not in [
+            MatchingCertaintyType.auto_low_confidence,
+            MatchingCertaintyType.not_match,
+        ]
+
+
+class ManualUrlMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
+    __tablename__ = "manual_matching_urls"
+
+    url: str = Column(String)
+    brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
+    retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
+    status = Column(String)
+    user_id = Column(String)
+
+
+class MatchingTask(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
+    __tablename__ = "matching_task"
+
+    brand_product_id = Column(UUID(as_uuid=True), ForeignKey("brand_product.id"))
+    retailer_id = Column(UUID(as_uuid=True), ForeignKey("retailer.id"))
+    status = Column(String)
+    skip_count = Column(Integer)
+    solutions = Column(postgresql.ARRAY(UUID(as_uuid=True)), nullable=True)
+    llm_solution = Column(JSONB, nullable=True)
+
+
+class ImageMatching(Base, UUIDPrimaryKeyMixin, UpdatableMixin):
+    __tablename__ = "image_matching"
+
+    product_matching_id = Column(UUID(as_uuid=True), ForeignKey("product_matching.id"))
+    brand_image_id = Column(UUID(as_uuid=True), ForeignKey("brand_image.id"))
+    retailer_image_id = Column(UUID(as_uuid=True), ForeignKey("retailer_image.id"))
+    distance = Column(Float)
+    model_certainty = Column(Float)
+
+    product_matching = relationship("ProductMatching", back_populates="image_matches")
+    brand_image = relationship("BrandImage", back_populates="matched_retailer_images")
+    retailer_image = relationship(
+        "RetailerImage", back_populates="matched_brand_images"
+    )

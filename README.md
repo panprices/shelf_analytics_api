@@ -1,0 +1,111 @@
+# What is this
+The middleware used in the digital shelf analytics solution.
+
+
+# How to run
+
+## 1. Make sure you are logger into the GCP CLI
+Run the following command:
+
+```bash
+gcloud config list project
+```
+
+You want the following result: `project = panprices`. If you are seeing something else you can just run this:
+
+```bash
+gcloud init
+```
+
+## 2. Create a .env file
+We have a .example_env file which you need to save as .env and replace the values with secrets from GCP's Secret Manager: https://console.cloud.google.com/security/secret-manager?project=panprices
+
+You can do this automatically by running the following script and specifying in a flag if you want the --sandbox or --production environment secrets.: 
+
+```bash
+chmod +x get_env_from_gcp.sh
+./get_env_from_gcp.sh --sandbox
+```
+
+## 3. Run the GCP Cloud SQL Proxy
+
+Download it here: https://cloud.google.com/sql/docs/postgres/sql-proxy
+
+Run it with the following for sandbox: 
+
+```bash
+./cloud_sql_proxy -instances=panprices:europe-west1:panprices-core-sandbox=tcp:5432
+```
+
+And for production:
+
+```bash
+./cloud_sql_proxy -instances=panprices:europe-west1:panprices-core=tcp:5432
+```
+
+## 4. Install the dependencies in a pipenv
+```bash
+pipenv sync --dev
+```
+
+## 5. Start a pipenv shell
+```bash
+pipenv shell
+```
+
+## 6. Run the app in the new shell
+```bash
+python -m uvicorn app.main:app --reload --log-level debug
+```
+
+## How to test
+Make sure that: 
+1. The API is running on localhost:8000
+2. You are connected to the database through cloud-sql-proxy.
+3. You replaced the API JWT in [config](benchmark/config.py) with a valid one (can be grabbed from the local storage in your browser by visiting the [production website](https://app.getloupe.co))
+
+### Benchmarks 
+Open up the repo in another terminal window and run:
+
+```bash
+pipenv run benchmark
+```
+
+### Tests
+Open up the repo in another terminal window and run:
+
+Then open up the repo in another terminal window and run:
+```bash
+pipenv run test
+```
+
+This is a work in progress and at the time of writing we only have tests for the external API endpoint.
+
+## Using Swagger / OpenAPI
+When you run the project you can access the docs of the API at: http://localhost:8000/docs
+
+I find the UI helpful for testing my endpoints, as they are aware of the *example* values from the pydantic models, 
+which makes it very easy to create a quick JSON test. 
+
+For the authenticated endpoints: 
+1. Click on **Authorize**
+2. Notice there are 2 different authentication methods 
+    - API keys: for the public API endpoints
+    - Bearer token: for the API touched by the frontend project
+
+For the API key: 
+1. go to dashboard, logged in with a user account 
+2. go to settings and copy an existing API key
+
+For the bearer token: 
+1. Open https://app.getloupe.co/ in a browser where you are logged in
+2. Open the developer console in the browser (F12)
+3. Go to storage (Firefox) or Application (Chrome) 
+4. Go to local storage 
+5. Copy the value of `api_token`
+
+Now you can: 
+1. Click on and endpoint
+2. Click on **Try it out**
+3. Fill in the required parameters
+4. Click on **Execute** to test your endpoint

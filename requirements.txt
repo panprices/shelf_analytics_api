@@ -1,0 +1,101 @@
+-i https://pypi.org/simple
+aiohttp==3.9.5 ; python_version >= '3.8'
+aiosignal==1.3.1 ; python_version >= '3.7'
+anyio==3.7.1 ; python_version >= '3.7'
+asgiref==3.8.1 ; python_version >= '3.8'
+async-timeout==4.0.3 ; python_version < '3.11'
+attrs==23.2.0 ; python_version >= '3.7'
+base58==2.1.1 ; python_version >= '3.5'
+bitarray==2.9.2
+cachecontrol==0.14.0 ; python_version >= '3.7'
+cachetools==5.3.3
+certifi==2024.2.2 ; python_version >= '3.6'
+cffi==1.16.0 ; platform_python_implementation != 'PyPy'
+charset-normalizer==3.3.2 ; python_full_version >= '3.7.0'
+click==8.1.7 ; python_version >= '3.7'
+cryptography==42.0.7
+cytoolz==0.12.3 ; implementation_name == 'cpython'
+ecdsa==0.19.0 ; python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'
+eth-abi==2.2.0 ; python_version >= '3.6' and python_version < '4'
+eth-account==0.5.9 ; python_version >= '3.6' and python_version < '4'
+eth-hash[pycryptodome]==0.7.0 ; python_version >= '3.8' and python_version < '4'
+eth-keyfile==0.5.1
+eth-keys==0.3.4
+eth-rlp==0.2.1 ; python_version >= '3.6' and python_version < '4'
+eth-typing==2.3.0 ; python_version >= '3.5' and python_version < '4'
+eth-utils==1.9.5 ; python_version >= '3.5' and python_version < '4' and python_full_version != '3.5.2'
+exceptiongroup==1.2.1 ; python_version < '3.11'
+fastapi==0.109.2
+firebase-admin==6.5.0
+frozenlist==1.4.1 ; python_version >= '3.8'
+google-api-core[grpc]==2.19.0 ; platform_python_implementation != 'PyPy'
+google-api-python-client==2.127.0 ; python_version >= '3.7'
+google-auth==2.29.0 ; python_version >= '3.7'
+google-auth-httplib2==0.2.0
+google-cloud-core==2.4.1 ; python_version >= '3.7'
+google-cloud-firestore==2.16.0 ; platform_python_implementation != 'PyPy'
+google-cloud-storage==2.16.0 ; python_version >= '3.7'
+google-crc32c==1.5.0 ; python_version >= '3.7'
+google-resumable-media==2.7.0 ; python_version >= '3.7'
+googleapis-common-protos==1.63.0 ; python_version >= '3.7'
+greenlet==3.0.3 ; python_version >= '3' and platform_machine == 'aarch64' or (platform_machine == 'ppc64le' or (platform_machine == 'x86_64' or (platform_machine == 'amd64' or (platform_machine == 'AMD64' or (platform_machine == 'win32' or platform_machine == 'WIN32')))))
+grpcio==1.63.0
+grpcio-status==1.48.2
+h11==0.14.0 ; python_version >= '3.7'
+hexbytes==0.3.1 ; python_version >= '3.7' and python_version < '4'
+httpcore==1.0.5 ; python_version >= '3.8'
+httplib2==0.22.0 ; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
+httptools==0.2.0
+httpx==0.27.0
+idna==3.7 ; python_version >= '3.5'
+ipfshttpclient==0.8.0a2 ; python_full_version >= '3.6.2' and python_full_version not in '3.7.0, 3.7.1'
+jinja2==3.1.4
+jsonschema==4.22.0 ; python_version >= '3.8'
+jsonschema-specifications==2023.12.1 ; python_version >= '3.8'
+lru-dict==1.3.0 ; python_version >= '3.8'
+magic-admin==1.0.0
+markupsafe==2.1.5 ; python_version >= '3.7'
+msgpack==1.0.8 ; python_version >= '3.8'
+multiaddr==0.0.9 ; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
+multidict==6.0.5 ; python_version >= '3.7'
+netaddr==1.2.1 ; python_version >= '3.7'
+numpy==1.26.4 ; python_version < '3.10'
+pandas==1.5.3
+parsimonious==0.8.1
+proto-plus==1.23.0 ; python_version >= '3.6'
+protobuf==3.19.5 ; python_version >= '3.5'
+psycopg2-binary==2.9.9
+pyasn1==0.6.0 ; python_version >= '3.8'
+pyasn1-modules==0.4.0 ; python_version >= '3.8'
+pycparser==2.22 ; python_version >= '3.8'
+pycryptodome==3.20.0
+pydantic==1.10.15
+pyjwt[crypto]==2.8.0 ; python_version >= '3.7'
+pyparsing==3.1.2 ; python_version >= '3.1'
+python-dateutil==2.9.0.post0 ; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
+python-dotenv==1.0.1
+python-jose[cryptography]==3.3.0
+pytz==2024.1
+pyyaml==6.0.1
+referencing==0.35.1 ; python_version >= '3.8'
+requests==2.31.0
+rlp==2.0.1
+rpds-py==0.18.1 ; python_version >= '3.8'
+rsa==4.9 ; python_version >= '3.6' and python_version < '4'
+six==1.16.0 ; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
+sniffio==1.3.1 ; python_version >= '3.7'
+sqlalchemy==1.4.52
+starlette==0.36.3
+structlog==24.1.0
+toolz==0.12.1 ; python_version >= '3.7'
+typing-extensions==4.11.0 ; python_version >= '3.8'
+uritemplate==4.1.1 ; python_version >= '3.6'
+urllib3==2.2.1 ; python_version >= '3.8'
+uvicorn[standard]==0.15.0
+uvloop==0.19.0
+varint==1.0.2
+watchgod==0.8.2
+web3==5.31.4 ; python_version >= '3.6' and python_version < '4'
+websockets==9.1 ; python_full_version >= '3.6.1'
+xlsxwriter==3.2.0
+yarl==1.9.4 ; python_version >= '3.7'

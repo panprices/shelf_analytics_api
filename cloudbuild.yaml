@@ -1,0 +1,16 @@
+steps:
+  - name: "gcr.io/cloud-builders/gcloud"
+    waitFor: ["-"]
+    args:
+      - run
+      - deploy
+      - shelf-analytics-middleware
+      - --region=europe-west1
+      - --source=.
+      - --min-instances=1
+      - --max-instances=5
+      - --cpu=1
+      - --memory=4Gi
+      - --add-cloudsql-instances=panprices:europe-west1:panprices-core
+      - --set-env-vars=PANPRICES_ENVIRONMENT=production
+      - --update-secrets=DB_NAME=POSTGRES_PRODUCTION_SHELF_ANALYTICS_DB:latest,DB_USER=POSTGRES_PRODUCTION_USER:latest,DB_PASS=POSTGRES_PRODUCTION_PASSWORD:latest,DB_HOST=POSTGRES_PRODUCTION_HOST:latest,FIREBASE_API_KEY=firebase_api_key:latest,JWT_SECRET=SHELF_ANALYTICS_JWT_SECRET:latest,POSTMARK_API_TOKEN=POSTMARK_API_TOKEN:latest,API_KEYS_SECRET_SALT=API_KEYS_SECRET_SALT:latest,FERNET_SECRET_KEY=API_KEYS_FERNET_SECRET:latest

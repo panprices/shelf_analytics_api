@@ -1,0 +1,12 @@
+TAG_AVAILABILITY = "availability"
+TAG_OVERVIEW = "overview"
+TAG_FILTERING = "filtering"
+TAG_DATA = "data"
+TAG_AUTH = "auth"
+TAG_PERFORMANCE = "performance"
+TAG_CONTENT = "content"
+TAG_MATCHING = "matching"
+TAG_GROUPS = "groups"
+TAG_PRICE = "price"
+
+TAG_EXTERNAL = "external"
